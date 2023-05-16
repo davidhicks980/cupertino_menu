@@ -1,16 +1,3 @@
 # cupertino_menu
 
-A new Flutter project.
-
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+A draft implementation of a iOS menu in Flutter. !!This should not be used in production!! It exists to demonstrate how an expandable dropdown menu could function in Flutter. [Check out this project](https://github.com/notDmDrl/pull_down_button) for a polished Cupertino menu that you can use in your applications (and that inspired this repo). 
