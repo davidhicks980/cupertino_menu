@@ -1787,12 +1787,6 @@ class _CupertinoMenuState<T> extends State<CupertinoMenu<T>>
                           builder: (BuildContext context) {
                             final CupertinoMenuModel model = CupertinoMenu.of(context);
                             _updateRepaintListenable(model.nestingAnimation);
-                            _repaintFlow = Listenable.merge(<Listenable?>[
-                              _panPosition,
-                              _rootMenuRectNotifier,
-                              model.nestingAnimation,
-                              widget.animation,
-                            ]);
                             return Flow(
                               clipBehavior: Clip.none,
                               delegate: _CupertinoMenuFlowDelegate(
