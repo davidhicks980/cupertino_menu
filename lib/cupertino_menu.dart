@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
+
 import 'cupertino_menu_item.dart';
 
 /// Signature used by [CupertinoMenuButton] to lazily construct menu items shown
@@ -3497,11 +3498,11 @@ class _MenuBody<T> extends StatefulWidget {
 class _MenuBodyState<T> extends State<_MenuBody<T>> {
   final ScrollController _controller = ScrollController();
   late List<double> _offsets;
+  bool _isTopLayer = false;
+   double _height = 0.0;
+  ScrollPhysics? _physics;
   // The height occupied by a [CupertinoStickyMenuHeader], if one is provided.
   double _headerOffset = 0.0;
-  bool _isTopLayer = false;
-  final double _height = 0.0;
-  ScrollPhysics? _physics;
 
   @override
   void initState() {
@@ -3552,13 +3553,13 @@ class _MenuBodyState<T> extends State<_MenuBody<T>> {
       WidgetsBinding.instance.addPostFrameCallback(
         (Duration timeStamp) {
           if(mounted) {
-            final double height = (childSize.height + _headerOffset).roundToDouble();
+            _height = (childSize.height + _headerOffset).roundToDouble();
             context
               ..findAncestorStateOfType<CupertinoMenuLayerScopeState>()
-                  !._setLayerHeight(height)
+                  !._setLayerHeight(_height)
               ..findAncestorStateOfType<MenuScopeState>()
                   !._setNestedLayerHeight(
-                    height: height, 
+                    height: _height, 
                     coordinates: coordinates,
                   );
           }
@@ -3571,7 +3572,7 @@ class _MenuBodyState<T> extends State<_MenuBody<T>> {
     if (
       _isTopLayer && 
       _controller.hasClients && 
-      _controller.position.extentTotal != _height
+      _controller.position.extentTotal != CupertinoMenuLayerScope.of(context).constraintsTween.end?.maxHeight
     ) {
       return widget.physics;
     } else {
@@ -3622,6 +3623,7 @@ class _MenuBodyState<T> extends State<_MenuBody<T>> {
     final CupertinoMenuLayerModel layerScope = CupertinoMenuLayerScope.of(context);
     _isTopLayer = layerScope.coordinates.depth == topLayer;
     _physics = _updateScrollPhysics();
+    RelativeRect sliverInsets = RelativeRect.fill;
     if (
       widget.children.firstOrNull
         case ScopedMenuTreeCoordinates(
@@ -3631,9 +3633,13 @@ class _MenuBodyState<T> extends State<_MenuBody<T>> {
         )
     ) {
       _headerOffset = MediaQuery.textScalerOf(context).scale(height);
+      if(_isTopLayer){
+        sliverInsets = RelativeRect.fromLTRB(0, _headerOffset, 0, 0);
+      }
     } else {
       _headerOffset = 0.0;
     }
+    
 
     return Semantics(
       scopesRoute: true,
@@ -3663,7 +3669,11 @@ class _MenuBodyState<T> extends State<_MenuBody<T>> {
                   ),
                 ),
               _SliverClippedInsets(
-                insets: RelativeRect.fromLTRB(0, _headerOffset, 0, 0),
+                // TODO(davidhicks980): It is necessary to set
+                // the header offset to 0 when the menu is not the top layer,
+                // because the bottom SliverPersistentHeader disappears without it.
+                // This is a hacky solution, and should be fixed.
+                insets:  sliverInsets,
                 child: SliverToBoxAdapter(
                   child: _UnsafeSizeChangedLayoutNotifier(
                     onLayoutChanged: _handleLayoutChanged,
@@ -3787,7 +3797,7 @@ class _RenderSliverClippedInsets extends RenderProxySliver {
       layer = null;
       return;
     }
-
+    
     if (geometry!.visible) {
       final Rect rect = switch (constraints.axis) {
         Axis.horizontal => Rect.fromLTRB(

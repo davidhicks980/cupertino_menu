@@ -1,3 +1,5 @@
+import 'package:cupertino_menu/cupertino_menu.dart';
+import 'package:cupertino_menu/cupertino_menu_item.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -20,29 +22,31 @@ class CupertinoMenuExample extends StatefulWidget {
 
 class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder(
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder(
         valueListenable: _darkThemeToggle,
         builder: (BuildContext context, bool value, Widget? child) {
           return MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            platformBrightness: value ? Brightness.dark : Brightness.light,
-          ),
-          child: CupertinoApp(
-            localizationsDelegates: const [
-              GlobalCupertinoLocalizations.delegate,
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-            ],
-            routes: <String, WidgetBuilder>{
-              '/next': (BuildContext context) => const Text('Next'),
-            },
-            title: 'CupertinoMenu Example',
-            home: const MyHomePage(),
-          ),
-          
-        );
+            data: MediaQuery.of(context).copyWith(
+              platformBrightness: value ? Brightness.dark : Brightness.light,
+            ),
+            child: CupertinoApp(
+              localizationsDelegates: const [
+                GlobalCupertinoLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+              ],
+              routes: <String, WidgetBuilder>{
+                '/next': (BuildContext context) => const Text('Next'),
+              },
+              title: 'CupertinoMenu Example',
+              home: const MyHomePage(),
+            ),
+            
+          );
         },
       );
+  }
 }
 
 class MyHomePage extends StatefulWidget {
@@ -172,7 +176,8 @@ class Settings extends StatelessWidget {
       alignment: Alignment.topLeft,
       scale: 0.9,
       child: StatefulBuilder(
-        builder: (context, setState) => show
+        builder: (context, setState) {
+          return show
             ? SizedBox(
                 width: 300,
                 height: 300,
@@ -262,7 +267,8 @@ class Settings extends StatelessWidget {
                   },
                   child: const Icon(CupertinoIcons.settings),
                 ),
-              ),
+              );
+        },
       ),
     );
   }
@@ -355,10 +361,10 @@ class _CupertinoMenuSampleState extends State<CupertinoMenuSample> {
                CupertinoCheckedMenuItem(
                 value: "🐱",
                 checked: _checkedValue == "🐱",
-                child: Text('🐱, and pop the menu'),
+                child: Text('🐱, and pop the menu', style: TextStyle(height: 1.35)),
               ),
             ],
-            subtitle:  Text(_checkedValue),
+            subtitle:  Text(_checkedValue, style: TextStyle(height: 1.35)),
             child: const Text('Favorite Animal'),
           ),
           CupertinoCheckedMenuItem(

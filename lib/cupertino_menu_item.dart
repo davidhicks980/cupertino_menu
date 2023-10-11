@@ -6,7 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:pull_down_button/cupertino_menu.dart';
+
+import 'cupertino_menu.dart';
 
 const bool isTransparent = true;
 
@@ -688,7 +689,13 @@ class _CupertinoMenuItemStructure extends StatelessWidget {
               ),
               Expanded(
                 child: subtitle != null
-                    ? ListBody(children: <Widget>[title, subtitle!])
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          title, 
+                          subtitle!,
+                        ],
+                      )
                     : title,
               ),
               const SizedBox(width: 4),
@@ -1393,7 +1400,7 @@ class _CupertinoNestedMenuItemAnchorState<T>
   late Animation<TextStyle>? _topTextStyleAnimation;
   static const Interval bottomTextInterval = Interval(0.3, 0.6, curve: Curves.easeIn);
   static const Interval topTextInterval = Interval(0.2, 0.6);
-  late final TextStyle _defaultTextStyle;
+  late TextStyle _defaultTextStyle;
 
   @override
   void didChangeDependencies() {
