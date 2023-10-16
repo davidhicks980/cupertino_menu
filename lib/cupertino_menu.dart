@@ -155,6 +155,9 @@ class CupertinoMenuButton<T> extends StatefulWidget {
     this.enableFeedback = true,
     this.physics,
     this.controller,
+    this.useRootNavigator = false, 
+    this.minSize, 
+    this.buttonPadding,
   });
 
   /// Called when building the menu items and when a new itemBuilder is provided.
@@ -211,6 +214,12 @@ class CupertinoMenuButton<T> extends StatefulWidget {
   /// the menu items and the bounds of the screen.
   final BoxConstraints? constraints;
 
+  /// Minimum size of the button. Equivalent to [CupertinoButton.minSize]
+  final double? minSize;
+
+  /// Padding to apply to this menu layer.
+  final EdgeInsetsGeometry? buttonPadding;
+
   /// The physics to use for the menu's scrollable.
   /// 
   /// If the menu's contents are not larger than its constraints, scrolling
@@ -221,6 +230,9 @@ class CupertinoMenuButton<T> extends StatefulWidget {
 
   /// {@macro CupertinoMenuController}
   final CupertinoMenuController? controller;
+
+  /// Whether to push the menu to the root navigator.
+  final bool useRootNavigator;
 
   @override
   State<CupertinoMenuButton<T>> createState() => _CupertinoMenuButtonState<T>();
@@ -329,6 +341,7 @@ class _CupertinoMenuButtonState<T> extends State<CupertinoMenuButton<T>>
       onOpened: _handleOpen,
       constraints: widget.constraints,
       physics: widget.physics,
+      useRootNavigator: widget.useRootNavigator,
     ).then((T? value) {
       _isOpen = false;
       if (!mounted) {
@@ -345,8 +358,8 @@ class _CupertinoMenuButtonState<T> extends State<CupertinoMenuButton<T>>
   }
 
   bool get _canRequestFocus {
-    final NavigationMode mode = MediaQuery.maybeNavigationModeOf(context) ?? 
-                                NavigationMode.traditional;
+    final NavigationMode mode = MediaQuery.maybeNavigationModeOf(context) 
+                                ?? NavigationMode.traditional;
     return switch (mode) {
       NavigationMode.traditional => widget.enabled,
       NavigationMode.directional => true,
@@ -360,6 +373,8 @@ class _CupertinoMenuButtonState<T> extends State<CupertinoMenuButton<T>>
       child: CupertinoButton(
         pressedOpacity: widget.child != null ? 1 : 0.4,
         onPressed: widget.enabled ? showMenu : null,
+        minSize: widget.minSize,
+        padding: widget.buttonPadding,
         child: IconTheme.merge(
           data: IconTheme.of(context),
           child: widget.child ?? Icon(Icons.adaptive.more),
@@ -521,9 +536,9 @@ String getLocalizedBarrierLabel(BuildContext context) {
 
   // If both localizations are null, fallback to
   // [DefaultMaterialLocalizations().modalBarrierDismissLabel].
-  return cupertinoLocalizations?.modalBarrierDismissLabel ??
-        materialLocalizations?.modalBarrierDismissLabel ??
-        const DefaultMaterialLocalizations().modalBarrierDismissLabel;
+  return cupertinoLocalizations?.modalBarrierDismissLabel 
+         ?? materialLocalizations?.modalBarrierDismissLabel 
+         ?? const DefaultMaterialLocalizations().modalBarrierDismissLabel;
 }
 
 
@@ -605,6 +620,8 @@ class CupertinoMenuModel extends InheritedModel<MenuModelAspect> {
     required this.rootMenuAnchorOverflow,
   });
 
+
+
  /// The position of the root menu's anchor relative to the screen.
   final RelativeRect anchorPosition;
 
@@ -634,10 +651,9 @@ class CupertinoMenuModel extends InheritedModel<MenuModelAspect> {
   /// Tracks the sum of all partially- or fully-visible menu animations.
   final Animation<double> nestingAnimation;
 
-
-
   /// The amount that the root menu overflows its anchor after fully extending 
   /// in the growth direction.
+  ///  ```raw
   ///  ┌──┬──────────┬────────────────────────────────────┐
   ///  │  │   Menu   │                             Screen │
   ///  │  │          │             ┌─►┌──────────┐        │
@@ -648,6 +664,7 @@ class CupertinoMenuModel extends InheritedModel<MenuModelAspect> {
   ///  │  └──────────┘◄─┘             │          │        │
   ///  │                              │   Menu   │        │
   ///  └──────────────────────────────┴──────────┴────────┘
+  /// ```
   final double rootMenuAnchorOverflow;
 
   @override
@@ -776,7 +793,8 @@ class MenuScopeState extends State<_CupertinoMenuRootControl> with TickerProvide
   // The amount that the root menu overflows its anchor after fully extending 
   // in the growth direction.
   double get _rootLayerOffset {
-    double height = _layerIdToHeight[CupertinoMenu.rootMenuCoordinates.layerId] ?? 0;
+    double height = _layerIdToHeight[CupertinoMenu.rootMenuCoordinates.layerId] 
+                    ?? 0;
            height -= _growthDirection == VerticalDirection.up
                       ? widget.anchorPosition.top
                       : widget.anchorPosition.bottom;
@@ -1186,35 +1204,29 @@ class CupertinoMenuLayerModel extends InheritedWidget {
     required this.isInteractive,
   });
 
-  /// {@template CupertinoMenuLayerModel.constraintsTween}
   /// The constraints that describe the expansion of this menu layer.
   ///
   /// The [constraintsTween] animates between the size of the menu item
   /// anchoring this layer, and the intrinsic size of this layer (or the
   /// constraints provided by the user, if the constraints are smaller than the
   /// intrinsic size of the layer).
-  /// {@endtemplate}
   final BoxConstraintsTween constraintsTween;
 
   /// Whether items on this layer should respond to user input.
   ///
-  /// {@macro MenuModel.interactiveLayers}
+  /// {@macro flutter.cupertino.MenuModel.interactiveLayers}
   final bool isInteractive;
 
-  /// {@template CupertinoMenuLayerModel.hasLeadingWidget}
   /// Whether any menu items in this layer have a leading widget.
   ///
   /// If true, all menu items without a leading widget will be given
   /// leading padding to align with their siblings.
-  /// {@endtemplate}
   final bool hasLeadingWidget;
 
-  /// {@template CupertinoMenuLayerModel.childCount}
   /// The number of menu items on this layer.
   ///
   /// The child count is used to determine the initial border radius of this
   /// layer prior to animating open.
-  /// {@endtemplate}
   final int childCount;
 
   /// {@macro CupertinoMenuTreeCoordinates.description}
@@ -1753,70 +1765,77 @@ class _CupertinoMenuState<T> extends State<CupertinoMenu<T>>
       },
     );
 
-    return _CupertinoMenuRootControl(
-      rootMenuLayer: rootMenuLayer,
-      alignment: widget.alignment,
-      anchorPosition: widget.anchorPosition,
-      child: Builder(
-        builder: (BuildContext context) {
-          return GestureDetector(
-            onTap: () {
-              // Remove the top menu layer when the user taps on an underlying
-              // layer.
-              CupertinoMenu.popLayer(context);
-            },
-            child: CupertinoMenuLayerScope(
-              isInteractive: CupertinoMenu
-                              .interactiveLayersOf(context)
-                              .contains(CupertinoMenu.rootMenuCoordinates),
-              anchorSize: Size.zero,
-              childCount: builtChildren.length,
-              hasLeadingWidget: widget.hasLeadingWidget,
-              coordinates: CupertinoMenu.rootMenuCoordinates,
-              constraints: widget.constraints,
-              child: Builder(
-                builder: (BuildContext context) {
-                  return CupertinoPanListener<PanTarget<StatefulWidget>>(
-                    onPanUpdate: _handlePanUpdate,
-                    onPanEnd: _handlePanEnd,
-                    child: ScaleTransition(
-                      alignment: widget.alignment,
-                      scale: widget.animation,
-                      child: Center(
-                        child: Builder(
-                          builder: (BuildContext context) {
-                            final CupertinoMenuModel model = CupertinoMenu.of(context);
-                            _updateRepaintListenable(model.nestingAnimation);
-                            return Flow(
-                              clipBehavior: Clip.none,
-                              delegate: _CupertinoMenuFlowDelegate(
-                                layers: model.visibleLayers,
-                                repaint: _repaintFlow,
-                                onPainted: _cacheFlowTransformMatrices,
-                                alignment: widget.alignment,
-                                routeAnimation: widget.animation,
-                                nestingAnimation: model.nestingAnimation,
-                                growthDirection: model.growthDirection,
-                                overrideTransforms: _flowTransformMatrices,
-                                rootMenuRectNotifier: _rootMenuRectNotifier,
-                                rootMenuAnchorOverflow: model.rootMenuAnchorOverflow,
-                                rootMenuAnchorPosition: model.anchorPosition,
-                                pointerPositionNotifier: _panPosition,
-                              ),
-                              children: model.visibleLayers
-                                  .map((CupertinoMenuLayerDescription layer) => layer.widget)
-                                  .toList(),
-                            );
-                          },
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(
+        padding: const EdgeInsets.only(top: 10, bottom: 60, left: 30, right: 5),
+        boldText: false,),
+      child: _CupertinoMenuRootControl(
+        rootMenuLayer: rootMenuLayer,
+        alignment: widget.alignment,
+        anchorPosition: widget.anchorPosition,
+        child: Builder(
+          builder: (BuildContext context) {
+            return GestureDetector(
+              onTap: () {
+                // Remove the top menu layer when the user taps on an underlying
+                // layer.
+                CupertinoMenu.popLayer(context);
+              },
+              child: CupertinoMenuLayerScope(
+                isInteractive: CupertinoMenu
+                                .interactiveLayersOf(context)
+                                .contains(CupertinoMenu.rootMenuCoordinates),
+                anchorSize: Size.zero,
+                childCount: builtChildren.length,
+                hasLeadingWidget: widget.hasLeadingWidget,
+                coordinates: CupertinoMenu.rootMenuCoordinates,
+                constraints: widget.constraints,
+                child: Builder(
+                  builder: (BuildContext context) {
+                    return CupertinoPanListener<PanTarget<StatefulWidget>>(
+                      onPanUpdate: _handlePanUpdate,
+                      onPanEnd: _handlePanEnd,
+                      child: ScaleTransition(
+                        alignment: widget.alignment,
+                        scale: widget.animation,
+                        child: Center(
+                          child: Builder(
+                            builder: (BuildContext context) {
+                              final CupertinoMenuModel model = CupertinoMenu.of(context);
+                              _updateRepaintListenable(model.nestingAnimation);
+                              return Flow(
+                                clipBehavior: Clip.none,
+                                delegate: _CupertinoMenuFlowDelegate(
+                                  layers: model.visibleLayers,
+                                  repaint: _repaintFlow,
+                                  onPainted: _cacheFlowTransformMatrices,
+                                  alignment: widget.alignment,
+                                  routeAnimation: widget.animation,
+                                  nestingAnimation: model.nestingAnimation,
+                                  growthDirection: model.growthDirection,
+                                  overrideTransforms: _flowTransformMatrices,
+                                  rootMenuRectNotifier: _rootMenuRectNotifier,
+                                  rootMenuAnchorOverflow: model.rootMenuAnchorOverflow,
+                                  rootMenuAnchorPosition: model.anchorPosition,
+                                  pointerPositionNotifier: _panPosition,
+                                  padding: MediaQuery.paddingOf(context) + 
+                                           const EdgeInsets.all(CupertinoMenu.screenPadding),
+                                ),
+                                children: model.visibleLayers
+                                    .map((CupertinoMenuLayerDescription layer) => layer.widget)
+                                    .toList(),
+                              );
+                            },
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -1844,6 +1863,7 @@ typedef NestedMenuOffset = ({double layerY, double menuY});
 
 // Controls the position and scale of menu layers
 class _CupertinoMenuFlowDelegate extends FlowDelegate {
+
   const _CupertinoMenuFlowDelegate({
     super.repaint,
     required this.rootMenuAnchorPosition,
@@ -1857,6 +1877,7 @@ class _CupertinoMenuFlowDelegate extends FlowDelegate {
     this.overrideTransforms,
     this.onPainted,
     this.growthDirection = VerticalDirection.down,
+    this.padding = EdgeInsets.zero,
   });
 
   final VerticalDirection growthDirection;
@@ -1870,8 +1891,25 @@ class _CupertinoMenuFlowDelegate extends FlowDelegate {
   final List<CupertinoMenuLayerDescription> layers;
   final ValueNotifier<Rect?> rootMenuRectNotifier;
   final ValueNotifier<Offset?> pointerPositionNotifier;
+  final EdgeInsets padding;
   Offset? get pointerPosition => pointerPositionNotifier.value;
   Rect get rootMenuRect => rootMenuRectNotifier.value ?? Rect.zero;
+  double getDefaultShift(double visibleFraction, int layerIndex){
+    return  8 * visibleFraction * layerIndex;
+  }
+
+  @override
+  BoxConstraints getConstraintsForChild(int i, BoxConstraints constraints) {
+      if(i == 0){
+        // The [SingleChildLayoutDelegate] handles the constraints for the root
+        // menu layer. I attempted switching the two, but it makes positioning 
+        // the root layer more difficult, particularly with regard to padding.
+        return constraints;
+      }
+      return BoxConstraints
+              .loose(constraints.biggest)
+              .deflate(padding.copyWith(top: padding.top + getDefaultShift(1, i)));
+  }
 
   NestedMenuOffset _positionChild({
     required Size size,
@@ -1883,16 +1921,20 @@ class _CupertinoMenuFlowDelegate extends FlowDelegate {
     required double? center,
   }) {
     final int topLayer = layers.length - 1;
-    // If positioning the top layer, we want to show the "spring" effect upon
-    // opening.
-    double visibleFraction = 1;
-    if (topLayer == layerIndex) {
-      visibleFraction = _getLayerVisibility(layerIndex);
-    }
+    final double atOrAbove = nestingAnimation.value - layerIndex + 1;
+    final double visibleFraction =  topLayer == layerIndex 
+                                    ? atOrAbove.clamp(0, 1.02)
+                                    : 1;
 
-    final double visibility = _getLayerVisibility(layerIndex).clamp(0, 1.02);
-    final double finalLayerHeight = layers[layerIndex].height;
+    // A default displacement that is applied to each layer to create a
+    // staggered effect.
+    final double defaultShift = 8 * visibleFraction * layerIndex;
+
+    final double maxHeight = size.height - padding.vertical;
+
     // Tween between the current height and the final height to grow the menu in
+    final double finalLayerHeight = math.min(layers[layerIndex].height, maxHeight);
+    
     // both directions at once.
     final double tweenedHeight = ui.lerpDouble(
       childSize.height,
@@ -1900,10 +1942,14 @@ class _CupertinoMenuFlowDelegate extends FlowDelegate {
       visibleFraction,
     )!;
 
+    // The offset of the menu layer from the top of the screen
     double layerOffsetY = anchorRect.top;
+
+    // The offset of the entire menu from the top of the screen
     double menuOffsetY = 0.0;
+
     if (growthDirection == VerticalDirection.up) {
-      final double rootAnchorTop = shiftedRootMenuAnchor.top - 24 * layerIndex * visibility;
+      final double rootAnchorTop = shiftedRootMenuAnchor.top - defaultShift;
       // If the downward growth overflows the root anchor position OR the
       // largest underlying layer, shift the menu layer upwards.
       if (layerOffsetY + finalLayerHeight > rootAnchorTop) {
@@ -1913,7 +1959,7 @@ class _CupertinoMenuFlowDelegate extends FlowDelegate {
           visibleFraction,
         )!;
 
-        if (rootAnchorTop - finalLayerHeight < 10) {
+        if (rootAnchorTop - finalLayerHeight < padding.top) {
           menuOffsetY = ui.lerpDouble(
             0,
             finalLayerHeight - rootAnchorTop,
@@ -1921,26 +1967,33 @@ class _CupertinoMenuFlowDelegate extends FlowDelegate {
           )!;
         }
       } else {
-        layerOffsetY -= 6 * visibility * layerIndex;
+        layerOffsetY -= defaultShift;
       }
 
-      if (layerOffsetY + childSize.height > size.height - 10) {
-        layerOffsetY = size.height - childSize.height - 10;
+      if (layerOffsetY + childSize.height > size.height - padding.vertical) {
+        layerOffsetY = size.height - childSize.height - padding.vertical - defaultShift;
       }
     } else {
-      layerOffsetY -= 6 * visibility * layerIndex;
+      layerOffsetY -= defaultShift;
       // If the downward growth overflows the screen, then shift the full menu
       // upwards
-      if (previousOffsetY + finalLayerHeight > size.height - 10) {
+      if (previousOffsetY + finalLayerHeight > size.height - padding.bottom) {
         menuOffsetY = math.min(
-          size.height - 10 - (tweenedHeight + layerOffsetY),
+          size.height 
+           - padding.bottom 
+           - tweenedHeight 
+           - layerOffsetY,
           0,
         );
       }
       // If the layer overflows the screen, shift the layer upwards
-      else if (layerOffsetY + finalLayerHeight > size.height - 10) {
-        layerOffsetY +=
-            (size.height - 10 - (tweenedHeight + layerOffsetY)) * visibleFraction;
+      else if (layerOffsetY + finalLayerHeight > size.height - padding.bottom) {
+        layerOffsetY += (
+                          size.height 
+                          - padding.bottom 
+                          - tweenedHeight 
+                          - layerOffsetY
+                        ) * visibleFraction;
       }
     }
 
@@ -1952,12 +2005,13 @@ class _CupertinoMenuFlowDelegate extends FlowDelegate {
 
   @override
   void paintChildren(FlowPaintingContext context) {
-    final List<Matrix4> transforms = overrideTransforms ??
-        List<Matrix4>.generate(
-          context.childCount,
-          (int int) => Matrix4.identity(),
-          growable: false,
-        );
+    final List<Matrix4> transforms = 
+          overrideTransforms 
+          ?? List<Matrix4>.generate(
+              context.childCount,
+              (int int) => Matrix4.identity(),
+              growable: false,
+            );
 
     if (overrideTransforms == null) {
       applyTransforms(context, transforms);
@@ -2070,10 +2124,13 @@ class _CupertinoMenuFlowDelegate extends FlowDelegate {
                 context.getChildSize(i)!,
               );
 
+        final double atOrAbove = nestingAnimation.value - i + 1;
         // Scale the layer based on depth. The top layer is 1.0, and each
         // subsequent layer is scaled down.
         final double layerScale = math.min(
-          0.85 + 0.15 / math.sqrt(_getLayerVisibility(i).clamp(1, 100)),
+          0.85 + 0.15 / math.sqrt(
+                          math.max(atOrAbove, 1),
+                        ),
           1,
         );
         // Apply layer and menu offsets, setting the origin to the layer's
@@ -2088,17 +2145,6 @@ class _CupertinoMenuFlowDelegate extends FlowDelegate {
     }
   }
 
-  /// Returns the fraction of visible layers at or above the given layer index.
-  ///
-  /// For example, if there are three (3) completely visible
-  /// layers (root or nested) and one (1) layer that is 50% visible:
-  ///
-  /// * `_getLayerVisibility(0) == 3.5`
-  /// * `_getLayerVisibility(1) == 2.5`
-  /// * `_getLayerVisibility(2) == 1.5`
-  double _getLayerVisibility(int index) {
-    return nestingAnimation.value - index + 1;
-  }
 
   double _calculateSquaredDistanceToMenuEdge({
     required Rect rect,
@@ -2116,6 +2162,11 @@ class _CupertinoMenuFlowDelegate extends FlowDelegate {
     );
 
     return dx * dx + dy * dy;
+  }
+
+  @override
+  bool shouldRelayout(_CupertinoMenuFlowDelegate oldDelegate) {
+    return oldDelegate.padding != padding;
   }
 
   @override
@@ -2235,12 +2286,22 @@ mixin CupertinoNestedMenuControlMixin<T, U extends StatefulWidget>
 
   @override
   void open() {
-    _menuScope!.pushMenu(coordinates: coordinates!);
-    WidgetsBinding.instance.addPostFrameCallback((Duration timeStamp) {
-      if (mounted) {
-        rebuild();
+    Scrollable.ensureVisible(
+      context, 
+      alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInQuad,
+    ).then((void value) {
+      if (mounted) {   
+        _menuScope!.pushMenu(coordinates: coordinates!);
+        WidgetsBinding.instance.addPostFrameCallback((Duration timeStamp) {
+          if (mounted) {
+            rebuild();
+          }
+        });
       }
     });
+    
   }
 
   @override
@@ -2486,10 +2547,11 @@ class _CupertinoNestedMenuState<T>
     );
   }
 
-  void _handleTap() {
+  Future<void> _handleTap() async {
     // The menu is closed or closing.
     if (status case CupertinoMenuStatus.closing || CupertinoMenuStatus.closed) {
       _menuController.open();
+
     } else {
       _menuController.close();
     }
@@ -2642,10 +2704,10 @@ class CupertinoMenuLayerScope extends StatefulWidget {
   /// The menu layer.
   final Widget child;
 
-  /// {@macro CupertinoMenuLayerModel.hasLeadingWidget}
+  /// Whether any menu items on this layer has a leading widget.
   final bool hasLeadingWidget;
 
-  /// {@macro CupertinoMenuLayerModel.childCount}
+  /// The number of children on this layer.
   final int childCount;
 
   /// The constraints for this menu layer.
@@ -2657,7 +2719,7 @@ class CupertinoMenuLayerScope extends StatefulWidget {
   /// The size of the anchor that this menu layer is attached to.
   final Size anchorSize;
 
-  ///{@macro CupertinoMenuLayerModel.isInteractive}
+  /// Whether this menu layer should respond to user input.
   final bool isInteractive;
 
 
@@ -2674,22 +2736,37 @@ class CupertinoMenuLayerScopeState extends State<CupertinoMenuLayerScope> {
   double? _height;
   double? _width;
   BoxConstraintsTween _constraintsTween = BoxConstraintsTween();
+  
+  ui.Size _unpaddedScreenSize = Size.zero;
   BoxConstraintsTween _buildConstraintsTween() {
+    final double width = math.min<double>(
+      _unpaddedScreenSize.width, 
+      _width ?? 0,
+    );
+    final double beginHeight = math.min<double>(
+      _unpaddedScreenSize.height, 
+      widget.anchorSize.height,
+    );
+    final double endHeight = math.min<double>(
+      _unpaddedScreenSize.height, 
+      _height ?? widget.anchorSize.height,
+    );
     return BoxConstraintsTween(
       begin: BoxConstraints.tightFor(
-        width: _width,
-        height: widget.anchorSize.height,
+        width: width,
+        height: beginHeight,
       ),
       end: BoxConstraints.tightFor(
-        width: _width,
-        height: _height ?? widget.anchorSize.height,
+        width: width,
+        height: endHeight,
       ),
     );
   }
 
   void _setLayerHeight(double value) {
     final double constrainedHeight =
-        widget.constraints?.constrainHeight(value) ?? value;
+        widget.constraints?.constrainHeight(value) 
+        ?? value;
 
     if (_height != constrainedHeight && constrainedHeight != 0) {
       setState(() {
@@ -2702,7 +2779,15 @@ class CupertinoMenuLayerScopeState extends State<CupertinoMenuLayerScope> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _width = MediaQuery.textScalerOf(context).scale(1) > 1.25 ? 350.0 : 250.0;
+    final ui.Size size = MediaQuery.sizeOf(context);
+    final EdgeInsets screenPadding = MediaQuery.paddingOf(context);
+    _unpaddedScreenSize = Size(
+      size.width - screenPadding.horizontal,
+      size.height - screenPadding.vertical,
+    );
+    _width = MediaQuery.textScalerOf(context).scale(1) > 1.25 
+              ? 350.0 
+              : 250.0;
     _constraintsTween = _buildConstraintsTween();
   }
 
@@ -2768,18 +2853,20 @@ class _CupertinoMenuRoute<T> extends PopupRoute<T> {
     Animation<double> secondaryAnimation,
   ) {
     return pageBuilder(
-      context,
-      animation,
-      secondaryAnimation,
-    );
+             context,
+             animation,
+             secondaryAnimation,
+           );
   }
 
   @override
-  Animation<double> createAnimation() => CurvedAnimation(
-        parent: super.createAnimation(),
-        curve: curve,
-        reverseCurve: reverseCurve,
-      );
+  Animation<double> createAnimation() {
+    return CurvedAnimation(
+             parent: super.createAnimation(),
+             curve: curve,
+             reverseCurve: reverseCurve,
+           );
+  }
 }
 
 
@@ -2831,8 +2918,15 @@ class _RootMenuLayout extends SingleChildLayoutDelegate {
   EdgeInsets get totalPadding =>
       screenPadding + const EdgeInsets.all(CupertinoMenu.screenPadding);
 
+ // Finds the closest screen to the anchor position.
+  //
+  // The closest screen is defined as the screen whose center is closest to the
+  // anchor position.
+  //
+  // This method is only called on the root menu, since all overlapping layers
+  // will be positioned on the same screen as the root menu.
   @protected
-  Rect findClosestScreen(Size size, Offset point, Set<Rect> avoidBounds) {
+  Rect _findClosestScreen(Size size, Offset point, Set<Rect> avoidBounds) {
     final Iterable<ui.Rect> screens =
         DisplayFeatureSubScreen.subScreensInBounds(
           Offset.zero & size,
@@ -2850,6 +2944,12 @@ class _RootMenuLayout extends SingleChildLayoutDelegate {
     return closest;
   }
 
+  // Fits the menu inside the screen, and returns the new position of the menu.
+  // 
+  // Because all layers are positioned relative to the root menu, this method
+  // is only called on the root menu. Overlapping layers will not leave the
+  // horizontal bounds of the root menu, and can position themselves vertically
+  // using flow.
   @protected
   Offset fitInsideScreen(
     Rect screen,
@@ -2908,7 +3008,6 @@ class _RootMenuLayout extends SingleChildLayoutDelegate {
     Size childSize,
   ) {
     final Rect anchorRect = anchorPosition.toRect(Offset.zero & size);
-
     double offsetY = 0;
     if (growthDirection == VerticalDirection.up) {
       // If the menu opens upwards, use the menu's top edge as an initial offset
@@ -2919,7 +3018,7 @@ class _RootMenuLayout extends SingleChildLayoutDelegate {
       offsetY = anchorRect.bottom;
     }
 
-    final Rect screen = findClosestScreen(
+    final Rect screen = _findClosestScreen(
       size,
       anchorRect.center,
       avoidBounds,
@@ -2996,11 +3095,15 @@ class _MenuContainerState<T> extends State<_MenuContainer<T>>
     begin: const BorderRadius.all(CupertinoMenu.radius),
       end: const BorderRadius.all(CupertinoMenu.radius),
   );
+  final ProxyAnimation _snapshotAnimation = 
+      ProxyAnimation(kAlwaysDismissedAnimation);
+  late final _FadingSnapshotPainter _snapshotPainter = 
+      _FadingSnapshotPainter(repaint: _snapshotAnimation);
   late Animation<BoxConstraints> _constraintsAnimation;
-  late Animation<double> _springAnimation;
+  late Animation<double> _surfaceAnimation;
   late Animation<double> _nestingAnimation;
   late Animation<double> _nestingAnimationReciprocal;
-  late Animation<double> _nestedFadeAnimation;
+
   BoxConstraintsTween _constraintsTween = BoxConstraintsTween();
   Animation<double>? _routeAnimation;
   Animation<double> _truncatedRouteAnimation = kAlwaysDismissedAnimation;
@@ -3019,7 +3122,8 @@ class _MenuContainerState<T> extends State<_MenuContainer<T>>
     final Animation<double> nestingAnimation =
         CupertinoMenu.nestingAnimationOf(context);
     final Animation<double> routeAnimation =
-        ModalRoute.of(context)?.animation ?? kAlwaysCompleteAnimation;
+        ModalRoute.of(context)?.animation 
+        ?? kAlwaysCompleteAnimation;
     final CupertinoMenuLayerModel layerScope =
         CupertinoMenuLayerScope.of(context);
     final BoxConstraintsTween constraintsTween = layerScope.constraintsTween;
@@ -3034,8 +3138,9 @@ class _MenuContainerState<T> extends State<_MenuContainer<T>>
         .drive(_clampedAnimatable)
         .drive(CurveTween(curve: const Interval(0.4, 1.0)));
       _routeAnimation!.addListener(_updateSnapshotting);
+      _nestingAnimation.addListener(_updateSnapshotting);
       _nestingAnimationReciprocal = _buildNestingAnimationReciprocal();
-      _nestedFadeAnimation = _buildNestedFadeAnimation();
+      _snapshotAnimation.parent = _nestingAnimationReciprocal;
     }
 
     if (
@@ -3043,11 +3148,9 @@ class _MenuContainerState<T> extends State<_MenuContainer<T>>
       _constraintsTween != constraintsTween 
     ) {
       _constraintsTween = constraintsTween;
-      _springAnimation = _buildSurfaceAnimation();
-      _constraintsAnimation = _springAnimation.drive(_constraintsTween);
+      _surfaceAnimation = _buildSurfaceAnimation();
+      _constraintsAnimation = _surfaceAnimation.drive(_constraintsTween);
     }
-    
-    
   }
 
   @override
@@ -3055,12 +3158,13 @@ class _MenuContainerState<T> extends State<_MenuContainer<T>>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.depth != widget.depth) {
       _nestingAnimationReciprocal = _buildNestingAnimationReciprocal();
-      _nestedFadeAnimation = _buildNestedFadeAnimation();
+      _snapshotAnimation.parent = _nestingAnimationReciprocal;
+
     }
 
     if (oldWidget.animation != widget.animation) {
-      _springAnimation = _buildSurfaceAnimation();
-      _constraintsAnimation = _springAnimation.drive(_constraintsTween);
+      _surfaceAnimation = _buildSurfaceAnimation();
+      _constraintsAnimation = _surfaceAnimation.drive(_constraintsTween);
     }
 
     if (oldWidget.anchorBorderRadius != widget.anchorBorderRadius) {
@@ -3072,19 +3176,10 @@ class _MenuContainerState<T> extends State<_MenuContainer<T>>
   void dispose() {
     _snapshotController.dispose();
     _routeAnimation?.removeListener(_updateSnapshotting);
+    _nestingAnimation.removeListener(_updateSnapshotting);
     super.dispose();
   }
 
-  Animation<double> _buildNestedFadeAnimation() {
-    return AnimationMax<double>(
-      _nestingAnimationReciprocal,
-      _nestingAnimation.drive(
-        Animatable<double>.fromCallback(
-          (double value) => (value - widget.depth).isNegative ? 1 : 0,
-        ),
-      ),
-    );
-  }
 
   // Returns an animation containing the reciprocal of the number of layers
   // above this one. This is used to fade out layers as more layers are pushed.
@@ -3114,7 +3209,9 @@ class _MenuContainerState<T> extends State<_MenuContainer<T>>
   }
           
   void _updateSnapshotting() {
-    _snapshotController.allowSnapshotting = _routeAnimation!.value < 0.95;
+    _snapshotController.allowSnapshotting = 
+            _routeAnimation!.value < 1 ||
+            _nestingAnimation.value - widget.depth > 0.3;
   }
 
   // Builds a shadow that will repaint whenever the menu animation changes.
@@ -3133,6 +3230,13 @@ class _MenuContainerState<T> extends State<_MenuContainer<T>>
       child: child,
     );
   }
+  
+   Widget _buildAbsorbPointer(BuildContext context, Widget? child) { 
+    return AbsorbPointer(
+      absorbing: _snapshotController.allowSnapshotting,
+      child: child,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -3144,18 +3248,19 @@ class _MenuContainerState<T> extends State<_MenuContainer<T>>
           child: child,
         );
       },
-      child: _MenuSurface(
-        shadow: _buildShadow,
-        depth: widget.depth,
-        borderRadiusTween: _borderRadiusTween,
-        listenable: _springAnimation,
-        child: SnapshotWidget(
+      child: ListenableBuilder(
+        listenable: _snapshotController,
+        builder: _buildAbsorbPointer,
+        child: _MenuSurface(
+          shadow: _buildShadow,
+          depth: widget.depth,
+          borderRadiusTween: _borderRadiusTween,
+          listenable: _surfaceAnimation,
+          child: SnapshotWidget(
             autoresize: true,
             controller: _snapshotController,
-            painter: _FadingSnapshotPainter(repaint: _truncatedRouteAnimation),
-            child: FadeTransition(
-              opacity: _nestedFadeAnimation,
-              child: widget.menu,
+            painter: _snapshotPainter,
+            child:  widget.menu,
           ),
         ),
       ),
@@ -3472,7 +3577,7 @@ class _CupertinoPersistentMenuHeaderDelegate
 
   @override
   bool shouldRebuild(_CupertinoPersistentMenuHeaderDelegate oldDelegate) {
-    return oldDelegate.height != height;
+    return oldDelegate.height != height || oldDelegate.child != child;
   }
 }
 
@@ -3548,6 +3653,8 @@ class _MenuBodyState<T> extends State<_MenuBody<T>> {
         (Duration timeStamp) {
           if(mounted) {
             _height = (childSize.height + _headerOffset).roundToDouble();
+            // Report the height of the menu to the parent layer. See 
+            // _UnsafeSizeChangedLayoutNotifier for more information.
             context
               ..findAncestorStateOfType<CupertinoMenuLayerScopeState>()
                   !._setLayerHeight(_height)
@@ -3615,7 +3722,8 @@ class _MenuBodyState<T> extends State<_MenuBody<T>> {
   Widget build(BuildContext context) {
     final int topLayer = CupertinoMenu.topLayerOf(context).depth;
     final CupertinoMenuLayerModel layerScope = CupertinoMenuLayerScope.of(context);
-    _isTopLayer = layerScope.coordinates.depth == topLayer;
+    final int depth = layerScope.coordinates.depth;
+    _isTopLayer = depth == topLayer;
     _physics = _updateScrollPhysics();
     RelativeRect sliverInsets = RelativeRect.fill;
     if (
@@ -3627,14 +3735,11 @@ class _MenuBodyState<T> extends State<_MenuBody<T>> {
         )
     ) {
       _headerOffset = MediaQuery.textScalerOf(context).scale(height);
-      if(_isTopLayer){
-        sliverInsets = RelativeRect.fromLTRB(0, _headerOffset, 0, 0);
-      }
+      sliverInsets = RelativeRect.fromLTRB(0, _headerOffset, 0, 0);
     } else {
       _headerOffset = 0.0;
     }
     
-
     return Semantics(
       scopesRoute: true,
       namesRoute: true,
@@ -3656,18 +3761,16 @@ class _MenuBodyState<T> extends State<_MenuBody<T>> {
                   pinned: true,
                   delegate: _CupertinoPersistentMenuHeaderDelegate(
                     height: _headerOffset,
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: widget.children[0],
+                    child:  RepaintBoundary(
+                        child: Align(
+                          alignment: Alignment.bottomCenter,
+                          child: widget.children[0],
+                      ),
                     ),
                   ),
                 ),
               _SliverClippedInsets(
-                // TODO(davidhicks980): It is necessary to set
-                // the header offset to 0 when the menu is not the top layer,
-                // because the bottom SliverPersistentHeader disappears without it.
-                // This is a hacky solution, and should be fixed.
-                insets:  sliverInsets,
+                insets: sliverInsets,
                 child: SliverToBoxAdapter(
                   child: _UnsafeSizeChangedLayoutNotifier(
                     onLayoutChanged: _handleLayoutChanged,
@@ -3766,7 +3869,6 @@ class _SliverClippedInsets extends SingleChildRenderObjectWidget {
 // Adds clipping insets to a sliver's paint bounds. Used by
 // [CupertinoStickyMenuHeader] to clip underlying content.
 class _RenderSliverClippedInsets extends RenderProxySliver {
-
   // The insets to apply to the sliver's paint bounds.
   RelativeRect get insets => _insets;
   RelativeRect _insets = RelativeRect.fill;
@@ -3779,7 +3881,7 @@ class _RenderSliverClippedInsets extends RenderProxySliver {
       'The clip rect must have non-negative values for all edges.',
     );
 
-    if (value != _insets) {
+    if (_insets != value) {
       _insets = value;
       markNeedsPaint();
     }
@@ -3787,38 +3889,32 @@ class _RenderSliverClippedInsets extends RenderProxySliver {
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    if (child == null) {
-      layer = null;
-      return;
-    }
-    
-    if (geometry!.visible) {
+    if (geometry!.visible && insets != RelativeRect.fill) {
       final Rect rect = switch (constraints.axis) {
         Axis.horizontal => Rect.fromLTRB(
-            insets.left - offset.dx,
-            insets.top - offset.dy,
-            geometry!.paintExtent - insets.right,
-            constraints.crossAxisExtent - insets.bottom,
+            insets.left,
+            insets.top,
+            geometry!.paintExtent 
+              - insets.right 
+              + offset.dx,
+            constraints.crossAxisExtent 
+              - insets.bottom 
+              + offset.dy,
           ),
         Axis.vertical => Rect.fromLTRB(
-            insets.left - offset.dx,
-            insets.top - offset.dy,
-            constraints.crossAxisExtent - insets.right,
-            geometry!.paintExtent - insets.bottom,
+            insets.left,
+            insets.top,
+            constraints.crossAxisExtent 
+              - insets.right 
+              + offset.dx,
+            geometry!.paintExtent 
+              - insets.bottom 
+              + offset.dy,
           ),
       };
-
-      layer = context.pushClipRect(
-        false,                             // Needs compositing
-        offset,                            // Offset
-        rect,                              // Clip rect
-        super.paint,                       // Painter
-        oldLayer: layer as ClipRectLayer?, // Old layer
-      );
-    } else {
-      layer = null;
-      super.paint(context, offset);
-    }
+      context.canvas.clipRect(rect, doAntiAlias: false);
+    } 
+    super.paint(context, offset);
   }
 }
 
