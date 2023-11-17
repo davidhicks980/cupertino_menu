@@ -1,64 +1,60 @@
-import 'dart:async';
+// Copyright 2014 The Flutter Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
 
-import 'package:flutter/cupertino.dart';
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/src/cupertino/colors.dart';
+import 'package:flutter/src/cupertino/constants.dart';
+import 'package:flutter/src/cupertino/icons.dart';
+import 'package:flutter/widgets.dart';
 
-import 'cupertino_menu.dart';
-
-const bool isTransparent = true;
+import 'menu.dart';
 
 
 
 
+// TODO(davidhicks980): Add fill properties.
 
+/// A mixin that specifies that a widget can be used in a [CupertinoMenu] or a
+/// [CupertinoNestedMenu].
 mixin CupertinoMenuEntry<T> on Widget {
-  /// The amount of vertical space occupied by this entry.
+  /// The constraints to apply to the contents of a [CupertinoMenuEntry].
+  /// Constraints will be scaled by [MediaQuery.textScalerOf] to account for
+  /// text scaling.
   ///
-  /// This is not currently used, but it may be in the future.
-  ///
-  // TODO(davidhicks980): determine whether to measure menu items based on
-  // user-provided height, or to calculate height at runtime.
+  /// The [BoxConstraints.maxWidth] can only be as large as the width of the
+  /// menu.
+  //
+  // TODO(davidhicks980): Determine whether measuring menu items is necessary.
+  // Or whether height could be calculated at runtime.
   double get height => kMinInteractiveDimensionCupertino;
 
-
   /// The color of a [CupertinoInteractiveMenuItem] when pressed.
-  // Pressed colors are based on the following:
+  // Pressed colors were sampled from the iOS simulator and are based on the
+  // following:
   //
-  // Dark mode on white background => rgb(111, 111, 111)
-  // Dark mode on black => rgb(61, 61, 61)
-  // Light mode on black background => rgb(177, 177, 177)
-  // Light mode on white => rgb(225, 225, 225)
+  // Dark mode on white background     rgb(111, 111, 111)
+  // Dark mode on black                rgb(61, 61, 61)
+  // Light mode on black background    rgb(177, 177, 177)
+  // Light mode on white               rgb(225, 225, 225)
   static const CupertinoDynamicColor backgroundOnPress =
     CupertinoDynamicColor.withBrightness(
       color: Color.fromRGBO(50, 50, 50, 0.105),
       darkColor: Color.fromRGBO(255, 255, 255, 0.15),
     );
 
-  /// Default color for [CupertinoMenuDivider] and [CupertinoVerticalMenuDivider].
-  ///
-  /// The following colors were measured from the iOS simulator, and opacity was extrapolated:
-  /// ```dart
-  /// // Dark mode on white:
-  /// Color.fromRGBO(97, 97, 97)
-  /// // Dark mode on black:
-  /// Color.fromRGBO(51, 51, 51)
-  /// // Light mode on black:
-  /// Color.fromRGBO(147, 147, 147)
-  /// // Light mode on white:
-  /// Color.fromRGBO(187, 187, 187)
-  /// ```
-  static const CupertinoDynamicColor dividerColor = isTransparent
-    ? CupertinoDynamicColor.withBrightness(
-        color: Color.fromRGBO(70, 70, 70, 0.35),
-        darkColor: Color.fromRGBO(230, 230, 230, 0.3),
-      )
-    : CupertinoDynamicColor.withBrightness(
-        color: Color.fromRGBO(181, 181, 181, 1),
-        darkColor: Color.fromRGBO(51, 51, 51, 1),
-      );
+  /// The default constraints for a [CupertinoMenuEntry], corresponding to a
+  /// minHeight of [kMinInteractiveDimensionCupertino].
+  static const BoxConstraints defaultMenuItemConstraints = BoxConstraints(
+    minHeight:  kMinInteractiveDimensionCupertino,
+  );
 
   /// Whether this menu item has a leading widget. If it does, the menu
   /// items without a leading widget space will have leading space added to align
@@ -69,9 +65,13 @@ mixin CupertinoMenuEntry<T> on Widget {
   bool get hasSeparator => true;
 }
 
-class CupertinoInteractiveMenuItem<T> 
-  extends StatefulWidget
-  with CupertinoMenuEntry<T> {
+/// A widget that provides the default styling, semantics, and interactivity
+/// for menu items in a [CupertinoMenu] or [CupertinoNestedMenu].
+class CupertinoInteractiveMenuItem<T> extends StatefulWidget
+      with CupertinoMenuEntry<T> {
+  /// Creates a [CupertinoInteractiveMenuItem], a widget that provides the
+  /// default styling, semantics, and interactivity for menu items in a
+  /// [CupertinoMenu] or [CupertinoNestedMenu].
   const CupertinoInteractiveMenuItem({
     super.key,
     required this.child,
@@ -89,16 +89,12 @@ class CupertinoInteractiveMenuItem<T>
     this.mouseCursor,
   });
 
+  /// The type of mouse cursor to use when a mouse pointer is hovering over
+  /// this menu item.
   final MouseCursor? mouseCursor;
 
   /// An optional focus node to use for this menu item.
   final FocusNode? focusNode;
-
-  @override
-  final bool hasLeading;
-
-  @override
-  final double height;
 
   /// Whether the user can interact with this item.
   ///
@@ -109,12 +105,13 @@ class CupertinoInteractiveMenuItem<T>
   /// Called when the menu item is tapped.
   final VoidCallback? onTap;
 
-  /// The value that will be returned by [Navigator.pop] if this entry is selected.
+  /// The value that will be returned by [Navigator.pop] if this entry is selected
+  /// and [shouldPopMenuOnPressed] is true.
   final T? value;
 
   /// The color of the menu item when pressed.
   ///
-  /// This color will be overlapped on the menu item's base color.
+  /// This color will blend with the menu item's base color.
   final Color pressedColor;
 
   /// Whether to dismiss the enclosing [_CupertinoMenu] after this item has been pressed
@@ -143,30 +140,42 @@ class CupertinoInteractiveMenuItem<T>
   /// applied to this item's label.
   final bool isDefaultAction;
 
-  /// The widget to show as the menu item.
+  /// The widget to show as the menu item's label.
   final Widget child;
 
   /// The menu item contents.
   ///
   /// Used by the [build] method.
   ///
-  /// By default, this returns [CupertinoInteractiveMenuItem.widget.child].
+  /// Defaults to [CupertinoInteractiveMenuItem.widget.child].
   /// Override this to put something else in the menu entry.
   @protected
   Widget buildChild(BuildContext context) => child;
 
+  @override
+  final bool hasLeading;
+
+  @override
+  final double height;
+
+  /// The default text color for labels in a [CupertinoInteractiveMenuItem].
   static const CupertinoDynamicColor defaultTextColor =
       CupertinoDynamicColor.withBrightness(
           color: Color.fromRGBO(0, 0, 0, 0.96),
           darkColor: Color.fromRGBO(255, 255, 255, 0.96),
         );
+
+  /// The default text style for labels in a [CupertinoInteractiveMenuItem].
   static const TextStyle defaultTextStyle = TextStyle(
     inherit: false,
-    fontFamily: 'SF Pro',
-    fontFamilyFallback: <String>['.AppleSystemUIFont'],
+    fontFamily: 'CupertinoSystemText',
+    fontFamilyFallback: <String>[
+      'AppleSystemUIFont',
+      '.SF UI Text',
+    ],
     fontSize: 17,
-    color: defaultTextColor,
     letterSpacing: -0.21,
+    color: defaultTextColor,
     fontWeight: FontWeight.normal,
   );
 
@@ -176,7 +185,7 @@ class CupertinoInteractiveMenuItem<T>
 }
 
 class _CupertinoInteractiveMenuItemState<T>
-    extends State<CupertinoInteractiveMenuItem<T>> {
+      extends State<CupertinoInteractiveMenuItem<T>> {
   /// The handler for when the user selects the menu item.
   ///
   /// Along with calling [CupertinoInteractiveMenuItem.widget.onTap], it uses [Navigator.pop]
@@ -194,8 +203,8 @@ class _CupertinoInteractiveMenuItemState<T>
 
   /// Provides text styles in response to changes in [CupertinoThemeData.brightness],
   /// [widget.isDefaultAction], [widget.isDestructiveAction], and [widget.enable].
-  ///
-  /// Eyeballed from the iOS simulator.
+  //
+  // Eyeballed from the iOS simulator.
   TextStyle get textStyle {
     if (!widget.enabled) {
       return CupertinoInteractiveMenuItem.defaultTextStyle.copyWith(
@@ -209,8 +218,9 @@ class _CupertinoInteractiveMenuItemState<T>
       );
     }
 
-    final Color resolvedColor =
-        CupertinoInteractiveMenuItem.defaultTextColor.resolveFrom(context);
+    final Color resolvedColor = CupertinoInteractiveMenuItem
+                                    .defaultTextColor
+                                    .resolveFrom(context);
 
     if (widget.isDefaultAction) {
       return CupertinoInteractiveMenuItem.defaultTextStyle.copyWith(
@@ -245,7 +255,10 @@ class _CupertinoInteractiveMenuItemState<T>
             overflow: TextOverflow.ellipsis,
             style: textStyle,
             child: IconTheme.merge(
-              data: IconThemeData(color: textStyle.color, size: 21),
+              data: IconThemeData(
+                color: textStyle.color,
+                size: MediaQuery.textScalerOf(context).scale(21)
+              ),
               child: widget.buildChild(context),
             ),
           ),
@@ -255,29 +268,31 @@ class _CupertinoInteractiveMenuItemState<T>
   }
 }
 
-/// A title in a [_CupertinoMenu].
+/// A title in a [CupertinoMenu].
 class CupertinoMenuTitle extends StatelessWidget
-    with CupertinoMenuEntry<Never> {
-  /// Creates a title in a [_CupertinoMenu].
+      with CupertinoMenuEntry<Never> {
+  /// Creates a title in a [CupertinoMenu].
   const CupertinoMenuTitle({
     super.key,
     required this.child,
+    this.textStyle = defaultTextStyle,
     this.textAlign = TextAlign.center,
   });
 
   /// The alignment of the title.
   final TextAlign textAlign;
+  final TextStyle textStyle;
 
-  /// The title to be displayed. Usually a [Text] widget.
+  /// The widget to display as a title. Usually a [Text] widget.
   final Widget child;
 
   @override
-  double get height => 32.67;
+  double get height => 33;
 
   @override
   bool get hasSeparator => false;
 
-  @override
+  /// The default divider color for a [CupertinoMenuTitle].
   CupertinoDynamicColor get dividerColor {
     return const CupertinoDynamicColor.withBrightness(
       color: Color.fromRGBO(0, 0, 0, 0.2),
@@ -285,6 +300,7 @@ class CupertinoMenuTitle extends StatelessWidget
     );
   }
 
+  /// The default text style for a [CupertinoMenuTitle].
   static const TextStyle defaultTextStyle = TextStyle(
     inherit: false,
     fontFamily: 'SF Pro',
@@ -300,30 +316,20 @@ class CupertinoMenuTitle extends StatelessWidget
   Widget build(BuildContext context) {
     return Semantics(
       header: true,
-      child: Column(
-        children: <Widget>[
-          const CupertinoMenuLargeDivider(),
-          _CupertinoMenuItemStructure(
-            height: height,
-            padding: EdgeInsetsDirectional.zero,
-            title: DefaultTextStyle.merge(
-              maxLines: 2,
-              textAlign: textAlign,
-              child: child,
-              // Color is obtained from the defaultTextStyle to allow for customization
-              style: defaultTextStyle.copyWith(
-                color: CupertinoDynamicColor.maybeResolve(
-                  defaultTextStyle.color,
-                  context,
-                ),
-              ),
+      child: _CupertinoMenuItemStructure(
+        height: height,
+        padding: EdgeInsetsDirectional.zero,
+        title: DefaultTextStyle.merge(
+          maxLines: 2,
+          textAlign: textAlign,
+          child: child,
+          style: textStyle.copyWith(
+            color: CupertinoDynamicColor.maybeResolve(
+              textStyle.color,
+              context,
             ),
           ),
-          CupertinoMenuDivider(
-            color: dividerColor.resolveFrom(context),
-            thickness: 1,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -331,8 +337,8 @@ class CupertinoMenuTitle extends StatelessWidget
 
 /// An item in a Cupertino menu.
 ///
-/// By default, a [CupertinoMenuItem] is minimum of [kMinInteractiveDimensionCupertino]
-/// pixels height.
+/// Defaults to a minimum of [kMinInteractiveDimensionCupertino]
+/// pixels tall.
 ///
 /// See also:
 /// * [_CupertinoMenu], a menu widget that can be toggled on and off.
@@ -351,41 +357,14 @@ class CupertinoMenuItem<T> extends CupertinoBaseMenuItem<T> {
     super.shouldPopMenuOnPressed = true,
     super.isDefaultAction,
     super.isDestructiveAction,
+    super.mouseCursor,
   });
-}
-
-/// A checkmark in a [CupertinoCheckedMenuItem].
-class _CupertinoCheckMark extends StatelessWidget {
-  const _CupertinoCheckMark({this.checked = true});
-
-  final bool checked;
-  @override
-  Widget build(BuildContext context) {
-    if (!checked) {
-      return const SizedBox.shrink();
-    }
-    return Text.rich(
-      TextSpan(
-        text: String.fromCharCode(
-          CupertinoIcons.check_mark.codePoint,
-        ),
-        style: TextStyle(
-          fontSize: 15,
-          height: 1.25,
-          fontWeight: FontWeight.w600,
-          fontFamily: CupertinoIcons.check_mark.fontFamily,
-          package: CupertinoIcons.check_mark.fontPackage,
-          textBaseline: TextBaseline.alphabetic,
-        ),
-      ),
-      textAlign: TextAlign.center,
-    );
-  }
 }
 
 /// An item in a Cupertino menu with a leading checkmark.
 ///
 /// Whether or not the checkmark is displayed can be set by by [checked].
+// TODO(davidhicks980): Figure out how to add documentation to super props.
 @immutable
 class CupertinoCheckedMenuItem<T> extends CupertinoBaseMenuItem<T> {
   /// An item in a Cupertino menu.
@@ -398,11 +377,11 @@ class CupertinoCheckedMenuItem<T> extends CupertinoBaseMenuItem<T> {
     super.height,
     super.padding,
     super.mouseCursor,
-    this.checked = true,
     super.enabled = true,
     super.shouldPopMenuOnPressed = true,
     super.isDefaultAction,
     super.isDestructiveAction,
+    this.checked = true,
   });
 
   @override
@@ -410,22 +389,22 @@ class CupertinoCheckedMenuItem<T> extends CupertinoBaseMenuItem<T> {
 
   @override
   Widget? get leading {
-    return ExcludeSemantics(child: 
-        _CupertinoCheckMark(checked: checked!),
+    return ExcludeSemantics(child:
+       checked ?? false ? const _MenuLeadingIcon(CupertinoIcons.check_mark, fontSize: 15) : null,
       );
   }
 
   @override
   VoidCallback? get onTap => () {
-        HapticFeedback.selectionClick();
-        super.onTap?.call();
-      };
+    HapticFeedback.selectionClick();
+    super.onTap?.call();
+  };
 
   /// Whether to display a checkmark next to the menu item.
   ///
   /// Defaults to false.
   ///
-  /// When true, the [CupertinoIcons.check_mark] checkmark icon is displayed at 
+  /// When true, the [CupertinoIcons.check_mark] checkmark icon is displayed at
   /// the leading edge of the menu item.
   final bool? checked;
 
@@ -438,25 +417,58 @@ class CupertinoCheckedMenuItem<T> extends CupertinoBaseMenuItem<T> {
   }
 }
 
+
+/// A sticky header in a [CupertinoMenu].
+///
+/// The header is always visible, and can be overscrolled. The main text content
+/// can be displayed by providing a [child] widget, and an optional [subtitle]
+/// can be displayed below the main text. A [leading] and [trailing] widget can
+/// be provided to display widgets at the horizontal edges of the header.
+///
+/// To change the size of the header, [padding] can be provided. Defaults to 79
+/// logical pixels tall.
 class CupertinoStickyMenuHeader extends StatelessWidget
-    with CupertinoMenuEntry<Never> {
+      with CupertinoMenuEntry<Never> {
+  /// Creates a sticky header in a [CupertinoMenu].
   CupertinoStickyMenuHeader({
-    required this.child,
     super.key,
+    required this.child,
     required this.leading,
     this.trailing,
     this.subtitle,
     this.padding = const EdgeInsetsDirectional.only(
       top: 16,
-      start: 16,
+      start: 12,
       end: 12,
-      bottom: 12,
+      bottom: 20,
     ),
   });
 
+  /// The default text style for a [CupertinoStickyMenuHeader] title.
+  static const TextStyle defaultTextStyle = TextStyle(
+    inherit: false,
+    fontFamily: 'CupertinoSystemText',
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    color: CupertinoInteractiveMenuItem.defaultTextColor,
+    letterSpacing: -0.21,
+  );
+
+  /// The default text style for a [CupertinoStickyMenuHeader] subtitle.
+  static const TextStyle defaultSubtitleStyle = TextStyle(
+    fontSize: 13,
+    height: 1.25,
+    package: 'CupertinoSystemText',
+    textBaseline: TextBaseline.alphabetic,
+    color: CupertinoColors.secondaryLabel,
+    letterSpacing: -0.21,
+    fontWeight: FontWeight.w400,
+  );
+
+  /// The widget to display as the title of the header. Usually a [Text] widget.
   final Widget child;
 
-  /// A widget displayed underneath the title.
+  /// A widget displayed underneath the title. Usually a [Text] widget.
   final Widget? subtitle;
 
   /// A widget displayed at the trailing edge of the header.
@@ -465,32 +477,21 @@ class CupertinoStickyMenuHeader extends StatelessWidget
   /// A widget to displayed at the leading edge of the header.
   final Widget leading;
 
-  /// Padding to apply to the contents of the header. 
+  /// Padding to apply to the contents of the header.
   final EdgeInsetsDirectional padding;
 
   @override
-  double get height => 71 + 8;
+  double get height => 43 + padding.vertical + 8;
 
   @override
   bool get hasLeading => true;
 
-  static const TextStyle defaultTextStyle = TextStyle(
-    inherit: false,
-    fontFamily: '.AppleSystemUIFont',
-    fontSize: 15,
-    fontWeight: FontWeight.w600,
-    color: CupertinoInteractiveMenuItem.defaultTextColor,
-    letterSpacing: -0.21,
-  );
-  static const TextStyle defaultSubtitleStyle = TextStyle(
-    fontSize: 13,
-    height: 17 / 12,
-    package: '.AppleSystemUIFont',
-    textBaseline: TextBaseline.alphabetic,
-    color: CupertinoColors.secondaryLabel,
-    letterSpacing: 0,
-    fontWeight: FontWeight.w300,
-  );
+  double getScaledHeight(TextScaler scaler) {
+    return scaler.clamp(
+            minScaleFactor: 0.9,
+            maxScaleFactor:  2.0
+          ).scale(height - padding.vertical - 8) + padding.vertical;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -500,24 +501,32 @@ class CupertinoStickyMenuHeader extends StatelessWidget
         context,
       ),
     );
-
-    return IconTheme(
-      data: IconThemeData(
-        color: textStyle.color,
-        size: 20.333,
+    final TextScaler scaler = MediaQuery
+                                .textScalerOf(context)
+                                .clamp(
+                                  minScaleFactor: 0.9,
+                                  maxScaleFactor: 2.0
+                                );
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: getScaledHeight(scaler),
       ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          _CupertinoMenuItemStructure(
+      child: MediaQuery.withClampedTextScaling(
+        minScaleFactor: 0.9,
+        maxScaleFactor: 2,
+        child: IconTheme(
+          data: IconThemeData(
+            color: textStyle.color,
+            size: scaler.scale(20.333),
+          ),
+          child: _CupertinoMenuItemStructure(
+            scalePadding: false,
             padding: padding,
             trailing: trailing,
-            leading: Align(
-              alignment: AlignmentDirectional.centerStart,
+            leading:  Padding(
+              padding: const EdgeInsetsDirectional.only(end: 4.0),
               child: leading,
             ),
-            height: height - 8,
             title: DefaultTextStyle.merge(
               overflow: TextOverflow.ellipsis,
               style: textStyle,
@@ -532,8 +541,7 @@ class CupertinoStickyMenuHeader extends StatelessWidget
               child: subtitle!,
             ),
           ),
-          const CupertinoMenuLargeDivider(),
-        ],
+        ),
       ),
     );
   }
@@ -542,8 +550,11 @@ class CupertinoStickyMenuHeader extends StatelessWidget
 /// A widget that provides the default structure, semantics, and interactivity
 /// for menu items in a [CupertinoMenu] or [CupertinoNestedMenu].
 ///
-/// For more flexibility, [CupertinoInteractiveMenuItem] can be overridden to
-/// customize the appearance and layout of menu items.
+/// See also:
+/// * [CupertinoInteractiveMenuItem], a widget that provides the default
+///   typography, semantics, and interactivity for menu items in a
+///   [CupertinoMenu], while allowing for customization of the menu item's
+///   structure.
 class CupertinoBaseMenuItem<T> extends CupertinoInteractiveMenuItem<T> {
   /// Creates a [CupertinoBaseMenuItem]
   const CupertinoBaseMenuItem({
@@ -574,7 +585,7 @@ class CupertinoBaseMenuItem<T> extends CupertinoInteractiveMenuItem<T> {
   /// The widget shown after the label. Typically a [CupertinoIcon].
   final Widget? trailing;
 
-  // A widget displayed underneath the title. Typically a [Text] widget.
+  /// A widget displayed underneath the title. Typically a [Text] widget.
   final Widget? subtitle;
 
   @override
@@ -590,101 +601,123 @@ class CupertinoBaseMenuItem<T> extends CupertinoInteractiveMenuItem<T> {
   }
 }
 
-/// A default layout wrapper for [CupertinoBaseMenuItem]s.
+// A default layout wrapper for [CupertinoBaseMenuItem]s.
 class _CupertinoMenuItemStructure extends StatelessWidget {
-  /// Creates a [_CupertinoMenuItemStructure]
+
+  // Creates a [_CupertinoMenuItemStructure]
   const _CupertinoMenuItemStructure({
     required this.title,
     this.height = kMinInteractiveDimensionCupertino,
-    this.padding,
     this.leading,
     this.trailing,
     this.subtitle,
+    this.scalePadding = true,
+    this.leadingAlignment = defaultLeadingAlignment,
+    this.trailingAlignment = defaultTrailingAlignment,
+    EdgeInsetsDirectional? padding,
     double? leadingWidth,
     double? trailingWidth,
   })  : _trailingWidth = trailingWidth,
-        _leadingWidth = leadingWidth;
+        _leadingWidth = leadingWidth,
+        _padding = padding ?? defaultPadding;
 
-  static const EdgeInsetsDirectional defaultVerticalPadding =
+  static const EdgeInsetsDirectional defaultPadding =
       EdgeInsetsDirectional.symmetric(vertical: 12);
   static const double defaultHorizontalWidth = 16;
   static const double leadingWidgetWidth = 32.0;
-  static const double trailingWidgetWidth = 38.5;
+  static const double trailingWidgetWidth = 44.0;
+  static const AlignmentDirectional defaultLeadingAlignment = AlignmentDirectional(1/6, 0);
+  static const AlignmentDirectional defaultTrailingAlignment = AlignmentDirectional(3/11, 0);
 
-  /// The padding for the contents of the menu item.
-  final EdgeInsetsDirectional? padding;
+  // The padding for the contents of the menu item.
+  final EdgeInsetsDirectional _padding;
 
-  /// The widget shown before the title. Typically a [CupertinoIcon].
+  // The widget shown before the title. Typically a [CupertinoIcon].
   final Widget? leading;
 
-  /// The widget shown after the title. Typically a [CupertinoIcon].
+  // The widget shown after the title. Typically a [CupertinoIcon].
   final Widget? trailing;
 
-  /// The width of the leading portion of the menu item.
+  // The width of the leading portion of the menu item.
   final double? _leadingWidth;
 
-  /// The width of the trailing portion of the menu item. 
+  // The width of the trailing portion of the menu item.
   final double? _trailingWidth;
 
-  /// The height of the menu item.
+  // The alignment of the leading widget within the leading portion of the menu
+  // item.
+  final AlignmentDirectional leadingAlignment;
+
+  // The alignment of the trailing widget within the trailing portion of the
+  // menu item.
+  final AlignmentDirectional trailingAlignment;
+
+  // The height of the menu item.
   final double height;
 
-  /// The center content of the menu item
+  // The center content of the menu item
   final Widget title;
 
-  /// The subtitle of the menu item
+  // The subtitle of the menu item
   final Widget? subtitle;
+
+  // Whether to scale the padding of the menu item with textScaleFactor
+  final bool scalePadding;
 
   @override
   Widget build(BuildContext context) {
-    final double textScaler = MediaQuery.textScalerOf(context).scale(1);
-    final bool hasLeading = leading != null || 
-                            CupertinoMenuLayerScope.of(context).hasLeadingWidget;
-    // Used to limit jump when the contents of a menu item change
+    final double textScale = MediaQuery.maybeTextScalerOf(context)?.scale(1) ?? 1.0;
+    final bool showLeadingWidget = leading != null
+            || (CupertinoMenuLayer.maybeOf(context)?.hasLeadingWidget ?? false);
+    final bool showTrailingWidget = textScale < 1.25 && trailing != null;
+    // Padding scales with textScale, but at a slower rate than text. Square
+    // root is used to estimate the padding scaling factor.
+    final double scaledPadding = scalePadding ? math.sqrt(textScale) : 1.0;
+    final double trailingWidth = (_trailingWidth
+                                   ?? (showTrailingWidget
+                                        ? trailingWidgetWidth
+                                        : defaultHorizontalWidth)) * scaledPadding;
+    final double leadingWidth = (_leadingWidth
+                                  ?? (showLeadingWidget
+                                       ? leadingWidgetWidth
+                                       : defaultHorizontalWidth)) * scaledPadding;
+    // AnimatedSize is used to limit jump when the contents of a menu item change
     return AnimatedSize(
       curve: Curves.easeOutExpo,
       duration: const Duration(milliseconds: 600),
       child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: height * textScaler),
+        constraints: BoxConstraints(minHeight: height * scaledPadding),
         child: Padding(
-          padding: (padding ?? defaultVerticalPadding) * textScaler,
+          padding: _padding * scaledPadding,
           child: Row(
             children: <Widget>[
+              // The leading and trailing widgets are wrapped in SizedBoxes and
+              // then aligned, rather than just padded, because the alignment
+              // behavior of the SizedBoxes appears to be more consistent with
+              // AutoLayout (iOS).
               SizedBox(
-                width: _leadingWidth ?? 
-                        (hasLeading 
-                          ? leadingWidgetWidth 
-                          : defaultHorizontalWidth),
-                child: hasLeading
-                    ? Align(
-                        alignment: const AlignmentDirectional(0.167, 0),
-                        child: leading,
-                      )
-                    : null,
+                width: leadingWidth,
+                child: showLeadingWidget
+                         ? Align(alignment: defaultLeadingAlignment, child: leading)
+                         : null,
               ),
               Expanded(
-                child: subtitle != null
-                    ? Column(
+                child: subtitle == null
+                    ? title
+                    : Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
-                          title, 
+                          title,
                           subtitle!,
                         ],
-                      )
-                    : title,
+                      ),
               ),
-              const SizedBox(width: 4),
               SizedBox(
-                width: _trailingWidth ?? 
-                        (trailing != null
-                          ? trailingWidgetWidth
-                          : defaultHorizontalWidth),
-                child: trailing != null
-                    ? Align(
-                        alignment: AlignmentDirectional.centerStart,
-                        child: trailing,
-                      )
-                    : null,
+                width: trailingWidth,
+                child: showTrailingWidget
+                         ? Align(alignment: defaultTrailingAlignment, child: trailing)
+                         : null,
               ),
             ],
           ),
@@ -719,7 +752,7 @@ mixin CupertinoMenuItemRowMixin<T> on CupertinoMenuEntry<T> {
   CupertinoMenuRowPreferredElementSize preferredElementSizeOf(
     BuildContext context,
   ) {
-    return CupertinoMenuActionRow.sizeOf(context);
+    return context.dependOnInheritedWidgetOfExactType<_ActionRowState>()!.size;
   }
 }
 
@@ -741,7 +774,9 @@ mixin CupertinoMenuItemRowMixin<T> on CupertinoMenuEntry<T> {
 ///  * [CupertinoMenuLargeDivider], a large divider in a Cupertino menu
 ///  * [CupertinoMenuItem], a full-width Cupertino menu item
 class CupertinoMenuActionItem<T> extends CupertinoInteractiveMenuItem<T>
-    with CupertinoMenuItemRowMixin<T> {
+      with CupertinoMenuItemRowMixin<T> {
+  /// Creates a [CupertinoMenuActionItem], a horizontally-placed Cupertino menu
+  /// item.
   const CupertinoMenuActionItem({
     super.key,
     required super.child,
@@ -755,19 +790,6 @@ class CupertinoMenuActionItem<T> extends CupertinoInteractiveMenuItem<T>
 
   /// An icon to display above the [child] in a group of 2 or 3, or centrally in a group of 4.
   final Icon icon;
-
-  static const Color defaultColor = CupertinoDynamicColor.withBrightness(
-    color: Color.fromRGBO(0, 0, 0, 0.96),
-    darkColor: Color.fromRGBO(255, 255, 255, 0.96),
-  );
-
-  static const TextStyle defaultTextStyle = TextStyle(
-    inherit: false,
-    fontFamily: '.AppleSystemUIFont',
-    fontSize: 13,
-    fontWeight: FontWeight.normal,
-    color: defaultColor,
-  );
 
   @override
   Widget buildChild(BuildContext context) {
@@ -788,12 +810,7 @@ class CupertinoMenuActionItem<T> extends CupertinoInteractiveMenuItem<T>
             DefaultTextStyle.merge(
               maxLines: 1,
               textAlign: TextAlign.center,
-              style: defaultTextStyle.copyWith(
-                color: CupertinoDynamicColor.maybeResolve(
-                  defaultTextStyle.color,
-                  context,
-                ),
-              ),
+              style: const TextStyle(fontSize: 13),
               child: child,
             ),
             const Spacer(),
@@ -817,36 +834,46 @@ class _ActionRowState extends InheritedWidget {
   bool updateShouldNotify(_ActionRowState oldWidget) => oldWidget.size != size;
 }
 
+/// A container that sizes and positions [CupertinoMenuActionItem]s in a row.
+// TODO(davidhicks980): Should this be private, or should we require users wrap
+// their action items in this widget?
 class CupertinoMenuActionRow extends StatelessWidget
       with CupertinoMenuEntry<Never> {
+  /// Creates a row of [CupertinoMenuActionItem]s.
   const CupertinoMenuActionRow({
     super.key,
     required this.children,
-  }) : assert(
+    double? height,
+  }) : _height = height, assert(
           children.length > 1 && children.length < 5,
           'CupertinoMenuActionRow can only have 2, 3 or 4 children',
         );
 
+  /// The children of this row.
   final List<Widget> children;
-
-  
+  final double? _height;
 
   @override
   bool get hasLeading => false;
 
+  /// The [CupertinoMenuRowPreferredElementSize] of the items in a
+  /// [CupertinoMenuActionRow].
+  ///
+  /// Used by [CupertinoMenuItemRowMixin] to determine the height and layout of
+  /// a row. A row that contains 4 children with a height of 44.0px. A row that
+  /// contains 2 - 3 children with a height of 64.0px.
   CupertinoMenuRowPreferredElementSize get size {
     return children.length == 4
-        ? CupertinoMenuRowPreferredElementSize.small
-        : CupertinoMenuRowPreferredElementSize.medium;
+           ? CupertinoMenuRowPreferredElementSize.small
+           : CupertinoMenuRowPreferredElementSize.medium;
   }
 
   @override
   double get height {
-    return size == CupertinoMenuRowPreferredElementSize.small ? 44.0 : 64.0;
-  }
-
-  static CupertinoMenuRowPreferredElementSize sizeOf(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<_ActionRowState>()!.size;
+    return _height
+           ?? (size == CupertinoMenuRowPreferredElementSize.small
+                ? 44.0
+                : 64.0);
   }
 
   @override
@@ -874,7 +901,7 @@ class CupertinoMenuActionRow extends StatelessWidget
 }
 
 /// A [CupertinoMenuEntry] that inserts a large horizontal divider.
-/// 
+///
 /// The divider has a height of 8 logical pixels. A [color] parameter can be
 /// provided to customize the color of the divider.
 ///
@@ -888,32 +915,28 @@ class CupertinoMenuLargeDivider extends StatelessWidget
   /// Creates a large horizontal divider for a [CupertinoMenu].
   const CupertinoMenuLargeDivider({
     super.key,
-    this.color = isTransparent ? transparentColor : opaqueColor,
+    this.color = transparentColor,
   });
 
-  /// Color for [CupertinoMenuLargeDivider].
-  /// 
-  /// 
-  // The following colors were measured from the iOS simulator and opacity was extrapolated:
-  // ```dart
-  // // Dark mode on white:
+  /// Color for a transparent [CupertinoMenuLargeDivider].
+  // The following colors were measured from the iOS simulator and opacity was
+  // extrapolated:
+  // ---------------------------
+  // Dark mode on white:
   // Color.fromRGBO(70, 70, 70, 1)
-  // // Dark mode on black:
+  //
+  // Dark mode on black:
   // Color.fromRGBO(26, 26, 26, 1)
-  // // Light mode on black:
+  //
+  // Light mode on black:
   // Color.fromRGBO(181, 181, 181, 1)
-  // // Light mode on white:
+  //
+  // Light mode on white:
   // Color.fromRGBO(226, 226, 226, 1)
-  // ```
-  static const CupertinoDynamicColor transparentColor = 
+  static const CupertinoDynamicColor transparentColor =
     CupertinoDynamicColor.withBrightness(
       color: Color.fromRGBO(0, 0, 0, 0.08),
       darkColor: Color.fromRGBO(0, 0, 0, 0.16),
-    );
-  static const CupertinoDynamicColor  opaqueColor = 
-    CupertinoDynamicColor.withBrightness(
-      color: Color.fromRGBO(226, 226, 226, 1),
-      darkColor: Color.fromRGBO(26, 26, 26, 1),
     );
 
   /// The color of the divider.
@@ -950,17 +973,31 @@ class CupertinoMenuDivider extends StatelessWidget
   /// A [CupertinoMenuEntry] that adds a top border to it's child
   const CupertinoMenuDivider({
     super.key,
-    this.color  = CupertinoMenuEntry.dividerColor,
+    this.color  = dividerColor,
     this.thickness = 0.0,
   });
+  /// Default transparent color for [CupertinoMenuDivider] and
+  /// [CupertinoVerticalMenuDivider].
+  ///
+  // The following colors were measured from the iOS simulator, and opacity was
+  // extrapolated:
+  // Dark mode on white       Color.fromRGBO(97, 97, 97)
+  // Dark mode on black       Color.fromRGBO(51, 51, 51)
+  // Light mode on black      Color.fromRGBO(147, 147, 147)
+  // Light mode on white      Color.fromRGBO(187, 187, 187)
+  static const CupertinoDynamicColor dividerColor =
+      CupertinoDynamicColor.withBrightness(
+        color: Color.fromRGBO(70, 70, 70, 0.35),
+        darkColor: Color.fromRGBO(230, 230, 230, 0.3),
+      );
 
   /// The color of divider.
   ///
-  /// If this property is null, [CupertinoMenuEntry.dividerColor] is used.
+  /// If this property is null, [CupertinoMenuDivider.dividerColor] is used.
   final CupertinoDynamicColor color;
 
   /// The thickness of the divider.
-  /// 
+  ///
   /// Defaults to 0.0, which is equivalent to 1 physical pixel.
   final double thickness;
 
@@ -971,6 +1008,10 @@ class CupertinoMenuDivider extends StatelessWidget
   Widget build(BuildContext context) {
     return CustomPaint(
         foregroundPainter: _AliasedBorderPainter(
+          // Antialiasing is disabled to match the iOS native menu divider, but
+          // is enabled on devices with a device pixel ratio < 1.0 to ensure the
+          // divider is visible on low resolution devices.
+          isAntiAlias: (MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0) < 1.0,
           begin: AlignmentDirectional.topStart,
           end: AlignmentDirectional.topEnd,
           border: BorderSide(
@@ -986,7 +1027,7 @@ class CupertinoMenuDivider extends StatelessWidget
 /// A [CupertinoMenuEntry] that adds a left border to it's child
 ///
 /// The divider can be customized with a [color] and [thickness]. The [color]
-/// defaults to [CupertinoMenuEntry.dividerColor], and the [thickness] defaults
+/// defaults to [CupertinoMenuDivider.dividerColor], and the [thickness] defaults
 /// to 0.0, which is equivalent to 1 physical pixel. The divider occupies 0.67
 /// logical pixels, which was inspected from the iOS simulator.
 ///
@@ -1001,16 +1042,16 @@ class CupertinoMenuVerticalDivider extends StatelessWidget
   /// Divider has width and thickness of 0 logical pixels.
   const CupertinoMenuVerticalDivider({
     super.key,
-    this.color = CupertinoMenuEntry.dividerColor, 
+    this.color = CupertinoMenuDivider.dividerColor,
     this.height = double.infinity,
     this.thickness = 0.0,
   });
 
   /// The color of divider.
   final CupertinoDynamicColor color;
-  
-  /// The thickness of the divider. 
-  /// 
+
+  /// The thickness of the divider.
+  ///
   /// Defaults to 0.0, which is equivalent to 1 physical pixel.
   final double thickness;
 
@@ -1024,10 +1065,14 @@ class CupertinoMenuVerticalDivider extends StatelessWidget
   Widget build(BuildContext context) {
     return CustomPaint(
       foregroundPainter: _AliasedBorderPainter(
-        begin: const AlignmentDirectional(0 , -0.98),
+        // Antialiasing is disabled to match the iOS native menu divider, but
+        // is enabled on devices with a device pixel ratio < 1.0 to ensure the
+        // divider is visible.
+        isAntiAlias: (MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0) < 1.0,
+        begin: const AlignmentDirectional(0 , -0.985),
         end: AlignmentDirectional.bottomCenter,
         border: BorderSide(
-          color: color.resolveFrom(context), 
+          color: color.resolveFrom(context),
           width: 0.0,
         ),
       ),
@@ -1039,22 +1084,23 @@ class CupertinoMenuVerticalDivider extends StatelessWidget
 // A custom painter that draws a border without antialiasing
 //
 // If not used, hairline borders are antialiased, which make them look
-// thicker compared to iOS native menus. 
+// thicker compared to iOS native menus.
 class _AliasedBorderPainter extends CustomPainter {
   const _AliasedBorderPainter({
     required this.border,
     required this.begin,
     required this.end,
+    this.isAntiAlias = false,
   });
 
   final BorderSide border;
   final AlignmentDirectional begin;
   final AlignmentDirectional end;
+  final bool isAntiAlias;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint = border.toPaint()..isAntiAlias = false;
-
+    final Paint paint = border.toPaint()..isAntiAlias = isAntiAlias;
     canvas.drawLine(
       Offset(
         size.width * (begin.start * 0.5 + 0.5),
@@ -1069,33 +1115,66 @@ class _AliasedBorderPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_AliasedBorderPainter oldDelegate) =>
-      border != oldDelegate.border ||
-      begin != oldDelegate.begin ||
-      end != oldDelegate.end;
+  bool shouldRepaint(_AliasedBorderPainter oldDelegate) {
+    return border != oldDelegate.border
+        || end != oldDelegate.end
+        || begin != oldDelegate.begin
+        || isAntiAlias != oldDelegate.isAntiAlias;
+  }
 }
 
 
 /// A mixin that rebuilds [State] when an item becomes interactive or not.
-/// 
+///
 /// Interactivity can be accessed via the [isInteractive] property.
 @optionalTypeArgs
-mixin CupertinoMenuItemInteractivityMixin<T extends StatefulWidget>
+mixin CupertinoMenuItemLayerControlMixin<T extends StatefulWidget>
       on State<T> {
 
   /// Whether the menu layer containing this item can react to input.
   bool get isInteractive => _isInteractive;
   bool _isInteractive = true;
 
+  /// The controller for the menu layer containing this item.
+  CupertinoMenuController? get controller => _controller;
+  CupertinoMenuController? _controller;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Whether the menu layer containing this item is interactive.
-    _isInteractive = CupertinoMenuLayerScope.of(context).isInteractive;
+    // Whether the menu layer containing this item is interactive. This is
+    // separated from [CupertinoMenuItemGestureHandler] so that users can extend
+    // [CupertinoMenuItemGestureHandler] without having to worry about inherited
+    // widgets
+    _isInteractive = CupertinoMenuLayer.maybeOf(context)?.isInteractive ?? true;
+    _controller = CupertinoMenuLayer.maybeOf(context)?.controller;
   }
 }
 
+/// A menu item wrapper that handles gestures, including taps, pans, and long
+/// presses.
+///
+/// This widget is used by [CupertinoBaseMenuItem] and
+/// [CupertinoMenuActionItem], and can be used to wrap custom menu items.
+///
+/// The [onTap] callback is called when the user taps the menu item, pans over
+/// the menu item and lifts their finger, or when the user long-presses a menu
+/// item that has a [panPressActivationDelay] greater than [Duration.zero]. If
+/// provided, a [pressedColor] will highlight the menu item whenever a pointer
+/// is in contact with the menu item.
+///
+/// A [mouseCursor] can be provided to change the cursor that appears when a
+/// mouse hovers over the menu item. If [mouseCursor] is null, the
+/// [SystemMouseCursors.click] cursor is used. A [hoveredColor] can be provided
+/// to change the color of the menu item when a mouse hovers over the menu item.
+/// If [hoveredColor] is null, the [pressedColor] is used with opacity 0.05.
+///
+/// If [focusNode] is provided, the menu item will be focusable. When the menu
+/// item is focused, the [focusedColor] will be used to highlight the menu item.
+///
+/// If [enabled] is false, the [onTap] callback is not called, the menu item
+/// will not be focusable, and no appearance changes will occur in response to
+/// user input.
 class CupertinoMenuItemGestureHandler<T> extends StatefulWidget {
   /// Creates default menu gesture detector.
   const CupertinoMenuItemGestureHandler({
@@ -1109,6 +1188,7 @@ class CupertinoMenuItemGestureHandler<T> extends StatefulWidget {
     this.hoveredColor,
     this.panPressActivationDelay = Duration.zero,
     this.enabled = true,
+    this.behavior,
   });
 
   /// The menu item to wrap with gestures.
@@ -1142,16 +1222,35 @@ class CupertinoMenuItemGestureHandler<T> extends StatefulWidget {
   /// The focus node to use for this menu item.
   final FocusNode? focusNode;
 
+  /// How the menu item should respond to hit tests.
+  final HitTestBehavior? behavior;
+
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+    ..add(DiagnosticsProperty<bool>('enabled', enabled))
+    ..add(DiagnosticsProperty<String>('child', child.toString()))
+    ..add(DiagnosticsProperty<Color?>('pressedColor', pressedColor))
+    ..add(DiagnosticsProperty<Color?>('hoveredColor', hoveredColor, defaultValue: pressedColor.withOpacity(0.075)))
+    ..add(DiagnosticsProperty<Color?>('focusedColor', focusedColor, defaultValue: pressedColor.withOpacity(0.05)))
+    ..add(DiagnosticsProperty<MouseCursor?>('mouseCursor', mouseCursor, defaultValue: null))
+    ..add(EnumProperty<HitTestBehavior>('hitTestBehavior', behavior))
+    ..add(DiagnosticsProperty<Duration>('panPressActivationDelay', panPressActivationDelay, defaultValue: Duration.zero))
+    ..add(DiagnosticsProperty<FocusNode?>('focusNode', focusNode, defaultValue: null));
+  }
+
   @override
   State<CupertinoMenuItemGestureHandler<T>> createState() =>
       _CupertinoMenuItemGestureHandlerState<T>();
 }
 
 class _CupertinoMenuItemGestureHandlerState<T>
-       extends State<CupertinoMenuItemGestureHandler<T>>
-          with PanTarget<CupertinoMenuItemGestureHandler<T>>,
-               CupertinoMenuItemInteractivityMixin {
-  late final Map<Type, Action<Intent>> _actionMap = 
+      extends State<CupertinoMenuItemGestureHandler<T>>
+         with PanTarget<CupertinoMenuItemGestureHandler<T>>,
+              CupertinoMenuItemLayerControlMixin {
+  late final Map<Type, Action<Intent>> _actionMap =
   <Type, Action<Intent>>{
     ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: _simulateTap),
     ButtonActivateIntent: CallbackAction<ButtonActivateIntent>(onInvoke: _simulateTap),
@@ -1178,7 +1277,7 @@ class _CupertinoMenuItemGestureHandlerState<T>
         _longPanPressTimer = null;
       });
     }
-    
+
     if (!_isSwiped) {
       setState(() {
         _isSwiped = true;
@@ -1207,17 +1306,19 @@ class _CupertinoMenuItemGestureHandlerState<T>
   void _simulateTap(Intent intent) {
     if (enabled) {
       widget.onTap?.call();
+      controller?.rebuild();
     }
   }
 
   void _handleTap() {
     if (enabled) {
       widget.onTap?.call();
+      controller?.rebuild();
       setState(() {
         _isPressed = false;
         _isSwiped = false;
       });
-    } 
+    }
   }
 
   void _handleTapDown(TapDownDetails details) {
@@ -1257,24 +1358,22 @@ class _CupertinoMenuItemGestureHandlerState<T>
     });
   }
 
-  Color? get backgroundColor {
-    if (!enabled) {
-      return null;
+  Color get backgroundColor {
+    if (enabled) {
+      if (_isPressed || _isSwiped) {
+        return widget.pressedColor;
+      }
+
+      if (_isFocused) {
+        return widget.focusedColor ?? widget.pressedColor.withOpacity(0.075);
+      }
+
+      if (_isHovered) {
+        return widget.hoveredColor ?? widget.pressedColor.withOpacity(0.05);
+      }
     }
 
-    if (_isPressed || _isSwiped) {
-      return widget.pressedColor;
-    }
-
-    if (_isFocused) {
-      return widget.focusedColor ?? widget.pressedColor.withOpacity(0.075);
-    }
-
-    if (_isHovered) {
-      return widget.hoveredColor ?? widget.pressedColor.withOpacity(0.05);
-    }
-
-    return null;
+    return const Color(0x00000000);
   }
 
   @override
@@ -1283,27 +1382,28 @@ class _CupertinoMenuItemGestureHandlerState<T>
       metaData: this,
       child: MouseRegion(
         onEnter: enabled ? _handleMouseEnter : null,
-        onExit: _isHovered || enabled ? _handleMouseExit : null,
+        onExit: (_isHovered || enabled) ? _handleMouseExit : null,
         hitTestBehavior: HitTestBehavior.deferToChild,
-        cursor: enabled && kIsWeb
-            ? widget.mouseCursor ?? SystemMouseCursors.click
-            : MouseCursor.defer,
+        // TODO(davidhicks980): Determine which mouse cursor to use.
+        cursor: enabled
+                ? widget.mouseCursor ?? SystemMouseCursors.click
+                : MouseCursor.defer,
         child: Actions(
           actions: _actionMap,
           child: Focus(
             debugLabel: '${widget.child.runtimeType}',
             canRequestFocus: enabled,
             skipTraversal: !enabled,
-            onFocusChange: enabled || _isFocused ? _handleFocusChange : null,
+            onFocusChange: (enabled || _isFocused) ? _handleFocusChange : null,
             focusNode: widget.focusNode,
             child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
+              behavior: widget.behavior ?? HitTestBehavior.opaque,
               onTap: _handleTap,
-              onTapDown: enabled && !_isPressed ? _handleTapDown : null,
+              onTapDown: (enabled && !_isPressed) ? _handleTapDown : null,
               onTapUp: _isPressed ? _handleTapUp : null,
-              onTapCancel: _isPressed || _isSwiped ? _handleTapCancel : null,
+              onTapCancel: (_isPressed || _isSwiped) ? _handleTapCancel : null,
               child: ColoredBox(
-                color: backgroundColor ?? const Color(0x00000000),
+                color: backgroundColor,
                 child: widget.child,
               ),
             ),
@@ -1315,91 +1415,136 @@ class _CupertinoMenuItemGestureHandlerState<T>
 }
 
 
-// Chevron used in [CupertinoNestedMenuItemAnchor]
-class _CupertinoNestedMenuChevron extends StatelessWidget {
-  const _CupertinoNestedMenuChevron();
-  
+
+// Icon used in [CupertinoNestedMenuItemAnchor] and [CupertinoCheckedMenuItem].
+// TODO(davidhicks980): Font variation weight is not reflected by CupertinoIcon.
+// I need to file an issue with the Cupertino team to see whether this is
+// intentional.
+class _MenuLeadingIcon extends StatelessWidget {
+  const _MenuLeadingIcon(
+    this.icon,
+    { this.fontSize }
+  );
+  final IconData icon;
+  final double? fontSize;
   @override
   Widget build(BuildContext context) {
-    return Text.rich(
+    final TextDirection textDirection = Directionality.of(context);
+    final Text iconWidget = Text.rich(
       TextSpan(
-        text: String.fromCharCode(
-          CupertinoIcons
-            .chevron_forward
-            .codePoint,
-        ),
+        text: String.fromCharCode(icon.codePoint),
         style: TextStyle(
-          fontSize: 17.5,
-          height: 1.25,
+          fontSize: fontSize,
           fontWeight: FontWeight.w600,
-          fontFamily: CupertinoIcons.chevron_forward.fontFamily,
-          package: CupertinoIcons.chevron_forward.fontPackage,
+          fontFamily: icon.fontFamily,
+          package: icon.fontPackage,
           textBaseline: TextBaseline.alphabetic,
         ),
       ),
+      textDirection: textDirection,
+      overflow: TextOverflow.visible,
       textAlign: TextAlign.center,
     );
+
+    if (icon.matchTextDirection && textDirection == TextDirection.rtl) {
+      return  Transform(
+        transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+        alignment: Alignment.center,
+        transformHitTests: false,
+        child: iconWidget,
+      );
+    }
+    return iconWidget;
   }
 }
 
-// A [CupertinoMenuEntry] that is used as an anchor for a nested menu.
+/// A [CupertinoMenuEntry] that is used as an anchor for a nested menu.
+///
+/// The [title] widget is required and specifies the main label contents of the
+/// menu item. The [subtitle] is a widget displayed underneath the [title]. Both
+/// are typically [Text] widgets. The [trailing] widget is displayed at the
+/// trailing edge of the anchor, and is typically a [CupertinoIcon].
+///
+/// A [CupertinoIcons.chevronRight] is used as a leading widget. The leading
+/// chevron rotates when the nested menu is open, which is controlled by an
+/// [animation]. Along with controlling the rotation of the chevron, the
+/// [animation] is responsible for fading the [title] while the menu is opening
+/// or closing.
+///
+/// The [onTap] callback is called when the anchor is tapped.
+///
+/// [CupertinoNestedMenu]s contain two anchors: one on the nested menu's parent
+/// and one on the nested menu. When the nested menu is open, the parent anchor
+/// has it's [visible] parameter set to false while the nested anchor's
+/// [visible] parameter is set to true. The underlying anchor is hidden using a
+/// [Visibility] widget.
+///
+/// The [expanded] property communicates to screen readers whether the nested
+/// menu is open (true) or closed (false).
 class CupertinoNestedMenuItemAnchor<T> extends StatefulWidget
-    with CupertinoMenuEntry<Never> {
+      with CupertinoMenuEntry<Never> {
+  /// Creates a [CupertinoNestedMenuItemAnchor].
   const CupertinoNestedMenuItemAnchor({
     super.key,
-    required this.child,
+    required this.title,
     required this.subtitle,
     required this.onTap,
     required this.animation,
-    required this.isTopButton,
+    required this.visible,
+    required this.expanded,
+    required this.height,
+    this.enabled = true,
     this.trailing,
-    required this.semanticsHint,
   });
-
-  final Widget child;
+  /// The main label contents of the menu item.
+  final TextSpan title;
 
   /// A widget displayed underneath the title. Typically a [Text] widget.
   final Widget? subtitle;
 
-  /// A widget displayed at the trailing edge of the anchor. 
-  /// 
+  /// A widget displayed at the trailing edge of the anchor.
+  ///
   /// Typically a [CupertinoIcon].
   final Widget? trailing;
 
   /// The animation that controls the rotation of the chevron and the
-  /// fade-in/fade-out of the title. 
+  /// fade-in/fade-out of the title.
   final Animation<double> animation;
 
   /// Called when the anchor is tapped.
   final void Function()? onTap;
 
-  /// [CupertinoNestedMenu]s contain two anchors: one on the underlying menu
-  /// and one on the nested menu. When the nested menu is open, the underlying
-  /// anchor is hidden and the nested anchor is shown. 
-  /// When false, the anchor is hidden using a [Visibility] widget.
-  final bool isTopButton;
+  /// Whether the anchor is visible.
+  final bool visible;
 
-  /// A semantic hint for the anchor that will be read out by screen readers.
-  final String semanticsHint;
+  /// Whether the anchor is expanded. Used by the semantics layer.
+  final bool expanded;
+
+  /// Whether the anchor can be opened.
+  final bool enabled;
 
   @override
   bool get hasLeading => true;
 
   @override
-  double get height => 44;
+  final double height;
 
+  /// The default color for a CupertinoNestedMenuItemAnchor subtitle.
   static const CupertinoDynamicColor defaultSubtitleColor =
     CupertinoDynamicColor.withBrightness(
             color: Color.fromRGBO(119, 120, 119, 1.00),
         darkColor: Color.fromRGBO(255, 255, 255, 0.48),
       );
 
-  static const TextStyle defaultSubtitleStyle = 
+
+  /// The default text style for a CupertinoNestedMenuItemAnchor subtitle.
+  static const TextStyle defaultSubtitleStyle =
       TextStyle(
         inherit: false,
         fontSize: 15,
-        color: defaultSubtitleColor,
         letterSpacing: -0.21,
+        color: defaultSubtitleColor,
+        fontFamily: 'CupertinoSystemText',
       );
 
   @override
@@ -1410,32 +1555,18 @@ class CupertinoNestedMenuItemAnchor<T> extends StatefulWidget
 
 class _CupertinoNestedMenuItemAnchorState<T>
       extends State<CupertinoNestedMenuItemAnchor<T>> {
-  static const Interval topTextInterval = Interval(0.2, 0.6);
+  static const Interval topTextInterval = Interval(0.25, 0.7);
   static const Interval bottomTextInterval = Interval(0.3, 0.6, curve: Curves.easeIn);
   late Animation<double>? _chevronRotationAnimation;
   late Animation<TextStyle>? _bottomTextAnimation;
   late Animation<TextStyle>? _topTextAnimation;
   late TextStyle _defaultTextStyle;
+  bool _isTopTextVisible = false;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final Color labelColor = CupertinoDynamicColor.resolve(
-                             CupertinoInteractiveMenuItem.defaultTextColor,
-                               context,
-                             );
-    _defaultTextStyle = CupertinoInteractiveMenuItem
-                          .defaultTextStyle
-                          .copyWith(color: labelColor);
-    _buildAnimations();
-  }
-
-  @override
-  void didUpdateWidget(CupertinoNestedMenuItemAnchor<T> oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.animation != widget.animation) {
-      _buildAnimations();
-    }
+  void _updateSemantics() {
+    setState(() {
+      _isTopTextVisible = _topTextAnimation!.value.color!.opacity > 0.5;
+    });
   }
 
   void _buildAnimations() {
@@ -1444,7 +1575,7 @@ class _CupertinoNestedMenuItemAnchorState<T>
       Tween<double>(begin: 0, end: 0.25),
     );
 
-    // Bottom text fades out
+    // Bottom text fades out when opening.
     _bottomTextAnimation = widget.animation
         .drive(CurveTween(curve: bottomTextInterval))
         .drive(TextStyleTween(
@@ -1461,19 +1592,22 @@ class _CupertinoNestedMenuItemAnchorState<T>
             begin: _defaultTextStyle.copyWith(
               color: _defaultTextStyle.color?.withOpacity(0),
               fontWeight: FontWeight.w600,
-              letterSpacing: -0.41,
+              letterSpacing: -0.21,
+
             ),
             end: _defaultTextStyle.copyWith(
               fontWeight: FontWeight.w600,
-              letterSpacing: -0.21,
+              letterSpacing: 0,
             ),
-          ),);
+          ),
+        );
   }
-  
+
   Widget? _buildSubtitle(BuildContext context) {
-    if(widget.subtitle == null){
+    if (widget.subtitle == null) {
       return null;
     }
+
     return DefaultTextStyle.merge(
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
@@ -1488,40 +1622,83 @@ class _CupertinoNestedMenuItemAnchorState<T>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final Color labelColor = CupertinoDynamicColor.resolve(
+                             CupertinoInteractiveMenuItem.defaultTextColor,
+                               context,
+                             );
+    _defaultTextStyle = CupertinoInteractiveMenuItem
+                          .defaultTextStyle
+                          .copyWith(color: labelColor);
+    _buildAnimations();
+    widget.animation.addListener(_updateSemantics);
+  }
+
+  @override
+  void didUpdateWidget(CupertinoNestedMenuItemAnchor<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.animation != widget.animation) {
+      _buildAnimations();
+      oldWidget.animation.removeListener(_updateSemantics);
+      widget.animation.addListener(_updateSemantics);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.animation.removeListener(_updateSemantics);
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     // When the top anchor is shown, we hide the anchor item's contents but
-    // maintain the size.
+    // maintain the size of the item. Otherwise, the parent menu will shrink
+    // when the nested menu is opened.
     return Visibility(
-      visible: widget.isTopButton,
+      visible: widget.visible,
       maintainAnimation: true,
       maintainState: true,
       maintainSize: true,
       child: Semantics(
-        hint: widget.semanticsHint,
+        expanded: widget.expanded,
         child: CupertinoBaseMenuItem<T>(
           swipePressActivationDelay: const Duration(milliseconds: 500),
           shouldPopMenuOnPressed: false,
-          onTap: widget.onTap,
+          onTap: widget.enabled ? widget.onTap : null,
+          enabled: widget.enabled,
           trailing: widget.trailing,
           leading: ExcludeSemantics(
             child: RotationTransition(
               turns: _chevronRotationAnimation!,
-              child: const _CupertinoNestedMenuChevron(),
+              child: const _MenuLeadingIcon(
+                CupertinoIcons.chevron_right,
+                fontSize: 16,
+              ),
             ),
           ),
+          height: widget.height,
           subtitle: _buildSubtitle(context),
           child: Stack(
             clipBehavior: Clip.none,
+            alignment: Alignment.bottomLeft,
             children: <Widget>[
-              DefaultTextStyleTransition(
-                overflow: TextOverflow.ellipsis,
-                style: _bottomTextAnimation!,
-                child: widget.child,
+              ExcludeSemantics(
+                excluding: !_isTopTextVisible,
+                child: DefaultTextStyleTransition(
+                  overflow: TextOverflow.ellipsis,
+                  style: _bottomTextAnimation!,
+                  child: Text.rich(widget.title),
+                ),
               ),
-              DefaultTextStyleTransition(
-                overflow: TextOverflow.ellipsis,
-                style: _topTextAnimation!,
-                child: widget.child,
+              ExcludeSemantics(
+                excluding: _isTopTextVisible,
+                  child: DefaultTextStyleTransition(
+                  overflow: TextOverflow.ellipsis,
+                  style: _topTextAnimation!,
+                  child: Text.rich(widget.title),
+                ),
               ),
             ],
           ),
@@ -1531,24 +1708,24 @@ class _CupertinoNestedMenuItemAnchorState<T>
   }
 }
 
-/// Called when a [PanTarget] is entered or exited. 
-/// 
+/// Called when a [PanTarget] is entered or exited.
+///
 /// The [position] describes the global position of the pointer.
-/// 
+///
 /// The [onTarget] parameter is true when the pointer is on a [PanTarget].
 typedef CupertinoPanUpdateCallback = void Function(Offset position, bool onTarget);
 
-/// Called when the user stops panning. 
-/// 
+/// Called when the user stops panning.
+///
 /// This can occur when the user lifts their
 /// finger or if the user drags the pointer outside of the
 /// [CupertinoPanListener].
-/// 
+///
 /// The [position] describes the global position of the pointer.
 typedef CupertinoPanEndCallback = void Function(Offset position);
 
-/// Called when the user starts panning. 
-/// 
+/// Called when the user starts panning.
+///
 /// The [position] describes the global position of the pointer.
 typedef CupertinoPanStartCallback = Drag? Function(Offset position);
 
@@ -1568,39 +1745,36 @@ class CupertinoPanListener<T extends PanTarget<StatefulWidget>>
      this.onPanStart,
   });
 
-  /// Called when a [PanTarget] is entered or exited. 
-  /// 
+  /// Called when a [PanTarget] is entered or exited.
+  ///
   /// The [position] describes the global position of the pointer.
-  /// 
+  ///
   /// The [onTarget] parameter is true when the pointer is on a [PanTarget].
   final CupertinoPanUpdateCallback? onPanUpdate;
-  
-  /// Called when the user stops panning. 
-  /// 
+
+  /// Called when the user stops panning.
+  ///
   /// This can occur when the user lifts their
   /// finger or if the user drags the pointer outside of the
   /// [CupertinoPanListener].
-  /// 
+  ///
   /// The [position] describes the global position of the pointer.
   final CupertinoPanEndCallback? onPanEnd;
 
-
-  /// Called when the user starts panning. 
-  /// 
+  /// Called when the user starts panning.
+  ///
   /// The [position] describes the global position of the pointer.
   final CupertinoPanEndCallback? onPanStart;
 
   /// The menu layer to wrap.
   final Widget child;
 
-
   /// Creates a [ImmediateMultiDragGestureRecognizer] to recognize the start of
   /// a pan gesture.
   ImmediateMultiDragGestureRecognizer createRecognizer(
     CupertinoPanStartCallback onStart,
   ) {
-    return ImmediateMultiDragGestureRecognizer()
-           ..onStart = onStart;
+    return ImmediateMultiDragGestureRecognizer()..onStart = onStart;
   }
 
   @override
@@ -1677,6 +1851,9 @@ class _CupertinoPanListenerState<T extends PanTarget<StatefulWidget>>
   }
 }
 
+/// Can be mixed into a [State] to receive callbacks when a pointer enters or
+/// leaves a [PanTarget]. The [PanTarget] is should be an ancestor of a
+/// [CupertinoPanListener].
 mixin PanTarget<T extends StatefulWidget> on State<T> {
   /// Called when a pointer enters the [PanTarget]. Return true if the pointer
   /// should be considered "on" the [PanTarget], and false otherwise (for
@@ -1691,7 +1868,7 @@ mixin PanTarget<T extends StatefulWidget> on State<T> {
 // Handles panning events for a [CupertinoPanListener]
 //
 // Calls [onPanUpdate] when the user's finger moves over a [PanTarget] and
-// [onPanEnd] when the user's finger leaves the [PanTarget]. 
+// [onPanEnd] when the user's finger leaves the [PanTarget].
 //
 // This class was adapted from [_DragAvatar].
 class _PanHandler<T extends PanTarget<StatefulWidget>> extends Drag {
@@ -1718,12 +1895,12 @@ class _PanHandler<T extends PanTarget<StatefulWidget>> extends Drag {
 
   @override
   void end(DragEndDetails details) {
-    finishDrag(pointerUp: true);
+    _finishDrag(pointerUp: true);
   }
 
   @override
   void cancel() {
-    finishDrag();
+    _finishDrag();
   }
 
   void updateDrag(Offset globalPosition) {
@@ -1769,9 +1946,7 @@ class _PanHandler<T extends PanTarget<StatefulWidget>> extends Drag {
     }
   }
 
-  Iterable<T> _getDragTargets(
-    Iterable<HitTestEntry> path,
-  ) {
+  Iterable<T> _getDragTargets(Iterable<HitTestEntry> path) {
     // Look for the RenderBoxes that corresponds to the hit target (the hit target
     // widgets build RenderMetaData boxes for us for this purpose).
     final List<T> targets = <T>[];
@@ -1791,7 +1966,7 @@ class _PanHandler<T extends PanTarget<StatefulWidget>> extends Drag {
     _enteredTargets.clear();
   }
 
-  void finishDrag({bool pointerUp = false}) {
+  void _finishDrag({bool pointerUp = false}) {
     _leaveAllEntered(pointerUp: pointerUp);
     onPanEnd?.call(_position);
   }
