@@ -150,6 +150,10 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
                           title: const TextSpan(text: 'View Options'),
                           itemBuilder: (BuildContext context) {
                             return <CupertinoMenuEntry<String>>[
+                               CupertinoNestedMenu<String>(
+                          title: const TextSpan(text: 'View Options'),
+                          itemBuilder: (BuildContext context) {
+                            return <CupertinoMenuEntry<String>>[
                               const CupertinoMenuTitle(
                                 textAlign: TextAlign.left,
                                 child: Text('Group by:'),
@@ -172,6 +176,29 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
                             ];
                           },
                         ),
+                              const CupertinoMenuTitle(
+                                textAlign: TextAlign.left,
+                                child: Text('Group by:'),
+                              ),
+                              for(final ViewOption option in ViewOption.values)
+                                CupertinoCheckedMenuItem<String>(
+                                  checked: _viewOptionsValue == option,
+                                  child: Text(option.label),
+                                  onTap: () {
+                                    setState(() {
+                                      _viewOptionsValue = option;
+                                    });
+                                  },
+                                ),
+
+                              const CupertinoMenuLargeDivider(),
+                              CupertinoMenuItem<String>(
+                                child: const Text('Show All Extensions'),
+                                onTap: () {},
+                              ),
+                            ];
+                          },
+                        ),
                       ];
                     };
 
@@ -179,61 +206,70 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
   Widget build(BuildContext context) {
     return  Directionality(
         textDirection: _directionality,
-        child: Builder(
-          builder: (BuildContext context) {
-            return CupertinoPageScaffold(
-              navigationBar: const CupertinoNavigationBar(
-                middle: Text('CupertinoMenu Sample'),
-              ),
-              child:  SafeArea(
-                child: Center(
-                  child: SizedBox(
-                    height: 800,
-                    width: 400,
-                    child: Column(
-                      children: <Widget>[
-                        SizedBox(
-                          height: 600,
-                          width: 800,
-                          child: CupertinoMenu<String>(
-                            animation: kAlwaysCompleteAnimation,
-                            anchorPosition: RelativeRect.fill,
-                            hasLeadingWidget: true,
-                            brightness: Brightness.light,
-                            anchorSize: Size.zero,
-                            alignment: Alignment.center,
-                            children: childrenBuilder(context),
+        child: MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: TextScaler.linear(_textSizeSliderValue)),
+          child: Builder(
+            builder: (BuildContext context) {
+              return CupertinoPageScaffold(
+                navigationBar: const CupertinoNavigationBar(
+                  middle: Text('CupertinoMenu Sample'),
+                ),
+                child:  SafeArea(
+                  child: Center(
+                    child: SizedBox(
+                      height: MediaQuery.of(context).size.height,
+                      width: 400,
+                      child: Column(
+                        children: <Widget>[
+                          ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxHeight: MediaQuery.of(context).size.height - 200,
+                            ),
+                            child: CupertinoMenu<String>(
+                              animation: kAlwaysCompleteAnimation,
+                              anchorPosition: RelativeRect.fill,
+                              hasLeadingWidget: true,
+                              brightness: Brightness.light,
+                              anchorSize: Size.zero,
+                              alignment: Alignment.center,
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              constraints: BoxConstraints(
+                                maxHeight: MediaQuery.of(context).size.height - 200,
+                              ),
+                              children: childrenBuilder(context),
+                            ),
                           ),
-                        ),
-                        Container(
-                          margin: const EdgeInsets.all(20),
-                          height: 50,
-                          width: 200,
-                          child: CupertinoSlider(
-                            value: _textSizeSliderValue,
-                            min: 0.9,
-                            max: 3,
-                            onChanged: (double value) {
-                            setState(() {
-                              _textSizeSliderValue = value;
-                            });
-                          }),
-                        ),
-                        CupertinoSwitch(
-                          value: _directionality == TextDirection.ltr,
-                          onChanged: (bool value) {
-                            setState(() {
-                             _directionality = value ? TextDirection.ltr : TextDirection.rtl;
-                            });
-                          },
-                        ),
-                      ],
+                          Container(
+                            margin: const EdgeInsets.all(20),
+                            height: 50,
+                            width: 200,
+                            child: CupertinoSlider(
+                              value: _textSizeSliderValue,
+                              min: 0.9,
+                              max: 3,
+                              onChanged: (double value) {
+                              setState(() {
+                                _textSizeSliderValue = value;
+                              });
+                            }),
+                          ),
+                           Text('Text ${MediaQuery.textScalerOf(context).scale(1)}'),
+                          CupertinoSwitch(
+                            value: _directionality == TextDirection.ltr,
+                            onChanged: (bool value) {
+                              setState(() {
+                               _directionality = value ? TextDirection.ltr : TextDirection.rtl;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          }
+              );
+            }
+          ),
         ),
     );
   }

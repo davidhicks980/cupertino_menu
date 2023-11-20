@@ -89,7 +89,7 @@ class CupertinoMenuController extends CupertinoMenuControlMixin {
   }
 
   @override
-  bool get isOpen => _attachedController.isOpen;
+  bool get isOpen => _controller?.isOpen ?? false;
 
   @override
   void open() {
@@ -2481,7 +2481,10 @@ mixin CupertinoNestedMenuControlMixin<T, U extends StatefulWidget>
 
   @override
   bool get isOpen => _status == CupertinoMenuStatus.open
-                  || _status == CupertinoMenuStatus.opening;
+                  || _status == CupertinoMenuStatus.opening
+                  || (_scrolling && _status == CupertinoMenuStatus.closed);
+
+  bool _scrolling = false;
 
   /// A builder that constructs a  layer. This is only called when the
   /// menu is opened -- it is the responsibility of the implementer to
@@ -2526,6 +2529,7 @@ mixin CupertinoNestedMenuControlMixin<T, U extends StatefulWidget>
 
   @override
   void open() {
+    _scrolling = true;
     Scrollable.ensureVisible(
       context,
       alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
@@ -2535,20 +2539,24 @@ mixin CupertinoNestedMenuControlMixin<T, U extends StatefulWidget>
       if (mounted) {
         _menuScope!.pushMenu(coordinates: coordinates!);
         rebuild();
+        _scrolling = false;
       }
     });
-
   }
 
   @override
   void close() {
+    _scrolling = true;
     Scrollable.ensureVisible(
       context,
       alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtStart,
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInQuad,
     ).then((void value) {
-        _menuScope!.popMenu();
+        if(mounted) {
+          _menuScope!.popMenu();
+        }
+        _scrolling = false;
       }
     );
   }
@@ -2556,19 +2564,18 @@ mixin CupertinoNestedMenuControlMixin<T, U extends StatefulWidget>
   void _handleAnimationStatusChange(AnimationStatus status) {
     setState(() {
       switch (status) {
-          case AnimationStatus.completed:
-            _status = CupertinoMenuStatus.open;
-          case AnimationStatus.dismissed:
-            _status = CupertinoMenuStatus.closed;
-          case AnimationStatus.reverse:
-            _status = CupertinoMenuStatus.closing;
-            didCloseMenu();
-          case AnimationStatus.forward:
-            _status = CupertinoMenuStatus.opening;
-            didOpenMenu();
-        }
+        case AnimationStatus.completed:
+          _status = CupertinoMenuStatus.open;
+        case AnimationStatus.dismissed:
+          _status = CupertinoMenuStatus.closed;
+        case AnimationStatus.reverse:
+          _status = CupertinoMenuStatus.closing;
+          didCloseMenu();
+        case AnimationStatus.forward:
+          _status = CupertinoMenuStatus.opening;
+          didOpenMenu();
+      }
     });
-
   }
 
   // ignore: use_setters_to_change_properties
@@ -2636,6 +2643,7 @@ class CupertinoNestedMenu<T> extends StatefulWidget with CupertinoMenuEntry<T> {
     super.key,
     required this.title,
     required this.itemBuilder,
+    this.pressedColor,
     this.trailing,
     this.subtitle,
     this.enabled = true,
@@ -2646,6 +2654,7 @@ class CupertinoNestedMenu<T> extends StatefulWidget with CupertinoMenuEntry<T> {
     this.collapsedMenuAnchorKey,
     this.constraints,
     this.controller,
+    this.menuLayerKey,
     this.clip = Clip.none,
   });
 
@@ -2658,6 +2667,11 @@ class CupertinoNestedMenu<T> extends StatefulWidget with CupertinoMenuEntry<T> {
   /// closed.
   // TODO(davidhicks980): This is only used for testing. Consider removing.
   final Key? collapsedMenuAnchorKey;
+
+  /// A key that can be used to refer to the [NestedMenuLayer] while the menu
+  /// is open, opening, or closing.
+  // TODO(davidhicks980): This is only used for testing. Consider removing.
+  final Key? menuLayerKey;
 
   /// A label displayed in the center of the nested menu anchor
   // This is a TextSpan instead of a Widget because the title is duplicated
@@ -2713,6 +2727,9 @@ class CupertinoNestedMenu<T> extends StatefulWidget with CupertinoMenuEntry<T> {
   /// bounds. Save layers are expensive, so this option should only be used if
   /// absolutely necessary.
   final Clip clip;
+
+  /// The color of the menu item when pressed.
+  final Color? pressedColor;
 
   @override
   bool get hasLeading => true;
@@ -2809,7 +2826,6 @@ class _CupertinoNestedMenuState<T>
       return null;
     }
 
-    widget.onOpen?.call();
     return ListenableBuilder(
       listenable: rebuildSignal,
       builder: (BuildContext rootListenableContext, Widget? child) {
@@ -2841,6 +2857,7 @@ class _CupertinoNestedMenuState<T>
                 enabled: widget.enabled,
                 title: widget.title,
                 height: anchorSize.height,
+                pressedColor: widget.pressedColor,
               ),
               ...items,
             ],
@@ -2859,11 +2876,13 @@ class _CupertinoNestedMenuState<T>
           hasLeadingWidget: true,
           menuController: _menuController,
           child: BlockSemantics(
+            key: widget.menuLayerKey,
             child: _MenuContainer<T>(
               animation: animation,
               depth: coordinates!.depth,
               anchorBorderRadius: _buildMenuRadius(context),
               child: _MenuBody<T>(
+
                 children: wrappedItems,
               ),
             ),
@@ -2896,6 +2915,7 @@ class _CupertinoNestedMenuState<T>
       trailing: widget.trailing,
       enabled: widget.enabled,
       title: widget.title,
+      pressedColor: widget.pressedColor,
       height: widget.height,
     );
   }
@@ -3042,6 +3062,7 @@ class _CupertinoMenuLayerState extends State<CupertinoMenuLayer> {
   @override
   Widget build(BuildContext context) {
     return CupertinoMenuLayerModel(
+      key: ValueKey<String>('_CupertinoMenuLayerModel_${widget.coordinates.path.join(".")}'),
       isInteractive: widget.isInteractive,
       constraintsTween: _constraintsTween,
       hasLeadingWidget: widget.hasLeadingWidget,
@@ -3776,6 +3797,20 @@ class _MenuBody<T> extends StatefulWidget {
 }
 
 class _MenuBodyState<T> extends State<_MenuBody<T>> {
+  // Navigation shortcuts that we need to make sure are active when menus are
+  // open.
+  //
+  // Taken from [MenuAnchor]
+  static const Map<ShortcutActivator, Intent> _kMenuTraversalShortcuts = <ShortcutActivator, Intent>{
+    SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+    SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
+    SingleActivator(LogicalKeyboardKey.tab): NextFocusIntent(),
+    SingleActivator(LogicalKeyboardKey.tab, shift: true): PreviousFocusIntent(),
+    SingleActivator(LogicalKeyboardKey.arrowDown): DirectionalFocusIntent(TraversalDirection.down),
+    SingleActivator(LogicalKeyboardKey.arrowUp): DirectionalFocusIntent(TraversalDirection.up),
+    SingleActivator(LogicalKeyboardKey.arrowLeft): DirectionalFocusIntent(TraversalDirection.left),
+    SingleActivator(LogicalKeyboardKey.arrowRight): DirectionalFocusIntent(TraversalDirection.right),
+  };
   final ScrollController _controller = ScrollController();
   late List<double> _offsets;
   bool _isTopLayer = false;
@@ -3926,6 +3961,8 @@ class _MenuBodyState<T> extends State<_MenuBody<T>> {
     );
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     final CupertinoMenuLayerModel(
@@ -3963,45 +4000,49 @@ class _MenuBodyState<T> extends State<_MenuBody<T>> {
       focusable: false,
       label: 'Popup menu',
       child: FocusScope(
+        autofocus: true,
         canRequestFocus: _isTopLayer,
         skipTraversal: !_isTopLayer,
-        child: CupertinoScrollbar(
-          controller: _controller,
-          thumbVisibility: false,
-          child: CustomScrollView(
-            clipBehavior: Clip.none,
+        child: Shortcuts(
+           shortcuts: _kMenuTraversalShortcuts,
+          child: CupertinoScrollbar(
             controller: _controller,
-            physics: getScrollPhysics(constraintsTween.end?.maxHeight),
-            slivers: <Widget>[
-              if (hasStickyHeader)
-                SliverPersistentHeader(
-                  pinned: true,
-                  delegate: _StickyMenuHeaderDelegate(
-                    height: _headerOffset,
-                    child: RepaintBoundary(
-                      // TODO(davidhicks980): Find more efficient end alignment
-                      // solution.
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: <Widget>[
-                          Flexible(child: stickyHeader!)
-                        ],
-                      )
+            thumbVisibility: false,
+            child: CustomScrollView(
+              clipBehavior: Clip.none,
+              controller: _controller,
+              physics: getScrollPhysics(constraintsTween.end?.maxHeight),
+              slivers: <Widget>[
+                if (hasStickyHeader)
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: _StickyMenuHeaderDelegate(
+                      height: _headerOffset,
+                      child: RepaintBoundary(
+                        // TODO(davidhicks980): Find more efficient end alignment
+                        // solution.
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: <Widget>[
+                            Flexible(child: stickyHeader!)
+                          ],
+                        )
+                      ),
+                    ),
+                  ),
+                _SliverClippedInsets(
+                  insets: RelativeRect.fromLTRB(0, _headerOffset, 0, 0),
+                  child: SliverToBoxAdapter(
+                    child: _UnsafeSizeChangedLayoutNotifier(
+                      onLayoutChanged: _reportLayoutChanged,
+                      child: ListBody(
+                        children: _buildChildren(),
+                      ),
                     ),
                   ),
                 ),
-              _SliverClippedInsets(
-                insets: RelativeRect.fromLTRB(0, _headerOffset, 0, 0),
-                child: SliverToBoxAdapter(
-                  child: _UnsafeSizeChangedLayoutNotifier(
-                    onLayoutChanged: _reportLayoutChanged,
-                    child: ListBody(
-                      children: _buildChildren(),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

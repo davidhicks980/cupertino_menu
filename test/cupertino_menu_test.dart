@@ -24,71 +24,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'feedback.dart';
 import 'semantics.dart';
+import 'utils.dart';
 
-Future<void> openNestedMenu(WidgetTester tester, List<Key> keys) async {
-  for (final Key key in keys) {
-    await tester.tap(find.byKey(key));
-    await tester.pumpAndSettle();
-  }
-}
+
 
 void main() {
-  CupertinoApp buildSample<T>(
-    WidgetTester tester, {
-    Key? key,
-    RelativeRect Function(BuildContext)? getPosition,
-    required List<CupertinoMenuEntry<T>> Function(BuildContext) itemBuilder,
-    bool enabled = true,
-    void Function()? onCancel,
-    void Function()? onOpen,
-    void Function()? onClose,
-    void Function(T)? onSelect,
-    BoxConstraints? constraints,
-    Offset? offset,
-    Widget? child,
-    bool enableFeedback = true,
-    ScrollPhysics? physics,
-    CupertinoMenuController? controller,
-    bool useRootNavigator = false,
-    double? minSize,
-    EdgeInsetsGeometry? buttonPadding,
-    Clip clip = Clip.antiAlias,
-  }) {
-    return CupertinoApp(
-      home: Stack(
-        clipBehavior: Clip.none,
-        children: <Widget>[
-          Builder(
-            builder: (BuildContext context) {
-              return Positioned.fromRelativeRect(
-                rect: getPosition?.call(context) ?? RelativeRect.fill,
-                child: CupertinoMenuButton<T>(
-                  key: key,
-                  itemBuilder: itemBuilder,
-                  enabled: enabled,
-                  onOpen: onOpen,
-                  onClose: onClose,
-                  onSelect: onSelect,
-                  onCancel: onCancel,
-                  constraints: constraints,
-                  offset: offset,
-                  enableFeedback: enableFeedback,
-                  physics: physics,
-                  controller: controller,
-                  useRootNavigator: useRootNavigator,
-                  minSize: minSize,
-                  buttonPadding: buttonPadding,
-                  clip: clip,
-                  child: child,
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
   /// Migrated
   testWidgets(
       'Navigator.push is successfully called within a CupertinoMenuButton',
@@ -1530,7 +1470,8 @@ void main() {
                           id: 17,
                           tags: <SemanticsTag>[
                             const SemanticsTag(
-                                'RenderViewport.excludeFromScrolling',),
+                              'RenderViewport.excludeFromScrolling',
+                            ),
                             const SemanticsTag('RenderViewport.twoPane'),
                           ],
                           label: 'Title',
@@ -1540,7 +1481,8 @@ void main() {
                           id: 18,
                           tags: <SemanticsTag>[
                             const SemanticsTag(
-                                'RenderViewport.excludeFromScrolling',),
+                              'RenderViewport.excludeFromScrolling',
+                            ),
                             const SemanticsTag('RenderViewport.twoPane'),
                           ],
                           label: 'Subtitle',
