@@ -19,20 +19,77 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'utils.dart';
 
-class MenuItemTestDescription {
-  MenuItemTestDescription({
+class MenuItemDimensions {
+  MenuItemDimensions({
     required this.tileRect,
     required this.titleRect,
+    required this.scale,
+    this.titleRectWithLeadingAndTrailing,
     this.subtitleRect,
+    this.subtitleRectWithLeadingAndTrailing,
+    this.titleRectWithLeading,
+    this.titleRectWithTrailing,
     this.leadingRect,
     this.trailingRect,
+    this.small = false,
   });
 
   final Rect tileRect;
   final Rect? titleRect;
+  final Rect? titleRectWithLeading;
+  final Rect? titleRectWithTrailing;
+  final Rect? titleRectWithLeadingAndTrailing;
   final Rect? subtitleRect;
-  final Offset? leadingRect;
+  final Rect? subtitleRectWithLeadingAndTrailing;
+  final Rect? leadingRect;
   final Rect? trailingRect;
+  final bool small;
+  final int scale;
+
+  @override
+  String toString() {
+    return '''
+      MenuItemDimensions(
+        tileRect: $tileRect,
+        leadingRect: $leadingRect,
+        trailingRect: $trailingRect,
+        titleRect: $titleRect,
+        titleRectWithLeading: $titleRectWithLeading,
+        titleRectWithTrailing: $titleRectWithTrailing,
+        titleRectWithLeadingAndTrailing: $titleRectWithLeadingAndTrailing
+        subtitleRectWithLeadingAndTrailing: $subtitleRectWithLeadingAndTrailing,
+        subtitleRect: $subtitleRect,
+        scale: $scale,
+      )
+    ''';
+  }
+}
+
+class MenuItemDimensionSet {
+  MenuItemDimensionSet(
+      {required this.regular,
+      required this.truncatedText,
+      required this.doubleTextSize,
+      required this.builder});
+
+  final MenuItemDimensions regular;
+  final MenuItemDimensions truncatedText;
+  final MenuItemDimensions doubleTextSize;
+
+  final CupertinoMenuEntry<dynamic> Function(MenuItemWidgetSet variant,
+      {required bool truncated}) builder;
+
+  Map<MenuItemDisplaySet, MenuItemDimensions> get all =>
+      <MenuItemDisplaySet, MenuItemDimensions>{
+        MenuItemDisplaySet.regular: regular,
+        MenuItemDisplaySet.truncated: truncatedText,
+        MenuItemDisplaySet.doubleTextSize: doubleTextSize
+      };
+
+  @override
+  String toString() {
+    return all.toString();
+  }
 }
 
 class PointerHighlightTester<T> {
@@ -77,7 +134,6 @@ class PointerHighlightTester<T> {
     expect(tester.widget<ColoredBox>(finder).color, const Color(0x00000000));
   }
 
-
   Future<void> testMoveOverItem({
     required Color highlightColor,
     required CupertinoMenuEntry<T> item,
@@ -98,13 +154,13 @@ class PointerHighlightTester<T> {
     const ValueKey<String> endKey = ValueKey<String>('End');
     final SampleNestedMenu<T> nestedMenu = menu;
     await tester.pumpWidget(
-       nestedMenu.buildListApp(
-              <CupertinoMenuEntry<T>>[
-            CupertinoMenuItem<T>(key: startKey, child: const Text('Start')),
-            item,
-            ...siblings ?? <CupertinoMenuEntry<T>>[],
-            CupertinoMenuItem<T>(key: endKey, child: const Text('End')),
-          ],
+      nestedMenu.buildListApp(
+        <CupertinoMenuEntry<T>>[
+          CupertinoMenuItem<T>(key: startKey, child: const Text('Start')),
+          item,
+          ...siblings ?? <CupertinoMenuEntry<T>>[],
+          CupertinoMenuItem<T>(key: endKey, child: const Text('End')),
+        ],
       ),
     );
     nestedMenu.root.control.open();
@@ -121,8 +177,10 @@ class PointerHighlightTester<T> {
       highlightColor: highlightColor,
     );
 
-
-    for(final NestedControlDef menu in <NestedControlDef>[nestedMenu.sub_2, nestedMenu.sub_2_2]){
+    for (final NestedControlDef menu in <NestedControlDef>[
+      nestedMenu.sub_2,
+      nestedMenu.sub_2_2
+    ]) {
       await _gesture!.moveTo(tester.getCenter(find.byKey(menu.bottomAnchor)));
       if (!pointerDown) {
         // Pointer is not down. Tap to open the nested menu.
@@ -146,10 +204,13 @@ class PointerHighlightTester<T> {
       );
     }
 
-    for(final NestedControlDef menu in <NestedControlDef>[nestedMenu.sub_2_2, nestedMenu.sub_2]){
+    for (final NestedControlDef menu in <NestedControlDef>[
+      nestedMenu.sub_2_2,
+      nestedMenu.sub_2
+    ]) {
       await _gesture!.moveTo(tester.getCenter(find.byKey(menu.topAnchor)));
       if (!pointerDown) {
-       // Pointer is not down. Tap to open the nested menu.
+        // Pointer is not down. Tap to open the nested menu.
         await tester.tap(find.byKey(menu.topAnchor));
       }
 
@@ -169,7 +230,6 @@ class PointerHighlightTester<T> {
       highlightColor: highlightColor,
     );
 
-
     if (pointerDown) {
       await _gesture!.up();
     }
@@ -180,79 +240,157 @@ class PointerHighlightTester<T> {
   }
 }
 
+enum MenuItemWidgetSet {
+  onlyTitle,
+  showLeading,
+  showTrailing,
+  showSubtitle,
+  showLeadingAndTrailingAndSubtitle,
+}
+
+enum MenuItemDisplaySet { regular, truncated, doubleTextSize }
+
 void main() {
-  Future<void> measureTest(
+  Future<void> measureTest<T>(
     WidgetTester tester,
-    MenuItemTestDescription description,
-    Finder itemFinder,
-    Finder titleFinder,
-    Widget child,
-    VoidCallback open, {
-    Finder? subtitleFinder,
+    MenuItemDimensionSet dimensionSet,
+    SampleMenu<T> menu, {
+    required Finder titleFinder,
     Finder? leadingFinder,
+    Finder? subtitleFinder,
     Finder? trailingFinder,
+    List<CupertinoMenuEntry<T>>? siblings,
   }) async {
-    final ValueNotifier<MediaQueryData?> mediaQuery =
-        ValueNotifier<MediaQueryData?>(null);
-    await tester.pumpWidget(
-      buildApp(
-        (BuildContext context) => ValueListenableBuilder<MediaQueryData?>(
-          valueListenable: mediaQuery,
-          builder:
-              (BuildContext context, MediaQueryData? snapshot, Widget? child) {
-            return MediaQuery(
-              data: snapshot ?? MediaQuery.of(context),
-              child: child!,
-            );
-          },
-          child: Builder(
-            builder: (BuildContext context) {
-              return child;
-            },
-          ),
-        ),
-      ),
-    );
-    open();
-    await tester.pumpAndSettle();
-    Rect? menuRect;
-    Rect? tileRect;
-    Rect? titleRect;
-    Rect? trailingRect;
-    Rect? leadingRect;
-    Rect? subtitleRect;
+    MenuItemDimensions? regular;
+    MenuItemDimensions? truncatedText;
+    MenuItemDimensions? doubleTextSize;
+    for (final MapEntry<MenuItemDisplaySet, MenuItemDimensions> entry
+        in dimensionSet.all.entries) {
+      Rect? menuRect;
+      Rect? tileRect;
+      Rect? titleRect;
+      Rect? trailingRect;
+      Rect? leadingRect;
+      Rect? subtitleRect;
+      Rect? titleRectWithLeading;
+      Rect? titleRectWithTrailing;
+      Rect? titleRectWithLeadingAndTrailing;
+      Rect? subtitleRectWithLeadingAndTrailing;
+      for (final MenuItemWidgetSet variant in MenuItemWidgetSet.values) {
+        final CupertinoMenuEntry<T> child = dimensionSet.builder(
+          variant,
+          truncated: entry.key == MenuItemDisplaySet.truncated,
+        ) as CupertinoMenuEntry<T>;
+        await tester.pumpWidget(buildApp((BuildContext context) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(
+                entry.key == MenuItemDisplaySet.doubleTextSize ? 2 : 1,
+              ),
+            ),
+            child: menu.buildList(
+              <CupertinoMenuEntry<T>>[child, ...?siblings],
+            )(context),
+          );
+        }));
+        menu.control.open();
+        await tester.pumpAndSettle();
 
-    menuRect = tester.getRect(
-        find.byKey(const ValueKey<String>('CupertinoRootMenuContainer')));
-    tileRect = tester.getRect(itemFinder).shift(-menuRect.topLeft);
-    titleRect = tester.getRect(titleFinder).shift(-menuRect.topLeft);
-    if (description.trailingRect != null) {
-      trailingRect = tester.getRect(trailingFinder!).shift(-menuRect.topLeft);
-    }
+        menuRect = tester
+            .getRect(find.byKey(const ValueKey<String>('_MenuContainer_0')));
+        tileRect = tester.getRect(find.byWidget(child)).shift(-menuRect.topLeft);
 
-    if (description.leadingRect != null) {
-      leadingRect = tester.getRect(leadingFinder!).shift(-menuRect.topLeft);
-    }
+        switch (variant) {
+          case MenuItemWidgetSet.onlyTitle:
+            titleRect = tester.getRect(titleFinder).shift(-menuRect.topLeft);
+          case MenuItemWidgetSet.showLeading:
+            if (leadingFinder != null) {
+              titleRectWithLeading = tester.getRect(titleFinder).shift(-menuRect.topLeft);
+              leadingRect = tester.getRect(leadingFinder).shift(-menuRect.topLeft);
+            }
+          case MenuItemWidgetSet.showTrailing:
+            if (trailingFinder != null &&
+                entry.key != MenuItemDisplaySet.doubleTextSize) {
+              titleRectWithTrailing = tester.getRect(titleFinder).shift(-menuRect.topLeft);
+              trailingRect = tester.getRect(trailingFinder).shift(-menuRect.topLeft);
+            }
 
-    if (description.subtitleRect != null) {
-      subtitleRect = tester.getRect(subtitleFinder!).shift(-menuRect.topLeft);
-    }
+          case MenuItemWidgetSet.showSubtitle:
+            if (subtitleFinder != null) {
+              subtitleRect = tester.getRect(subtitleFinder).shift(-menuRect.topLeft);
+            }
+          case MenuItemWidgetSet.showLeadingAndTrailingAndSubtitle:
+            if (leadingFinder != null &&
+                trailingFinder != null &&
+                subtitleFinder != null) {
+              titleRectWithLeadingAndTrailing = tester.getRect(titleFinder).shift(-menuRect.topLeft);
+              subtitleRectWithLeadingAndTrailing =
+                  tester.getRect(subtitleFinder).shift(-menuRect.topLeft);
+            }
+        }
 
-    expect(menuRect.size, tileRect.size);
-    expect(tileRect.toString(), description.tileRect.toString());
-    expect(titleRect.toString(), description.titleRect.toString());
-    if (subtitleRect != null) {
-      expect(subtitleRect.toString(), description.subtitleRect.toString());
+        expect(menuRect.size.width, tileRect.size.width);
+
+        expect('$tileRect', '${entry.value.tileRect}');
+        expect('$titleRect', '${entry.value.titleRect}');
+        if (subtitleRect != null) {
+          expect('$subtitleRect', '${entry.value.subtitleRect}');
+        }
+        if (leadingRect != null) {
+          expect('$leadingRect', '${entry.value.leadingRect}');
+        }
+        if (trailingRect != null) {
+          expect('$trailingRect', '${entry.value.trailingRect}');
+        }
+        if (titleRectWithLeading != null) {
+          expect('$titleRectWithLeading', '${entry.value.titleRectWithLeading}');
+        }
+        if (titleRectWithTrailing != null) {
+          expect('$titleRectWithTrailing','${entry.value.titleRectWithTrailing}');
+        }
+        if (titleRectWithLeadingAndTrailing != null) {
+          expect('$titleRectWithLeadingAndTrailing',
+              '${entry.value.titleRectWithLeadingAndTrailing}');
+        }
+        if (subtitleRectWithLeadingAndTrailing != null) {
+          expect('$subtitleRectWithLeadingAndTrailing',
+              '${entry.value.subtitleRectWithLeadingAndTrailing}');
+        }
+
+        menu.control.close();
+        await tester.pumpAndSettle();
+      }
+
+      final MenuItemDimensions value = MenuItemDimensions(
+        tileRect: tileRect!,
+        titleRect: titleRect,
+        subtitleRect: subtitleRect,
+        trailingRect: trailingRect,
+        leadingRect: leadingRect,
+        titleRectWithLeading: titleRectWithLeading,
+        titleRectWithTrailing: titleRectWithTrailing,
+        titleRectWithLeadingAndTrailing:
+            titleRectWithLeadingAndTrailing,
+        subtitleRectWithLeadingAndTrailing:
+            subtitleRectWithLeadingAndTrailing,
+        scale: entry.value.scale,
+      );
+
+      switch (entry.key) {
+        case MenuItemDisplaySet.regular:
+          regular = value;
+        case MenuItemDisplaySet.truncated:
+          truncatedText = value;
+        case MenuItemDisplaySet.doubleTextSize:
+          doubleTextSize = value;
+      }
     }
-    if (leadingRect != null) {
-      expect(leadingRect.toString(), description.leadingRect.toString());
-    }
-    if (trailingRect != null) {
-      expect(trailingRect.toString(), description.trailingRect.toString());
-    }
-    final TestGesture testGesture = await tester.startGesture(
-        tileRect.topLeft + const Offset(1.0, 1.0),
-        kind: PointerDeviceKind.mouse);
+    tester.printToConsole('${MenuItemDimensionSet(
+      regular: regular!,
+      truncatedText: truncatedText!,
+      doubleTextSize: doubleTextSize!,
+      builder: dimensionSet.builder,
+    )}, ');
   }
 
   Icon leadingStyleTest(WidgetTester tester) {
@@ -285,185 +423,98 @@ void main() {
     return tester.widget(finder) as T;
   }
 
-  // Test the CupertinoMenuItem widget.
-  testWidgets('CupertinoMenuItem control test', (WidgetTester tester) async {
-    final SampleMenu<String> menu = SampleMenu<String>(withController: true);
+  const Icon leading = Icon(CupertinoIcons.check_mark);
+  const Icon trailing = Icon(CupertinoIcons.add);
+  const String title = 'Title';
+  const String subtitle = 'Subtitle';
 
-    final MenuItemTestDescription description = MenuItemTestDescription(
-      tileRect: const Rect.fromLTRB(0.0, 0.0, 250.0, 45.0),
-      titleRect: const Rect.fromLTRB(16.0, 14.0, 206.0, 31.0),
-      trailingRect: const Rect.fromLTRB(220.6, 12.0, 241.6, 33.0),
-    );
-    final ValueNotifier<MediaQueryData?> mediaQuery =
-        ValueNotifier<MediaQueryData?>(null);
+  const String largeTitle = 'Title Title Title Title Title Title Title '
+      'Title Title Title Title Title Title Title Title Title Title Title';
+  const String largeSubtitle = 'Subtitle Subtitle Subtitle Subtitle Subtitle '
+      'Subtitle Subtitle Subtitle Subtitle Subtitle Subtitle Subtitle';
+  const ValueKey<String> titleKey = ValueKey<String>('title');
+  const ValueKey<String> subtitleKey = ValueKey<String>('subtitle');
 
-    await tester.pumpWidget(
-      buildApp(
-        (BuildContext context) => ValueListenableBuilder<MediaQueryData?>(
-          valueListenable: mediaQuery,
-          builder:
-              (BuildContext context, MediaQueryData? snapshot, Widget? child) {
-            return MediaQuery(
-              data: snapshot ?? MediaQuery.of(context),
-              child: child!,
-            );
-          },
-          child: Builder(
-            builder: (BuildContext context) {
-              return menu.buildSimple(
-                context,
-                <CupertinoMenuEntry<void>>[
-                  CupertinoMenuItem<String>(
-                    trailing: const Icon(CupertinoIcons.add),
-                    child: Text(menu.root.itemText),
-                  ),
-                ],
-              );
-            },
-          ),
+  final MenuItemDimensionSet baseMenuItem = MenuItemDimensionSet(
+        regular: MenuItemDimensions(
+          tileRect: const Rect.fromLTRB(0.0, 0.0, 250.0, 58.0),
+          leadingRect: const Rect.fromLTRB(6.4, 18.5, 27.4, 39.5),
+          trailingRect: const Rect.fromLTRB(220.6, 18.5, 241.6, 39.5),
+          titleRect: const Rect.fromLTRB(32.0, 12.0, 115.9, 29.0),
+          titleRectWithLeading: const Rect.fromLTRB(32.0, 12.0, 115.9, 29.0),
+          titleRectWithTrailing: const Rect.fromLTRB(32.0, 12.0, 115.9, 29.0),
+          titleRectWithLeadingAndTrailing:
+              const Rect.fromLTRB(32.0, 12.0, 115.9, 29.0),
+          subtitleRectWithLeadingAndTrailing:
+              const Rect.fromLTRB(32.0, 29.0, 166.3, 46.0),
+          subtitleRect: const Rect.fromLTRB(32.0, 29.0, 166.3, 46.0),
+          scale: 1,
         ),
-      ),
-    );
+        truncatedText: MenuItemDimensions(
+          tileRect: const Rect.fromLTRB(0.0, 0.0, 250.0, 92.0),
+          leadingRect: const Rect.fromLTRB(6.4, 35.5, 27.4, 56.5),
+          trailingRect: const Rect.fromLTRB(220.6, 35.5, 241.6, 56.5),
+          titleRect: const Rect.fromLTRB(32.0, 12.0, 206.0, 46.0),
+          titleRectWithLeading: const Rect.fromLTRB(32.0, 12.0, 206.0, 46.0),
+          titleRectWithTrailing: const Rect.fromLTRB(32.0, 12.0, 206.0, 46.0),
+          titleRectWithLeadingAndTrailing:
+              const Rect.fromLTRB(32.0, 12.0, 206.0, 46.0),
+          subtitleRectWithLeadingAndTrailing:
+              const Rect.fromLTRB(32.0, 46.0, 206.0, 80.0),
+          subtitleRect: const Rect.fromLTRB(32.0, 46.0, 206.0, 80.0),
+          scale: 1,
+        ),
+        doubleTextSize: MenuItemDimensions(
+          tileRect: const Rect.fromLTRB(0.0, 0.0, 350.0, 101.9),
+          leadingRect: const Rect.fromLTRB(1.9, 30.0, 43.9, 72.0),
+          titleRect: const Rect.fromLTRB(45.3, 17.0, 214.2, 51.0),
+          titleRectWithLeading: const Rect.fromLTRB(45.3, 17.0, 214.2, 51.0),
+          titleRectWithLeadingAndTrailing:
+              const Rect.fromLTRB(45.3, 17.0, 214.2, 51.0),
+          subtitleRectWithLeadingAndTrailing:
+              const Rect.fromLTRB(45.3, 51.0, 315.6, 85.0),
+          subtitleRect: const Rect.fromLTRB(45.3, 51.0, 315.6, 85.0),
+          scale: 2,
+        ),
+        builder: (MenuItemWidgetSet variant, {bool truncated = false}) {
+          return CupertinoBaseMenuItem<String>(
+              trailing: trailing,
+              leading: leading,
+              subtitle: Text(
+                truncated ? largeSubtitle : subtitle,
+                key: const ValueKey<String>('subtitle'),
+              ),
+              child: Text(
+                truncated ? largeTitle : title,
+                key: const ValueKey<String>('title'),
+              ));
+        },
+      );
+  // Test the CupertinoMenuItem widget.
+  testWidgets(
+    'Dimension test',
+    (WidgetTester tester) async {
+      final SampleMenu<String> menu = SampleMenu<String>(withController: true);
 
-    menu.root.control.open();
-    await tester.pumpAndSettle();
-    measureTest(
-      tester,
-      description,
-      find.byType(CupertinoMenuItem<String>),
-      find.text(menu.root.itemText),
-      CupertinoMenuItem(
-        trailing: const Icon(CupertinoIcons.add),
-        child: Text(menu.root.itemText),
-      ),
-      menu.root.control.open,
-      trailingFinder: find.byIcon(
-        CupertinoIcons.add,
-      ),
-    );
-  });
-}
 
-// void main() {
-//   // Constants taken from _ContextMenuActionState.
-//   const CupertinoDynamicColor kBackgroundColor =
-//       CupertinoDynamicColor.withBrightness(
-//     color: Color(0xFFF1F1F1),
-//     darkColor: Color(0xFF212122),
-//   );
-//   const CupertinoDynamicColor kBackgroundColorPressed =
-//       CupertinoDynamicColor.withBrightness(
-//     color: Color(0xFFDDDDDD),
-//     darkColor: Color(0xFF3F3F40),
-//   );
-//   const Color kDestructiveActionColor = CupertinoColors.destructiveRed;
-//   const FontWeight kDefaultActionWeight = FontWeight.w600;
 
-//   // Widget getApp({
-//   //   Brightness? brightness,
-//   // }) {
-//   //   final UniqueKey actionKey = UniqueKey();
-//   //   final CupertinoContextMenuAction action = CupertinoContextMenuAction(
-//   //     key: actionKey,
-//   //     onPressed: onPressed,
-//   //     trailingIcon: CupertinoIcons.home,
-//   //     isDestructiveAction: isDestructiveAction,
-//   //     isDefaultAction: isDefaultAction,
-//   //     child: const Text('I am a CupertinoContextMenuAction'),
-//   //   );
-
-//   //   return CupertinoApp(
-//   //     theme: CupertinoThemeData(
-//   //       brightness: brightness ?? Brightness.light,
-//   //     ),
-//   //     home: CupertinoPageScaffold(
-//   //       child: Center(
-//   //         child: action,
-//   //       ),
-//   //     ),
-//   //   );
-//   // }
-
-//   TextStyle getTextStyle(WidgetTester tester) {
-//     final Finder finder = find.descendant(
-//       of: find.byType(CupertinoMenuItem),
-//       matching: find.byType(DefaultTextStyle),
-//     );
-//     expect(finder, findsOneWidget);
-//     final DefaultTextStyle defaultStyle = tester.widget(finder);
-//     return defaultStyle.style;
-//   }
-
-//   testWidgets('responds to taps', (WidgetTester tester) async {
-//     bool wasPressed = false;
-//     await tester.pumpWidget(getApp(onPressed: () {
-//       wasPressed = true;
-//     }));
-
-//     expect(wasPressed, false);
-//     await tester.tap(find.byType(CupertinoMenuItem));
-//     expect(wasPressed, true);
-//   });
-
-//   testWidgets('turns grey when pressed and held', (WidgetTester tester) async {
-//     await tester.pumpWidget(getApp());
-//     expect(find.byType(CupertinoMenuItem),
-//         paints..rect(color: kBackgroundColor.color));
-
-//     final Offset actionCenterLight =
-//         tester.getCenter(find.byType(CupertinoMenuItem));
-//     final TestGesture gestureLight =
-//         await tester.startGesture(actionCenterLight);
-//     await tester.pump();
-//     expect(find.byType(CupertinoMenuItem),
-//         paints..rect(color: kBackgroundColorPressed.color));
-
-//     await gestureLight.up();
-//     await tester.pump();
-//     expect(find.byType(CupertinoMenuItem),
-//         paints..rect(color: kBackgroundColor.color));
-
-//     await tester.pumpWidget(getApp(brightness: Brightness.dark));
-//     expect(find.byType(CupertinoMenuItem),
-//         paints..rect(color: kBackgroundColor.darkColor));
-
-//     final Offset actionCenterDark =
-//         tester.getCenter(find.byType(CupertinoMenuItem));
-//     final TestGesture gestureDark = await tester.startGesture(actionCenterDark);
-//     await tester.pump();
-//     expect(find.byType(CupertinoMenuItem),
-//         paints..rect(color: kBackgroundColorPressed.darkColor));
-
-//     await gestureDark.up();
-//     await tester.pump();
-//     expect(find.byType(CupertinoMenuItem),
-//         paints..rect(color: kBackgroundColor.darkColor));
-//   });
-
-//   testWidgets('icon and textStyle colors have correct defaults',
-//       (WidgetTester tester) async {
-//     await tester.pumpWidget(getApp());
-//     expect(getTextStyle(tester), CupertinoInteractiveMenuItem.defaultTextStyle);
-//     expect(getLeading(tester).color, CupertinoInteractiveMenuItem.defaultTextColor);
-//   });
-
-//   testWidgets('icon and textStyle colors are correct for destructive actions',
-//       (WidgetTester tester) async {
-//     await tester.pumpWidget(getApp(isDestructiveAction: true));
-//     expect(getTextStyle(tester).color, kDestructiveActionColor);
-//     expect(getLeading(tester).color, kDestructiveActionColor);
-//   });
-
-//   testWidgets('textStyle is correct for defaultAction',
-//       (WidgetTester tester) async {
-//     await tester.pumpWidget(getApp(isDefaultAction: true));
-//     expect(getTextStyle(tester).fontWeight, kDefaultActionWeight);
-//   });
+      await measureTest(
+        tester,
+        baseMenuItem,
+        menu,
+        titleFinder: find.byKey(titleKey),
+        subtitleFinder: find.byKey(subtitleKey),
+        leadingFinder: find.byIcon(leading.icon!),
+        trailingFinder: find.byIcon(trailing.icon!),
+      );
+    },
+  );
 
   testWidgets(
       'CupertinoCheckedMenuItem -> pan -> makes cursor clickable on Web',
       (WidgetTester tester) async {
-    final SampleNestedMenu<String> menu = SampleNestedMenu<String>(withController: true);
+    final SampleNestedMenu<String> menu =
+        SampleNestedMenu<String>(withController: true);
     await tester.pumpWidget(
       menu.buildItemApp(
         CupertinoCheckedMenuItem<String>(
@@ -513,7 +564,8 @@ void main() {
     const Color testColor = Color(0xffff0000);
     testWidgets('When enabled, CupertinoCheckedMenuItem highlights on hover',
         (WidgetTester tester) async {
-      final SampleNestedMenu<String> menu = SampleNestedMenu<String>(withController: true);
+      final SampleNestedMenu<String> menu =
+          SampleNestedMenu<String>(withController: true);
 
       final PointerHighlightTester<String> highlightTester =
           PointerHighlightTester<String>(tester, menu);
@@ -544,7 +596,8 @@ void main() {
 
     testWidgets('When enabled, CupertinoMenuItem highlights on hover',
         (WidgetTester tester) async {
-      final SampleNestedMenu<String> menu = SampleNestedMenu<String>(withController: true);
+      final SampleNestedMenu<String> menu =
+          SampleNestedMenu<String>(withController: true);
       final PointerHighlightTester<String> pointerTester =
           PointerHighlightTester<String>(tester, menu);
 
@@ -571,7 +624,8 @@ void main() {
     });
     testWidgets('When enabled, CupertinoMenuActionItem highlights on hover',
         (WidgetTester tester) async {
-      final SampleNestedMenu<String> menu = SampleNestedMenu<String>(withController: true);
+      final SampleNestedMenu<String> menu =
+          SampleNestedMenu<String>(withController: true);
       final PointerHighlightTester<String> pointerTester =
           PointerHighlightTester<String>(tester, menu);
 
@@ -617,7 +671,8 @@ void main() {
     });
     testWidgets('When enabled, CupertinoBaseMenuItem highlights on hover',
         (WidgetTester tester) async {
-      final SampleNestedMenu<String> menu = SampleNestedMenu<String>(withController: true);
+      final SampleNestedMenu<String> menu =
+          SampleNestedMenu<String>(withController: true);
       final PointerHighlightTester<String> pointerTester =
           PointerHighlightTester<String>(tester, menu);
 
@@ -645,7 +700,8 @@ void main() {
     testWidgets(
         'When enabled, CupertinoNestedMenuItemAnchor highlights on hover',
         (WidgetTester tester) async {
-      final SampleNestedMenu<String> menu = SampleNestedMenu<String>(withController: true);
+      final SampleNestedMenu<String> menu =
+          SampleNestedMenu<String>(withController: true);
       final PointerHighlightTester<String> pointerTester =
           PointerHighlightTester<String>(tester, menu);
 
@@ -683,7 +739,8 @@ void main() {
     const Color testColor = Color(0xffff0000);
     testWidgets('Pan highlight: CupertinoCheckedMenuItem highlights on pan',
         (WidgetTester tester) async {
-      final SampleNestedMenu<String> menu = SampleNestedMenu<String>(withController: true);
+      final SampleNestedMenu<String> menu =
+          SampleNestedMenu<String>(withController: true);
 
       final PointerHighlightTester<String> highlightTester =
           PointerHighlightTester<String>(tester, menu);
@@ -717,7 +774,8 @@ void main() {
 
     testWidgets('Pan highlight: CupertinoMenuItem',
         (WidgetTester tester) async {
-      final SampleNestedMenu<String> menu = SampleNestedMenu<String>(withController: true);
+      final SampleNestedMenu<String> menu =
+          SampleNestedMenu<String>(withController: true);
       final PointerHighlightTester<String> pointerTester =
           PointerHighlightTester<String>(tester, menu);
 
@@ -747,7 +805,8 @@ void main() {
     });
     testWidgets('Pan highlight: CupertinoMenuActionItem',
         (WidgetTester tester) async {
-      final SampleNestedMenu<String> menu = SampleNestedMenu<String>(withController: true);
+      final SampleNestedMenu<String> menu =
+          SampleNestedMenu<String>(withController: true);
       final PointerHighlightTester<String> pointerTester =
           PointerHighlightTester<String>(tester, menu);
 
@@ -796,7 +855,8 @@ void main() {
     });
     testWidgets('Pan highlight: CupertinoBaseMenuItem',
         (WidgetTester tester) async {
-      final SampleNestedMenu<String> menu = SampleNestedMenu<String>(withController: true);
+      final SampleNestedMenu<String> menu =
+          SampleNestedMenu<String>(withController: true);
       final PointerHighlightTester<String> pointerTester =
           PointerHighlightTester<String>(tester, menu);
 
@@ -825,10 +885,10 @@ void main() {
       );
     });
 
-    testWidgets(
-        'Pan highlight: CupertinoNestedMenuItemAnchor',
+    testWidgets('Pan highlight: CupertinoNestedMenuItemAnchor',
         (WidgetTester tester) async {
-      final SampleNestedMenu<String> menu = SampleNestedMenu<String>(withController: true);
+      final SampleNestedMenu<String> menu =
+          SampleNestedMenu<String>(withController: true);
       final PointerHighlightTester<String> pointerTester =
           PointerHighlightTester<String>(tester, menu);
 
@@ -865,4 +925,4 @@ void main() {
       );
     });
   });
-
+}

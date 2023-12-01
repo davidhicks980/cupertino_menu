@@ -193,7 +193,7 @@ class ControlSet<T extends State<StatefulWidget>> {
         of: find.byKey(menuLayerKey), matching: finder, matchRoot: true);
   }
 
-  String get itemText => 'Nested $anchorText';
+  String get itemText => '$anchorText n';
 }
 
 typedef RootControlDef = ControlSet<CupertinoMenuButtonState>;
