@@ -22,7 +22,7 @@ import 'menu.dart';
 
 /// A mixin that specifies that a widget can be used in a [CupertinoMenu] or a
 /// [CupertinoNestedMenu].
-mixin CupertinoMenuEntry<T> on Widget {
+mixin CupertinoMenuEntry on Widget {
   /// The constraints to apply to the contents of a [CupertinoMenuEntry].
   /// Constraints will be scaled by [MediaQuery.textScalerOf] to account for
   /// text scaling.
@@ -66,7 +66,7 @@ mixin CupertinoMenuEntry<T> on Widget {
 /// A widget that provides the default styling, semantics, and interactivity
 /// for menu items in a [CupertinoMenu] or [CupertinoNestedMenu].
 class CupertinoInteractiveMenuItem<T> extends StatefulWidget
-      with CupertinoMenuEntry<T> {
+      with CupertinoMenuEntry {
   /// Creates a [CupertinoInteractiveMenuItem], a widget that provides the
   /// default styling, semantics, and interactivity for menu items in a
   /// [CupertinoMenu] or [CupertinoNestedMenu].
@@ -178,12 +178,12 @@ class CupertinoInteractiveMenuItem<T> extends StatefulWidget
   );
 
   @override
-  State<CupertinoInteractiveMenuItem<T>> createState() =>
-      _CupertinoInteractiveMenuItemState<T>();
+  State<CupertinoInteractiveMenuItem> createState() =>
+      _CupertinoInteractiveMenuItemState();
 }
 
-class _CupertinoInteractiveMenuItemState<T>
-      extends State<CupertinoInteractiveMenuItem<T>> {
+class _CupertinoInteractiveMenuItemState
+      extends State<CupertinoInteractiveMenuItem> {
   /// The handler for when the user selects the menu item.
   ///
   /// Along with calling [CupertinoInteractiveMenuItem.widget.onTap], it uses [Navigator.pop]
@@ -192,7 +192,7 @@ class _CupertinoInteractiveMenuItemState<T>
   void handleTap() {
     widget.onTap?.call();
     if (widget.shouldPopMenuOnPressed && Navigator.canPop(context)) {
-      Navigator.pop<T>(
+      Navigator.pop(
         context,
         widget.value,
       );
@@ -238,7 +238,7 @@ class _CupertinoInteractiveMenuItemState<T>
       child: Semantics(
         enabled: widget.enabled,
         button: true,
-        child: CupertinoMenuItemGestureHandler<T>(
+        child: CupertinoMenuItemGestureHandler(
           mouseCursor: widget.mouseCursor,
           panPressActivationDelay: widget.panPressActivationDelay,
           onTap: widget.enabled ? handleTap : null,
@@ -268,7 +268,7 @@ class _CupertinoInteractiveMenuItemState<T>
 
 /// A title in a [CupertinoMenu].
 class CupertinoMenuTitle extends StatelessWidget
-      with CupertinoMenuEntry<Never> {
+       {
   /// Creates a title in a [CupertinoMenu].
   const CupertinoMenuTitle({
     super.key,
@@ -341,7 +341,7 @@ class CupertinoMenuTitle extends StatelessWidget
 /// See also:
 /// * [_CupertinoMenu], a menu widget that can be toggled on and off.
 @immutable
-class CupertinoMenuItem<T> extends CupertinoBaseMenuItem<T> {
+class CupertinoMenuItem extends CupertinoBaseMenuItem {
   /// An item in a Cupertino menu.
   const CupertinoMenuItem({
     super.key,
@@ -366,7 +366,7 @@ class CupertinoMenuItem<T> extends CupertinoBaseMenuItem<T> {
 /// Whether or not the checkmark is displayed can be set by by [checked].
 // TODO(davidhicks980): Figure out how to add documentation to super props.
 @immutable
-class CupertinoCheckedMenuItem<T> extends CupertinoBaseMenuItem<T> {
+class CupertinoCheckedMenuItem extends CupertinoBaseMenuItem {
   /// An item in a Cupertino menu.
   const CupertinoCheckedMenuItem({
     required super.child,
@@ -429,8 +429,8 @@ class CupertinoCheckedMenuItem<T> extends CupertinoBaseMenuItem<T> {
 ///
 /// To change the size of the header, [padding] can be provided. Defaults to 79
 /// logical pixels tall.
-class CupertinoStickyMenuHeader extends StatelessWidget
-      with CupertinoMenuEntry<Never> {
+class CupertinoStickyMenuHeader extends StatelessWidget with CupertinoMenuEntry
+       {
   /// Creates a sticky header in a [CupertinoMenu].
   CupertinoStickyMenuHeader({
     super.key,
@@ -557,7 +557,7 @@ class CupertinoStickyMenuHeader extends StatelessWidget
 ///   typography, semantics, and interactivity for menu items in a
 ///   [CupertinoMenu], while allowing for customization of the menu item's
 ///   structure.
-class CupertinoBaseMenuItem<T> extends CupertinoInteractiveMenuItem<T> {
+class CupertinoBaseMenuItem extends CupertinoInteractiveMenuItem {
   /// Creates a [CupertinoBaseMenuItem]
   const CupertinoBaseMenuItem({
     required super.child,
@@ -631,7 +631,7 @@ class _CupertinoMenuItemStructure extends StatelessWidget {
   static const double leadingWidgetWidth = 32.0;
   static const double trailingWidgetWidth = 44.0;
   static const AlignmentDirectional defaultLeadingAlignment = AlignmentDirectional(1/6, 0);
-  static const AlignmentDirectional defaultTrailingAlignment = AlignmentDirectional(3/11, 0);
+  static const AlignmentDirectional defaultTrailingAlignment = AlignmentDirectional(-3/11, 0);
 
   // The padding for the contents of the menu item.
   final EdgeInsetsDirectional _padding;
@@ -685,7 +685,8 @@ class _CupertinoMenuItemStructure extends StatelessWidget {
                                   ?? (showLeadingWidget
                                        ? leadingWidgetWidth
                                        : defaultHorizontalWidth)) * scaledPadding;
-    // AnimatedSize is used to limit jump when the contents of a menu item change
+    // AnimatedSize is used to limit jump when the contents of a menu item
+    // change
     return AnimatedSize(
       curve: Curves.easeOutExpo,
       duration: const Duration(milliseconds: 600),
@@ -749,7 +750,7 @@ enum CupertinoMenuRowPreferredElementSize {
 ///   * [CupertinoMenuActionItem], a horizontally-arranged menu item that
 ///     consumes this class
 ///   * [CupertinoMenuActionRow], the widget that wraps [CupertinoMenuItemRowMixin]
-mixin CupertinoMenuItemRowMixin<T> on CupertinoMenuEntry<T> {
+mixin CupertinoMenuItemRowMixin on CupertinoMenuEntry {
   /// The [CupertinoMenuRowPreferredElementSize] of the row this widget is in.
   ///
   /// Can be used to determine the height and layout of this widget.
@@ -777,8 +778,8 @@ mixin CupertinoMenuItemRowMixin<T> on CupertinoMenuEntry<T> {
 /// See also:
 ///  * [CupertinoMenuLargeDivider], a large divider in a Cupertino menu
 ///  * [CupertinoMenuItem], a full-width Cupertino menu item
-class CupertinoMenuActionItem<T> extends CupertinoInteractiveMenuItem<T>
-      with CupertinoMenuItemRowMixin<T> {
+class CupertinoMenuActionItem extends CupertinoInteractiveMenuItem
+      with CupertinoMenuItemRowMixin {
   /// Creates a [CupertinoMenuActionItem], a horizontally-placed Cupertino menu
   /// item.
   const CupertinoMenuActionItem({
@@ -845,7 +846,7 @@ class _ActionRowState extends InheritedWidget {
 // TODO(davidhicks980): Should this be private, or should we require users wrap
 // their action items in this widget?
 class CupertinoMenuActionRow extends StatelessWidget
-      with CupertinoMenuEntry<Never> {
+       {
   /// Creates a row of [CupertinoMenuActionItem]s.
   const CupertinoMenuActionRow({
     super.key,
@@ -917,7 +918,7 @@ class CupertinoMenuActionRow extends StatelessWidget
 /// * [CupertinoMenuActionItem], a horizontal menu item.
 @immutable
 class CupertinoMenuLargeDivider extends StatelessWidget
-      with CupertinoMenuEntry<Never> {
+       {
   /// Creates a large horizontal divider for a [CupertinoMenu].
   const CupertinoMenuLargeDivider({
     super.key,
@@ -975,7 +976,7 @@ class CupertinoMenuLargeDivider extends StatelessWidget
 /// The default width of the divider is 1 physical pixel,
 @immutable
 class CupertinoMenuDivider extends StatelessWidget
-      with CupertinoMenuEntry<Never> {
+       {
   /// A [CupertinoMenuEntry] that adds a top border to it's child
   const CupertinoMenuDivider({
     super.key,
@@ -1042,7 +1043,7 @@ class CupertinoMenuDivider extends StatelessWidget
 /// * [CupertinoMenuActionItem], horizontally-arranged menu items that are
 ///   separated by [CupertinoMenuVerticalDivider]s.
 class CupertinoMenuVerticalDivider extends StatelessWidget
-      with CupertinoMenuEntry<Never> {
+       {
   /// Creates a vertical divider for a side-by-side appearance row.
   ///
   /// Divider has width and thickness of 0 logical pixels.
@@ -1134,8 +1135,8 @@ class _AliasedBorderPainter extends CustomPainter {
 ///
 /// Interactivity can be accessed via the [isInteractive] property.
 @optionalTypeArgs
-mixin CupertinoMenuItemLayerControlMixin<T extends StatefulWidget>
-      on State<T> {
+mixin CupertinoMenuItemLayerControlMixin<T extends StatefulWidget> on State<T>
+      {
 
   /// Whether the menu layer containing this item can react to input.
   bool get isInteractive => _isInteractive;
@@ -1181,7 +1182,7 @@ mixin CupertinoMenuItemLayerControlMixin<T extends StatefulWidget>
 /// If [enabled] is false, the [onTap] callback is not called, the menu item
 /// will not be focusable, and no appearance changes will occur in response to
 /// user input.
-class CupertinoMenuItemGestureHandler<T> extends StatefulWidget {
+class CupertinoMenuItemGestureHandler extends StatefulWidget {
   /// Creates default menu gesture detector.
   const CupertinoMenuItemGestureHandler({
     super.key,
@@ -1248,13 +1249,13 @@ class CupertinoMenuItemGestureHandler<T> extends StatefulWidget {
   }
 
   @override
-  State<CupertinoMenuItemGestureHandler<T>> createState() =>
-      _CupertinoMenuItemGestureHandlerState<T>();
+  State<CupertinoMenuItemGestureHandler> createState() =>
+      _CupertinoMenuItemGestureHandlerState();
 }
 
-class _CupertinoMenuItemGestureHandlerState<T>
-      extends State<CupertinoMenuItemGestureHandler<T>>
-         with PanTarget<CupertinoMenuItemGestureHandler<T>>,
+class _CupertinoMenuItemGestureHandlerState
+      extends State<CupertinoMenuItemGestureHandler>
+         with PanTarget<CupertinoMenuItemGestureHandler>,
               CupertinoMenuItemLayerControlMixin {
   late final Map<Type, Action<Intent>> _actionMap =
   <Type, Action<Intent>>{
@@ -1487,7 +1488,7 @@ class _MenuLeadingIcon extends StatelessWidget {
 /// The [expanded] property communicates to screen readers whether the nested
 /// menu is open (true) or closed (false).
 class CupertinoNestedMenuItemAnchor<T> extends StatefulWidget
-      with CupertinoMenuEntry<Never> {
+       with CupertinoMenuEntry {
   /// Creates a [CupertinoNestedMenuItemAnchor].
   const CupertinoNestedMenuItemAnchor({
     super.key,
@@ -1559,13 +1560,13 @@ class CupertinoNestedMenuItemAnchor<T> extends StatefulWidget
       );
 
   @override
-  State<CupertinoNestedMenuItemAnchor<T>> createState() {
-    return _CupertinoNestedMenuItemAnchorState<T>();
+  State<CupertinoNestedMenuItemAnchor> createState() {
+    return _CupertinoNestedMenuItemAnchorState();
   }
 }
 
-class _CupertinoNestedMenuItemAnchorState<T>
-      extends State<CupertinoNestedMenuItemAnchor<T>> {
+class _CupertinoNestedMenuItemAnchorState
+      extends State<CupertinoNestedMenuItemAnchor> {
   static const Interval topTextInterval = Interval(0.25, 0.7);
   static const Interval bottomTextInterval = Interval(0.3, 0.6, curve: Curves.easeIn);
   late Animation<double>? _chevronRotationAnimation;
@@ -1647,7 +1648,7 @@ class _CupertinoNestedMenuItemAnchorState<T>
   }
 
   @override
-  void didUpdateWidget(CupertinoNestedMenuItemAnchor<T> oldWidget) {
+  void didUpdateWidget(CupertinoNestedMenuItemAnchor oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.animation != widget.animation) {
       _buildAnimations();
@@ -1674,7 +1675,7 @@ class _CupertinoNestedMenuItemAnchorState<T>
       maintainSize: true,
       child: Semantics(
         expanded: widget.expanded,
-        child: CupertinoBaseMenuItem<T>(
+        child: CupertinoBaseMenuItem(
           panPressActivationDelay: CupertinoNestedMenuItemAnchor.panPressActivationDelay,
           shouldPopMenuOnPressed: false,
           onTap: widget.enabled ? widget.onTap : null,
