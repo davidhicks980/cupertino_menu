@@ -47,22 +47,22 @@ void main() {
           child: Builder(
             key: targetKey,
             builder: (BuildContext context) {
-              return CupertinoMenuButton<int>(
+              return CupertinoMenuButton(
                 onSelect: (int? value) {
                   Navigator.pushNamed(context, '/next');
                 },
                 itemBuilder: (BuildContext context) {
                   popupContext = context;
-                  return <CupertinoMenuEntry<int>>[
-                    const CupertinoMenuItem<int>(
+                  return <CupertinoMenuEntry>[
+                    const CupertinoMenuItem(
                       value: 1,
                       child: Text('One'),
                     ),
-                    CupertinoNestedMenu<int>(
+                    CupertinoNestedMenu(
                       key: nestedKey,
                       itemBuilder: (BuildContext context) {
-                        return <CupertinoMenuEntry<int>>[
-                          const CupertinoMenuItem<int>(
+                        return <CupertinoMenuEntry>[
+                          const CupertinoMenuItem(
                             value: 2,
                             child: Text('Two'),
                           ),
@@ -129,39 +129,39 @@ void main() {
       CupertinoApp(
         home: Column(
           children: <Widget>[
-            CupertinoMenuButton<int>(
+            CupertinoMenuButton(
               key: noItemsKey,
               onOpen: () => opens++,
               itemBuilder: (BuildContext context) {
-                return <CupertinoMenuEntry<int>>[];
+                return <CupertinoMenuEntry>[];
               },
             ),
-            CupertinoMenuButton<int>(
+            CupertinoMenuButton(
               key: noNestedItemsRootKey,
               onOpen: () => opens++,
               itemBuilder: (BuildContext context) {
                 popupContext = context;
-                return <CupertinoMenuEntry<int>>[
-                  CupertinoNestedMenu<int>(
+                return <CupertinoMenuEntry>[
+                  CupertinoNestedMenu(
                     key: noNestedItemsNestedKey,
                     itemBuilder: (BuildContext context) {
-                      return <CupertinoMenuEntry<int>>[];
+                      return <CupertinoMenuEntry>[];
                     },
                     title: const TextSpan(text: 'child'),
                   ),
                 ];
               },
             ),
-            CupertinoMenuButton<int>(
+            CupertinoMenuButton(
               key: noCallbackRootKey,
               itemBuilder: (BuildContext context) {
-                return <CupertinoMenuEntry<int>>[
-                  CupertinoNestedMenu<int>(
+                return <CupertinoMenuEntry>[
+                  CupertinoNestedMenu(
                     key: noCallbackNestedKey,
                     itemBuilder: (BuildContext context) {
                       popupContext = context;
-                      return <CupertinoMenuEntry<int>>[
-                        const CupertinoMenuItem<int>(
+                      return <CupertinoMenuEntry>[
+                        const CupertinoMenuItem(
                           value: 1,
                           child: Text('Tap me please!'),
                         ),
@@ -172,16 +172,16 @@ void main() {
                 ];
               },
             ),
-            CupertinoMenuButton<int>(
+            CupertinoMenuButton(
               key: withCallbackRootKey,
               itemBuilder: (BuildContext context) {
-                return <CupertinoMenuEntry<int>>[
-                  CupertinoNestedMenu<int>(
+                return <CupertinoMenuEntry>[
+                  CupertinoNestedMenu(
                     key: withCallbackNestedKey,
                     itemBuilder: (BuildContext context) {
                       popupContext = context;
-                      return <CupertinoMenuEntry<int>>[
-                        const CupertinoMenuItem<int>(
+                      return <CupertinoMenuEntry>[
+                        const CupertinoMenuItem(
                           value: 1,
                           child: Text('Tap me please!'),
                         ),
@@ -246,24 +246,24 @@ void main() {
       CupertinoApp(
         home: Column(
           children: <Widget>[
-            CupertinoMenuButton<int>(
+            CupertinoMenuButton(
               key: noCallbackKey,
               itemBuilder: (BuildContext context) {
-                return <CupertinoInteractiveMenuItem<int>>[
-                  const CupertinoMenuItem<int>(
+                return <CupertinoInteractiveMenuItem>[
+                  const CupertinoMenuItem(
                     value: 1,
                     child: Text('Tap me please!'),
                   ),
                 ];
               },
             ),
-            CupertinoMenuButton<int>(
+            CupertinoMenuButton(
               key: withCallbackKey,
               onCancel: () => cancels++,
               itemBuilder: (BuildContext context) {
                 popupContext = context;
-                return <CupertinoInteractiveMenuItem<int>>[
-                  const CupertinoMenuItem<int>(
+                return <CupertinoInteractiveMenuItem>[
+                  const CupertinoMenuItem(
                     value: 1,
                     child: Text('Tap me, too!'),
                   ),
@@ -319,14 +319,14 @@ void main() {
               ),
               child: Column(
                 children: <Widget>[
-                  CupertinoMenuButton<int>(
+                  CupertinoMenuButton(
                     key: popupButtonKey,
                     enabled: false,
                     child: const Text('Tap Me'),
                     itemBuilder: (BuildContext context) {
                       itemBuilderCalled = true;
-                      return <CupertinoMenuEntry<int>>[
-                        const CupertinoMenuItem<int>(
+                      return <CupertinoMenuEntry>[
+                        const CupertinoMenuItem(
                           value: 1,
                           child: Text('Tap me please!'),
                         ),
@@ -400,14 +400,14 @@ void main() {
       CupertinoApp(
         home: Column(
           children: <Widget>[
-            CupertinoMenuButton<int>(
+            CupertinoMenuButton(
               key: popupButtonKey,
               enabled: false,
               child: Container(key: childKey),
               itemBuilder: (BuildContext context) {
                 itemBuilderCalled = true;
-                return <CupertinoMenuEntry<int>>[
-                  const CupertinoMenuItem<int>(
+                return <CupertinoMenuEntry>[
+                  const CupertinoMenuItem(
                     value: 1,
                     child: Text('Tap me please!'),
                   ),
@@ -445,13 +445,13 @@ void main() {
               ),
               child: Column(
                 children: <Widget>[
-                  CupertinoMenuButton<int>(
+                  CupertinoMenuButton(
                     key: popupButtonKey,
                     enabled: false,
                     child: Container(key: childKey),
                     itemBuilder: (BuildContext context) {
-                      return <CupertinoMenuEntry<int>>[
-                        const CupertinoMenuItem<int>(
+                      return <CupertinoMenuEntry>[
+                        const CupertinoMenuItem(
                           value: 1,
                           child: Text('Tap me please!'),
                         ),
@@ -474,7 +474,7 @@ void main() {
 
   testWidgets('CupertinoMenuButton onTap callback is called when defined',
       (WidgetTester tester) async {
-    final List<int> menuItemTapCounters = <int>[0, 0];
+    final List menuItemTapCounters = [0, 0];
 
     await tester.pumpWidget(
       TestApp(
@@ -509,33 +509,33 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('First option'));
     await tester.pumpAndSettle();
-    expect(menuItemTapCounters, <int>[1, 0]);
+    expect(menuItemTapCounters, [1, 0]);
 
     // Tap the item again
     await tester.tap(find.text('Actions'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('First option'));
     await tester.pumpAndSettle();
-    expect(menuItemTapCounters, <int>[2, 0]);
+    expect(menuItemTapCounters, [2, 0]);
 
     // Tap a different item
     await tester.tap(find.text('Actions'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Second option'));
     await tester.pumpAndSettle();
-    expect(menuItemTapCounters, <int>[2, 1]);
+    expect(menuItemTapCounters, [2, 1]);
 
     // Tap an item without onTap
     await tester.tap(find.text('Actions'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Option without onTap'));
     await tester.pumpAndSettle();
-    expect(menuItemTapCounters, <int>[2, 1]);
+    expect(menuItemTapCounters, [2, 1]);
   });
 
   testWidgets('CupertinoMenuButton can have both onTap and value',
       (WidgetTester tester) async {
-    final List<int> menuItemTapCounters = <int>[0, 0];
+    final List menuItemTapCounters = [0, 0];
     String? selected;
 
     await tester.pumpWidget(
@@ -543,28 +543,28 @@ void main() {
         textDirection: TextDirection.ltr,
         child: Material(
           child: RepaintBoundary(
-            child: CupertinoMenuButton<String>(
+            child: CupertinoMenuButton(
               child: const Text('Actions'),
               onSelect: (String value) {
                 selected = value;
               },
               itemBuilder: (BuildContext context) =>
-                  <CupertinoMenuItem<String>>[
-                CupertinoMenuItem<String>(
+                  <CupertinoMenuItem>[
+                CupertinoMenuItem(
                   value: 'first',
                   child: const Text('First option'),
                   onTap: () {
                     menuItemTapCounters[0] += 1;
                   },
                 ),
-                CupertinoMenuItem<String>(
+                CupertinoMenuItem(
                   value: 'second',
                   child: const Text('Second option'),
                   onTap: () {
                     menuItemTapCounters[1] += 1;
                   },
                 ),
-                const CupertinoMenuItem<String>(
+                const CupertinoMenuItem(
                   value: 'third',
                   child: Text('Option without onTap'),
                 ),
@@ -580,7 +580,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('First option'));
     await tester.pumpAndSettle();
-    expect(menuItemTapCounters, <int>[1, 0]);
+    expect(menuItemTapCounters, [1, 0]);
     expect(selected, 'first');
 
     // Tap the item again
@@ -588,7 +588,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('First option'));
     await tester.pumpAndSettle();
-    expect(menuItemTapCounters, <int>[2, 0]);
+    expect(menuItemTapCounters, [2, 0]);
     expect(selected, 'first');
 
     // Tap a different item
@@ -596,7 +596,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Second option'));
     await tester.pumpAndSettle();
-    expect(menuItemTapCounters, <int>[2, 1]);
+    expect(menuItemTapCounters, [2, 1]);
     expect(selected, 'second');
 
     // Tap an item without onTap
@@ -604,7 +604,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Option without onTap'));
     await tester.pumpAndSettle();
-    expect(menuItemTapCounters, <int>[2, 1]);
+    expect(menuItemTapCounters, [2, 1]);
     expect(selected, 'third');
   });
 
@@ -619,12 +619,12 @@ void main() {
       CupertinoApp(
         home: Column(
           children: <Widget>[
-            CupertinoMenuButton<int>(
+            CupertinoMenuButton(
               key: popupButtonKey,
               itemBuilder: (BuildContext context) {
                 itemBuilderCalled = true;
-                return <CupertinoMenuEntry<int>>[
-                  CupertinoMenuItem<int>(
+                return <CupertinoMenuEntry>[
+                  CupertinoMenuItem(
                     value: 1,
                     child: Text('Tap me please!', key: childKey),
                   ),
@@ -658,12 +658,12 @@ void main() {
         home: Material(
           child: Column(
             children: <Widget>[
-              CupertinoMenuButton<int>(
+              CupertinoMenuButton(
                 key: popupButtonKey,
                 itemBuilder: (BuildContext context) {
                   itemBuilderCalled = true;
-                  return <CupertinoMenuEntry<int>>[
-                    CupertinoMenuItem<int>(
+                  return <CupertinoMenuEntry>[
+                    CupertinoMenuItem(
                       enabled: false,
                       value: 1,
                       child: Text('Tap me please!', key: childKey),
@@ -694,10 +694,10 @@ void main() {
         home: Scaffold(
           appBar: AppBar(
             actions: <Widget>[
-              PopupMenuButton<int>(
+              PopupMenuButton(
                 itemBuilder: (BuildContext context) {
-                  return <PopupMenuItem<int>>[
-                    const PopupMenuItem<int>(
+                  return <PopupMenuItem>[
+                    const PopupMenuItem(
                       value: 1,
                       child: Text('One'),
                     ),
@@ -736,9 +736,9 @@ void main() {
    I will defer to the Flutter team on this one.
   group('CupertinoMenuButton with Icon', () {
     // Helper function to create simple and valid popup menus.
-    List<PopupMenuItem<int>> simplePopupMenuItemBuilder(BuildContext context) {
-      return <PopupMenuItem<int>>[
-        const PopupMenuItem<int>(
+    List<PopupMenuItem> simplePopupMenuItemBuilder(BuildContext context) {
+      return <PopupMenuItem>[
+        const PopupMenuItem(
           value: 1,
           child: Text('1'),
         ),
@@ -750,7 +750,7 @@ void main() {
         (WidgetTester tester) async {
       expect(
         () {
-          PopupMenuButton<int>(
+          PopupMenuButton(
             icon: const Icon(Icons.view_carousel),
             itemBuilder: simplePopupMenuItemBuilder,67
             child: const Text('heyo'),
@@ -761,7 +761,7 @@ void main() {
     });
     testWidgets('PopupMenuButton creates IconButton when given an icon',
         (WidgetTester tester) async {
-      final PopupMenuButton<int> button = PopupMenuButton<int>(
+      final PopupMenuButton button = PopupMenuButton(
         icon: const Icon(Icons.view_carousel),
         itemBuilder: simplePopupMenuItemBuilder,
       );
@@ -783,12 +783,12 @@ void main() {
 */
 
   testWidgets('PopupMenu positioning', (WidgetTester tester) async {
-    final Widget testButton = CupertinoMenuButton<int>(
+    final Widget testButton = CupertinoMenuButton(
       itemBuilder: (BuildContext context) {
-        return <CupertinoMenuEntry<int>>[
-          const CupertinoMenuItem<int>(value: 1, child: Text('AAA')),
-          const CupertinoMenuItem<int>(value: 2, child: Text('BBB')),
-          const CupertinoMenuItem<int>(value: 3, child: Text('CCC')),
+        return <CupertinoMenuEntry>[
+          const CupertinoMenuItem(value: 1, child: Text('AAA')),
+          const CupertinoMenuItem(value: 2, child: Text('BBB')),
+          const CupertinoMenuItem(value: 3, child: Text('CCC')),
         ];
       },
       child: const SizedBox(
@@ -1094,14 +1094,14 @@ void main() {
               initialEntries: <OverlayEntry>[
                 OverlayEntry(
                   builder: (_) => Center(
-                    child: PopupMenuButton<int>(
+                    child: PopupMenuButton(
                       key: buttonKey,
-                      itemBuilder: (_) => <PopupMenuItem<int>>[
-                        const PopupMenuItem<int>(
+                      itemBuilder: (_) => <PopupMenuItem>[
+                        const PopupMenuItem(
                           value: 1,
                           child: Text('Item 1'),
                         ),
-                        const PopupMenuItem<int>(
+                        const PopupMenuItem(
                           value: 2,
                           child: Text('Item 2'),
                         ),
@@ -1143,14 +1143,14 @@ void main() {
                     return Padding(
                       padding: const EdgeInsets.all(8.0),
                       child: Center(
-                        child: PopupMenuButton<int>(
+                        child: PopupMenuButton(
                           key: buttonKey,
-                          itemBuilder: (_) => <PopupMenuItem<int>>[
-                            const PopupMenuItem<int>(
+                          itemBuilder: (_) => <PopupMenuItem>[
+                            const PopupMenuItem(
                               value: 1,
                               child: Text('Item 1'),
                             ),
-                            const PopupMenuItem<int>(
+                            const PopupMenuItem(
                               value: 2,
                               child: Text('Item 2'),
                             ),
@@ -1207,14 +1207,14 @@ void main() {
                       padding: const EdgeInsets.only(right: 390.0),
                       child: Align(
                         alignment: Alignment.topRight,
-                        child: PopupMenuButton<int>(
+                        child: PopupMenuButton(
                           key: buttonKey,
-                          itemBuilder: (_) => <PopupMenuItem<int>>[
-                            const PopupMenuItem<int>(
+                          itemBuilder: (_) => <PopupMenuItem>[
+                            const PopupMenuItem(
                               value: 1,
                               child: Text('Item 1'),
                             ),
-                            const PopupMenuItem<int>(
+                            const PopupMenuItem(
                               value: 2,
                               child: Text('Item 2'),
                             ),
@@ -1254,11 +1254,11 @@ void main() {
           data: const MediaQueryData(
             padding: EdgeInsets.all(50.0),
           ),
-          child: CupertinoMenuButton<int>(
+          child: CupertinoMenuButton(
             itemBuilder: (BuildContext context) {
               popupContext = context;
-              return <CupertinoMenuEntry<int>>[
-                CupertinoMenuItem<int>(
+              return <CupertinoMenuEntry>[
+                CupertinoMenuItem(
                   value: 1,
                   child: Builder(
                     builder: (BuildContext context) {
@@ -1287,12 +1287,12 @@ void main() {
   });
 
   testWidgets('CupertinoMenu Offset Test', (WidgetTester tester) async {
-    CupertinoMenuButton<int> buildMenuButton({Offset offset = Offset.zero}) {
-      return CupertinoMenuButton<int>(
+    CupertinoMenuButton buildMenuButton({Offset offset = Offset.zero}) {
+      return CupertinoMenuButton(
         offset: offset,
         itemBuilder: (BuildContext context) {
-          return <CupertinoMenuItem<int>>[
-            CupertinoMenuItem<int>(
+          return <CupertinoMenuItem>[
+            CupertinoMenuItem(
               value: 1,
               child: Builder(
                 builder: (BuildContext context) {
@@ -1363,33 +1363,33 @@ void main() {
   testWidgets('open CupertinoMenu has correct semantics',
       (WidgetTester tester) async {
     final SemanticsTester semantics = SemanticsTester(tester);
-    final List<CupertinoMenuEntry<int>> menuItems = <CupertinoMenuEntry<int>>[
+    final List<CupertinoMenuEntry> menuItems = [
       CupertinoStickyMenuHeader(
         subtitle: const Text('Subtitle'),
         leading: const FlutterLogo(size: 24),
         trailing: const Icon(CupertinoIcons.add),
         child: const Text('Title'),
       ),
-      const CupertinoMenuItem<int>(
+      const CupertinoMenuItem(
         value: 1,
         child: Text('CupertinoMenuItem'),
       ),
-      const CupertinoMenuItem<int>(
+      const CupertinoMenuItem(
         value: 1,
         enabled: false,
         child: Text('CupertinoMenuItem+Disabled'),
       ),
-      const CupertinoMenuItem<int>(
+      const CupertinoMenuItem(
         value: 1,
         isDestructiveAction: true,
         child: Text('CupertinoMenuItem+Destructive'),
       ),
-      const CupertinoCheckedMenuItem<int>(
+      const CupertinoCheckedMenuItem(
         value: 2,
         checked: false,
         child: Text('CupertinoCheckedMenuItem+Unchecked'),
       ),
-      const CupertinoCheckedMenuItem<int>(
+      const CupertinoCheckedMenuItem(
         value: 3,
         child: Text('CupertinoCheckedMenuItem+Checked'),
       ),
@@ -1397,17 +1397,17 @@ void main() {
         child: Text('CupertinoMenuTitle'),
       ),
       const CupertinoMenuLargeDivider(),
-      const CupertinoMenuActionItem<int>(
+      const CupertinoMenuActionItem(
         icon: Icon(CupertinoIcons.hexagon),
         value: 4,
         child: Text('ActionItem 4'),
       ),
-      const CupertinoMenuActionItem<int>(
+      const CupertinoMenuActionItem(
         icon: Icon(CupertinoIcons.triangle),
         value: 5,
         child: Text('ActionItem 5'),
       ),
-      const CupertinoMenuActionItem<int>(
+      const CupertinoMenuActionItem(
         icon: Icon(CupertinoIcons.square),
         value: 6,
         child: Text('ActionItem 6'),
@@ -1416,11 +1416,11 @@ void main() {
     await tester.pumpWidget(
       TestApp(
         textDirection: TextDirection.ltr,
-        child: CupertinoMenuButton<int>(
+        child: CupertinoMenuButton(
           itemBuilder: (BuildContext context) {
-            return <CupertinoMenuEntry<int>>[
+            return <CupertinoMenuEntry>[
               ...menuItems,
-              CupertinoNestedMenu<int>(
+              CupertinoNestedMenu(
                 itemBuilder: (BuildContext context) {
                   return menuItems;
                 },
@@ -1670,10 +1670,10 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Material(
-          child: PopupMenuButton<int>(
+          child: PopupMenuButton(
             itemBuilder: (BuildContext context) {
-              return <PopupMenuItem<int>>[
-                PopupMenuItem<int>(
+              return <PopupMenuItem>[
+                PopupMenuItem(
                   value: 1,
                   child: Row(
                     children: <Widget>[
@@ -1768,18 +1768,18 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Material(
-          child: PopupMenuButton<int>(
+          child: PopupMenuButton(
             itemBuilder: (BuildContext context) {
-              return <PopupMenuItem<int>>[
-                const PopupMenuItem<int>(value: 1, child: Text('1')),
-                const PopupMenuItem<int>(
+              return <PopupMenuItem>[
+                const PopupMenuItem(value: 1, child: Text('1')),
+                const PopupMenuItem(
                   value: 2,
                   enabled: false,
                   child: Text('2'),
                 ),
-                const PopupMenuItem<int>(value: 3, child: Text('3')),
-                const PopupMenuItem<int>(value: 4, child: Text('4')),
-                const PopupMenuItem<int>(value: 5, child: Text('5')),
+                const PopupMenuItem(value: 3, child: Text('3')),
+                const PopupMenuItem(value: 4, child: Text('4')),
+                const PopupMenuItem(value: 5, child: Text('5')),
               ];
             },
             child: const SizedBox(
@@ -1906,19 +1906,19 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: Center(
-            child: CupertinoMenuButton<String>(
+            child: CupertinoMenuButton(
               onSelect: (String result) {
                 selectedValue = result;
               },
               child: const Text('Menu Button'),
               itemBuilder: (BuildContext context) =>
-                  <CupertinoMenuEntry<String>>[
-                const CupertinoMenuItem<String>(
+                  <CupertinoMenuEntry>[
+                const CupertinoMenuItem(
                   value: '1',
                   child: Text('1'),
                 ),
                 const CupertinoMenuLargeDivider(),
-                const CupertinoMenuItem<String>(
+                const CupertinoMenuItem(
                   value: '2',
                   child: Text('2'),
                 ),
@@ -1956,28 +1956,28 @@ void main() {
       (WidgetTester tester) async {
     final Key popupMenuButtonKey = UniqueKey();
     final Type menuItemType =
-        const PopupMenuItem<String>(child: Text('item')).runtimeType;
+        const PopupMenuItem(child: Text('item')).runtimeType;
 
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: Center(
-            child: PopupMenuButton<String>(
+            child: PopupMenuButton(
               key: popupMenuButtonKey,
               child: const Text('button'),
               onSelected: (String result) {},
               itemBuilder: (BuildContext context) {
-                return <PopupMenuEntry<String>>[
+                return <PopupMenuEntry>[
                   // This menu item's height will be 48 because the default minimum height
                   // is 48 and the height of the text is less than 48.
-                  const PopupMenuItem<String>(
+                  const PopupMenuItem(
                     value: '0',
                     child: Text('Item 0'),
                   ),
                   // This menu item's height parameter specifies its minimum height. The
                   // overall height of the menu item will be 50 because the child's
                   // height 40, is less than 50.
-                  const PopupMenuItem<String>(
+                  const PopupMenuItem(
                     height: 50,
                     value: '1',
                     child: SizedBox(
@@ -1987,7 +1987,7 @@ void main() {
                   ),
                   // This menu item's height parameter specifies its minimum height, so the
                   // overall height of the menu item will be 75.
-                  const PopupMenuItem<String>(
+                  const PopupMenuItem(
                     height: 75,
                     value: '2',
                     child: SizedBox(
@@ -1995,7 +1995,7 @@ void main() {
                     ),
                   ),
                   // This menu item's height will be 100.
-                  const PopupMenuItem<String>(
+                  const PopupMenuItem(
                     value: '3',
                     child: SizedBox(
                       height: 100,
@@ -2051,35 +2051,35 @@ void main() {
   testWidgets('CupertinoMenuItem custom padding', (WidgetTester tester) async {
     final Key popupMenuButtonKey = UniqueKey();
     final Type menuItemType =
-        const CupertinoMenuItem<String>(child: Text('item')).runtimeType;
+        const CupertinoMenuItem(child: Text('item')).runtimeType;
 
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: Center(
-            child: CupertinoMenuButton<String>(
+            child: CupertinoMenuButton(
               key: popupMenuButtonKey,
               child: const Text('button'),
               onSelect: (String? result) {},
               itemBuilder: (BuildContext context) {
-                return <CupertinoMenuEntry<String>>[
-                  const CupertinoMenuItem<String>(
+                return <CupertinoMenuEntry>[
+                  const CupertinoMenuItem(
                     padding: EdgeInsetsDirectional.zero,
                     value: '0',
                     child: Text('Item 0'),
                   ),
-                  const CupertinoMenuItem<String>(
+                  const CupertinoMenuItem(
                     padding: EdgeInsetsDirectional.zero,
                     height: 0,
                     value: '0',
                     child: Text('Item 1'),
                   ),
-                  const CupertinoMenuItem<String>(
+                  const CupertinoMenuItem(
                     padding: EdgeInsetsDirectional.all(20),
                     value: '0',
                     child: Text('Item 2'),
                   ),
-                  const CupertinoMenuItem<String>(
+                  const CupertinoMenuItem(
                     padding: EdgeInsetsDirectional.all(20),
                     height: 100,
                     value: '0',
@@ -2118,32 +2118,32 @@ void main() {
 
     expect(
       tester
-          .widget<CupertinoMenuItem<String>>(
-            find.widgetWithText(CupertinoMenuItem<String>, 'Item 0'),
+          .widget<CupertinoMenuItem>(
+            find.widgetWithText(CupertinoMenuItem, 'Item 0'),
           )
           .padding,
       EdgeInsets.zero,
     );
     expect(
       tester
-          .widget<CupertinoMenuItem<String>>(
-            find.widgetWithText(CupertinoMenuItem<String>, 'Item 1'),
+          .widget<CupertinoMenuItem>(
+            find.widgetWithText(CupertinoMenuItem, 'Item 1'),
           )
           .padding,
       EdgeInsets.zero,
     );
     expect(
       tester
-          .widget<CupertinoMenuItem<String>>(
-            find.widgetWithText(CupertinoMenuItem<String>, 'Item 2'),
+          .widget<CupertinoMenuItem>(
+            find.widgetWithText(CupertinoMenuItem, 'Item 2'),
           )
           .padding,
       const EdgeInsetsDirectional.all(20),
     );
     expect(
       tester
-          .widget<CupertinoMenuItem<String>>(
-            find.widgetWithText(CupertinoMenuItem<String>, 'Item 3'),
+          .widget<CupertinoMenuItem>(
+            find.widgetWithText(CupertinoMenuItem, 'Item 3'),
           )
           .padding,
       const EdgeInsetsDirectional.all(20),
@@ -2155,7 +2155,7 @@ void main() {
       (WidgetTester tester) async {
     final Key popupMenuButtonKey = UniqueKey();
     final Type menuItemType =
-        const CupertinoCheckedMenuItem<String>(child: Text('item')).runtimeType;
+        const CupertinoCheckedMenuItem(child: Text('item')).runtimeType;
 
     const String longText =
         'Item 0 is a very long menu item that should wrap and ellipsis';
@@ -2163,27 +2163,27 @@ void main() {
       CupertinoApp(
         home: CupertinoPageScaffold(
           child: Center(
-            child: CupertinoMenuButton<String>(
+            child: CupertinoMenuButton(
               key: popupMenuButtonKey,
               child: const Text('button'),
               onSelect: (String result) {},
               itemBuilder: (BuildContext context) {
-                return <CupertinoMenuEntry<String>>[
+                return <CupertinoMenuEntry>[
                   // This menu item's height will be 44.0
-                  const CupertinoCheckedMenuItem<String>(
+                  const CupertinoCheckedMenuItem(
                     value: '0',
                     child: Text('Item 0'),
                   ),
 
                   // This menu item's height will be 50.0
-                  const CupertinoCheckedMenuItem<String>(
+                  const CupertinoCheckedMenuItem(
                     value: '0',
                     child: Text(longText),
                   ),
                   // This menu item's height parameter specifies its minimum height. The
                   // overall height of the menu item will be 60 because the child's
                   // height 56, is less than 60.
-                  const CupertinoCheckedMenuItem<String>(
+                  const CupertinoCheckedMenuItem(
                     height: 60,
                     value: '1',
                     child: SizedBox(
@@ -2193,7 +2193,7 @@ void main() {
                   ),
                   // This menu item's height parameter specifies its minimum height, so the
                   // overall height of the menu item will be 75.
-                  const CupertinoCheckedMenuItem<String>(
+                  const CupertinoCheckedMenuItem(
                     height: 75,
                     value: '2',
                     child: SizedBox(
@@ -2201,7 +2201,7 @@ void main() {
                     ),
                   ),
                   // This menu item's height will be 100.
-                  const CupertinoCheckedMenuItem<String>(
+                  const CupertinoCheckedMenuItem(
                     height: 100,
                     value: '3',
                     child: SizedBox(
@@ -2288,7 +2288,7 @@ void main() {
       (WidgetTester tester) async {
     final Key popupMenuButtonKey = UniqueKey();
     final Type menuItemType =
-        const CupertinoCheckedMenuItem<String>(child: Text('item')).runtimeType;
+        const CupertinoCheckedMenuItem(child: Text('item')).runtimeType;
     Text buildText(String text) => Text(
           text,
           style: const TextStyle(
@@ -2300,29 +2300,29 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: Center(
-            child: CupertinoMenuButton<String>(
+            child: CupertinoMenuButton(
               key: popupMenuButtonKey,
               child: const Text('button'),
               onSelect: (String result) {},
               itemBuilder: (BuildContext context) {
-                return <CupertinoMenuEntry<String>>[
-                  CupertinoCheckedMenuItem<String>(
+                return <CupertinoMenuEntry>[
+                  CupertinoCheckedMenuItem(
                     padding: EdgeInsetsDirectional.zero,
                     value: '0',
                     child: buildText('Item 0'),
                   ),
-                  CupertinoCheckedMenuItem<String>(
+                  CupertinoCheckedMenuItem(
                     padding: EdgeInsetsDirectional.zero,
                     height: 0,
                     value: '0',
                     child: buildText('Item 1'),
                   ),
-                  CupertinoCheckedMenuItem<String>(
+                  CupertinoCheckedMenuItem(
                     padding: const EdgeInsetsDirectional.all(20),
                     value: '0',
                     child: buildText('Item 2'),
                   ),
-                  CupertinoCheckedMenuItem<String>(
+                  CupertinoCheckedMenuItem(
                     padding: const EdgeInsetsDirectional.all(20),
                     height: 100,
                     value: '0',
@@ -2381,7 +2381,7 @@ void main() {
       (WidgetTester tester) async {
     final Key popupMenuButtonKey = UniqueKey();
     final Type menuItemType =
-        const CupertinoMenuItem<String>(child: Text('item')).runtimeType;
+        const CupertinoMenuItem(child: Text('item')).runtimeType;
     final double defaultHeight =
         CupertinoInteractiveMenuItem.defaultTextStyle.fontSize!;
     Widget buildFrame({
@@ -2401,19 +2401,19 @@ void main() {
           );
         },
         home: Scaffold(
-          body: CupertinoMenuButton<String>(
+          body: CupertinoMenuButton(
             key: popupMenuButtonKey,
             child: const Text('button'),
             onSelect: (String? result) {
               /* Nothing to do here */
             },
             itemBuilder: (BuildContext context) {
-              return <CupertinoMenuEntry<String>>[
-                const CupertinoMenuItem<String>(
+              return <CupertinoMenuEntry>[
+                const CupertinoMenuItem(
                   value: '0',
                   child: Text('Item 0'),
                 ),
-                const CupertinoMenuItem<String>(
+                const CupertinoMenuItem(
                   value: '1',
                   child: Text('Item 1'),
                 ),
@@ -2489,13 +2489,13 @@ void main() {
               builder: (BuildContext context) {
                 return CupertinoButton(
                   onPressed: () {
-                    showCupertinoMenu<int>(
+                    showCupertinoMenu(
                       settings: const RouteSettings(name: name),
                       context: context,
                       anchorPosition: RelativeRect.fill,
                       itemBuilder: (BuildContext context) =>
-                          <CupertinoMenuEntry<int>>[
-                        const CupertinoMenuItem<int>(
+                          <CupertinoMenuEntry>[
+                        const CupertinoMenuItem(
                           value: 1,
                           child: Text('1'),
                         ),
@@ -2534,12 +2534,12 @@ void main() {
               builder: (BuildContext context) {
                 return ElevatedButton(
                   onPressed: () {
-                    showCupertinoMenu<int>(
+                    showCupertinoMenu(
                       context: context,
                       settings: const RouteSettings(name: name),
                       itemBuilder: (BuildContext context) =>
-                          <CupertinoMenuEntry<int>>[
-                        const CupertinoMenuItem<int>(
+                          <CupertinoMenuEntry>[
+                        const CupertinoMenuItem(
                           value: 1,
                           child: Text('1'),
                         ),
@@ -2570,18 +2570,18 @@ void main() {
 
   testWidgets('Can use GlobalKey to call CupertinoMenuButton.showMenu manually',
       (WidgetTester tester) async {
-    final GlobalKey<CupertinoMenuButtonState<int>> globalKey = GlobalKey();
+    final GlobalKey<CupertinoMenuButtonState> globalKey = GlobalKey();
 
     await tester.pumpWidget(
       MaterialApp(
         home: Material(
           child: Column(
             children: <Widget>[
-              CupertinoMenuButton<int>(
+              CupertinoMenuButton(
                 key: globalKey,
                 itemBuilder: (BuildContext context) {
-                  return <CupertinoMenuEntry<int>>[
-                    const CupertinoMenuItem<int>(
+                  return <CupertinoMenuEntry>[
+                    const CupertinoMenuItem(
                       value: 1,
                       child: Text('Tap me please!'),
                     ),
@@ -2606,7 +2606,7 @@ void main() {
 
   testWidgets('CupertinoMenuItem changes mouse cursor when hovered',
       (WidgetTester tester) async {
-    const Key key = ValueKey<int>(1);
+    const Key key = ValueKey(1);
     // Test PopupMenuItem() constructor
     await tester.pumpWidget(
       MaterialApp(
@@ -2616,7 +2616,7 @@ void main() {
             child: Material(
               child: MouseRegion(
                 cursor: SystemMouseCursors.forbidden,
-                child: CupertinoMenuItem<int>(
+                child: CupertinoMenuItem(
                   key: key,
                   mouseCursor: SystemMouseCursors.text,
                   value: 1,
@@ -2649,7 +2649,7 @@ void main() {
             child: Material(
               child: MouseRegion(
                 cursor: SystemMouseCursors.forbidden,
-                child: CupertinoMenuItem<int>(
+                child: CupertinoMenuItem(
                   key: key,
                   value: 1,
                   child: Container(),
@@ -2675,7 +2675,7 @@ void main() {
             child: Material(
               child: MouseRegion(
                 cursor: SystemMouseCursors.forbidden,
-                child: CupertinoMenuItem<int>(
+                child: CupertinoMenuItem(
                   key: key,
                   value: 1,
                   enabled: false,
@@ -2699,7 +2699,7 @@ void main() {
 
   testWidgets('CupertinoCheckedMenuItem changes mouse cursor when hovered',
       (WidgetTester tester) async {
-    const Key key = ValueKey<int>(1);
+    const Key key = ValueKey(1);
     // Test CheckedPopupMenuItem() constructor
     await tester.pumpWidget(
       MaterialApp(
@@ -2709,7 +2709,7 @@ void main() {
             child: Material(
               child: MouseRegion(
                 cursor: SystemMouseCursors.forbidden,
-                child: CupertinoCheckedMenuItem<int>(
+                child: CupertinoCheckedMenuItem(
                   key: key,
                   mouseCursor: SystemMouseCursors.text,
                   value: 1,
@@ -2743,7 +2743,7 @@ void main() {
             child: Material(
               child: MouseRegion(
                 cursor: SystemMouseCursors.forbidden,
-                child: CupertinoCheckedMenuItem<int>(
+                child: CupertinoCheckedMenuItem(
                   key: key,
                   value: 1,
                   child: Container(),
@@ -2769,7 +2769,7 @@ void main() {
             child: Material(
               child: MouseRegion(
                 cursor: SystemMouseCursors.forbidden,
-                child: CupertinoCheckedMenuItem<int>(
+                child: CupertinoCheckedMenuItem(
                   key: key,
                   value: 1,
                   enabled: false,
@@ -2793,14 +2793,14 @@ void main() {
 
   testWidgets('PopupMenu in AppBar does not overlap with the status bar',
       (WidgetTester tester) async {
-    const List<PopupMenuItem<int>> choices = <PopupMenuItem<int>>[
-      PopupMenuItem<int>(value: 1, child: Text('Item 1')),
-      PopupMenuItem<int>(value: 2, child: Text('Item 2')),
-      PopupMenuItem<int>(value: 3, child: Text('Item 3')),
+    const List<PopupMenuItem> choices = <PopupMenuItem>[
+      PopupMenuItem(value: 1, child: Text('Item 1')),
+      PopupMenuItem(value: 2, child: Text('Item 2')),
+      PopupMenuItem(value: 3, child: Text('Item 3')),
     ];
 
     const double statusBarHeight = 24.0;
-    final PopupMenuItem<int> firstItem = choices[0];
+    final PopupMenuItem firstItem = choices[0];
     int selectedValue = choices[0].value!;
 
     await tester.pumpWidget(
@@ -2819,7 +2819,7 @@ void main() {
               appBar: AppBar(
                 title: const Text('PopupMenu Test'),
                 actions: <Widget>[
-                  PopupMenuButton<int>(
+                  PopupMenuButton(
                     onSelected: (int result) {
                       setState(() {
                         selectedValue = result;
@@ -2879,12 +2879,12 @@ void main() {
           appBar: AppBar(
             title: const Text('PopupMenu Test'),
           ),
-          body: PopupMenuButton<int>(
+          body: PopupMenuButton(
             child: const Text('Show Menu'),
             itemBuilder: (BuildContext context) =>
-                Iterable<PopupMenuItem<int>>.generate(
+                Iterable<PopupMenuItem>.generate(
               20,
-              (int i) => PopupMenuItem<int>(
+              (int i) => PopupMenuItem(
                 value: i,
                 child: Text('Item $i'),
               ),
@@ -2927,12 +2927,12 @@ void main() {
             data: PopupMenuThemeData(
               enableFeedback: themeEnableFeedback,
             ),
-            child: PopupMenuButton<int>(
+            child: PopupMenuButton(
               enableFeedback: widgetEnableFeedback,
               child: const Text('Show Menu'),
               itemBuilder: (BuildContext context) {
-                return <PopupMenuItem<int>>[
-                  const PopupMenuItem<int>(
+                return <PopupMenuItem>[
+                  const PopupMenuItem(
                     value: 1,
                     child: Text('One'),
                   ),
@@ -3002,10 +3002,10 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: Center(
-              child: PopupMenuButton<String>(
+              child: PopupMenuButton(
                 iconSize: iconSize,
-                itemBuilder: (_) => <PopupMenuEntry<String>>[
-                  const PopupMenuItem<String>(
+                itemBuilder: (_) => <PopupMenuEntry>[
+                  const PopupMenuItem(
                     value: 'value',
                     child: Text('child'),
                   ),
@@ -3084,7 +3084,7 @@ void main() {
             child: Column(
               children: <Widget>[
                 const SizedBox(height: 100),
-                PopupMenuButton<int>(
+                PopupMenuButton(
                   child: SizedBox(
                     key: buttonKey,
                     height: 10.0,
@@ -3093,9 +3093,9 @@ void main() {
                       color: Colors.pink,
                     ),
                   ),
-                  itemBuilder: (BuildContext context) => <PopupMenuEntry<int>>[
-                    const PopupMenuItem<int>(value: 1, child: Text('-1-')),
-                    const PopupMenuItem<int>(value: 2, child: Text('-2-')),
+                  itemBuilder: (BuildContext context) => <PopupMenuEntry>[
+                    const PopupMenuItem(value: 1, child: Text('-1-')),
+                    const PopupMenuItem(value: 2, child: Text('-2-')),
                   ],
                 ),
                 const SizedBox(height: 600),
@@ -3146,19 +3146,19 @@ void main() {
       (WidgetTester tester) async {
     final Key popupMenuButtonKey = UniqueKey();
     final Type menuItemType =
-        const PopupMenuItem<String>(child: Text('item')).runtimeType;
+        const PopupMenuItem(child: Text('item')).runtimeType;
 
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: Center(
-            child: PopupMenuButton<String>(
+            child: PopupMenuButton(
               key: popupMenuButtonKey,
               constraints: const BoxConstraints(
                 minWidth: 500,
               ),
-              itemBuilder: (_) => <PopupMenuEntry<String>>[
-                const PopupMenuItem<String>(
+              itemBuilder: (_) => <PopupMenuEntry>[
+                const PopupMenuItem(
                   value: 'value',
                   child: Text('Item 0'),
                 ),
@@ -3185,14 +3185,14 @@ void main() {
 
   testWidgets('Can change menu position and offset',
       (WidgetTester tester) async {
-    PopupMenuButton<int> buildMenuButton({
+    PopupMenuButton buildMenuButton({
       required PopupMenuPosition position,
     }) {
-      return PopupMenuButton<int>(
+      return PopupMenuButton(
         position: position,
         itemBuilder: (BuildContext context) {
-          return <PopupMenuItem<int>>[
-            PopupMenuItem<int>(
+          return <PopupMenuItem>[
+            PopupMenuItem(
               value: 1,
               child: Builder(
                 builder: (BuildContext context) {
@@ -3266,11 +3266,11 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: Material(
-            child: PopupMenuButton<int>(
+            child: PopupMenuButton(
               offset: const Offset(0.0, 50),
               itemBuilder: (BuildContext context) {
-                return <PopupMenuItem<int>>[
-                  PopupMenuItem<int>(
+                return <PopupMenuItem>[
+                  PopupMenuItem(
                     value: 1,
                     child: Builder(
                       builder: (BuildContext context) {
@@ -3308,12 +3308,12 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: Material(
-            child: PopupMenuButton<int>(
+            child: PopupMenuButton(
               offset: const Offset(0.0, 50),
               position: PopupMenuPosition.under,
               itemBuilder: (BuildContext context) {
-                return <PopupMenuItem<int>>[
-                  PopupMenuItem<int>(
+                return <PopupMenuItem>[
+                  PopupMenuItem(
                     value: 1,
                     child: Builder(
                       builder: (BuildContext context) {
@@ -3354,13 +3354,13 @@ void main() {
               data: IconThemeData(
                 size: themeIconSize,
               ),
-              child: CupertinoMenuButton<String>(
+              child: CupertinoMenuButton(
                 child: Icon(
                   CupertinoIcons.square,
                   size: iconSize,
                 ),
-                itemBuilder: (_) => <CupertinoMenuEntry<String>>[
-                  const CupertinoMenuItem<String>(
+                itemBuilder: (_) => <CupertinoMenuEntry>[
+                  const CupertinoMenuItem(
                     value: 'value',
                     child: Text('Item 0'),
                   ),
@@ -3410,14 +3410,14 @@ void main() {
       CupertinoApp(
         home: Scaffold(
           body: Center(
-            child: CupertinoMenuButton<String>(
+            child: CupertinoMenuButton(
               key: popupButtonKey,
-              itemBuilder: (_) => const <CupertinoMenuEntry<String>>[
-                CupertinoMenuItem<String>(
+              itemBuilder: (_) => const <CupertinoMenuEntry>[
+                CupertinoMenuItem(
                   value: 'a',
                   child: Text('A'),
                 ),
-                CupertinoMenuItem<String>(
+                CupertinoMenuItem(
                   value: 'b',
                   child: Text('B'),
                 ),
@@ -3498,39 +3498,39 @@ void main() {
     await tester.pumpWidget(
       CupertinoApp(
         home: Center(
-          child: CupertinoMenuButton<String>(
+          child: CupertinoMenuButton(
             key: layerOneKey,
-            itemBuilder: (_) => <CupertinoMenuEntry<String>>[
-              CupertinoNestedMenu<String>(
+            itemBuilder: (_) => <CupertinoMenuEntry>[
+              CupertinoNestedMenu(
                 key: layerTwoKey,
                 title: const TextSpan(text: 'a1'),
-                itemBuilder: (_) => <CupertinoMenuEntry<String>>[
-                  CupertinoNestedMenu<String>(
+                itemBuilder: (_) => <CupertinoMenuEntry>[
+                  CupertinoNestedMenu(
                     key: layerThreeKey,
                     expandedMenuAnchorKey: nestedAnchorKey,
                     title: const TextSpan(text: 'A2'),
-                    itemBuilder: (_) => <CupertinoMenuEntry<String>>[
-                      const CupertinoMenuItem<String>(
+                    itemBuilder: (_) => <CupertinoMenuEntry>[
+                      const CupertinoMenuItem(
                         value: 'b3',
                         child: Text('B3'),
                       ),
                     ],
                   ),
-                  const CupertinoMenuItem<String>(
+                  const CupertinoMenuItem(
                     value: 'b2',
                     child: Text('B2'),
                   ),
-                  const CupertinoMenuItem<String>(
+                  const CupertinoMenuItem(
                     value: 'c2',
                     child: Text('C2'),
                   ),
                 ],
               ),
-              const CupertinoMenuItem<String>(
+              const CupertinoMenuItem(
                 value: 'b1',
                 child: Text('B1'),
               ),
-              const CupertinoMenuItem<String>(
+              const CupertinoMenuItem(
                 value: 'c1',
                 child: Text('c1'),
               ),
