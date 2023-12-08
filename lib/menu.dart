@@ -13,8 +13,8 @@ import 'package:flutter/src/cupertino/scrollbar.dart';
 import 'package:flutter/src/cupertino/theme.dart';
 import 'package:flutter/widgets.dart';
 
+import 'cupertino_menu_anchor.dart';
 import 'menu_item.dart';
-import 'test_anchor.dart';
 // import 'button.dart';
 // import 'colors.dart';
 // import 'icons.dart';
@@ -36,6 +36,8 @@ final Animatable<double> _clampedAnimatable =
           Animatable<double>.fromCallback(
             (double value) => ui.clampDouble(value, 0.0, 1.0),
           );
+
+
 
 
 /// An inherited widget that communicates the size and position of this menu
@@ -175,7 +177,7 @@ class CupertinoMenu extends StatefulWidget {
   /// The [Clip] to apply to the menu's surface.
   final Clip clip;
 
-  final MenuController controller;
+  final CupertinoMenuController controller;
 
   /// The insets to avoid when positioning the menu.
   final EdgeInsets _edgeInsets;
@@ -206,9 +208,9 @@ class CupertinoMenu extends StatefulWidget {
   /// The SpringDescription used for when a pointer is dragged outside of the
   /// menu area.
   static const SpringDescription panReboundSpring = SpringDescription(
-    mass: 5,
-    stiffness: (2 * (math.pi / 0.2)) * (2 * math.pi / 0.2),
-    damping: (4 * math.pi * 10) / 0.2,
+    mass: 1,
+    stiffness: (2 * (math.pi / 0.35)) * (2 * math.pi / 0.35),
+    damping: (4 * math.pi * 0.81) / 0.35,
   );
 
   static EdgeInsets edgeInsetsOf(BuildContext context) {
@@ -382,8 +384,7 @@ class _CupertinoMenuState extends State<CupertinoMenu>
       ),
     );
 
-    final Widget layer = Center(
-      child: Builder(
+    final Widget layer =  Builder(
         builder: (BuildContext context) {
           final MediaQueryData mediaQuery = MediaQuery.of(context);
           return CustomSingleChildLayout(
@@ -407,7 +408,6 @@ class _CupertinoMenuState extends State<CupertinoMenu>
             ),
           );
         },
-      ),
     );
 
     final CupertinoThemeData theme = CupertinoTheme.of(context);
@@ -422,7 +422,7 @@ class _CupertinoMenuState extends State<CupertinoMenu>
           hasLeadingWidget: widget.hasLeadingWidget,
           constraints: widget.constraints,
           child: CupertinoPanListener<PanTarget<StatefulWidget>>(
-            onPanUpdate: _handlePanUpdate,
+            // onPanUpdate: _handlePanUpdate,
             onPanEnd: _handlePanEnd,
             child: ScaleTransition(
               alignment: widget.alignment,
@@ -1119,8 +1119,8 @@ class _MenuContainerState extends State<_MenuContainer>
         radius: CupertinoMenu.radius,
         repaint: widget.animation,
       ),
-      child: ClipPath(
-        clipper: const Squircle(radius: 16),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.all(CupertinoMenu.radius),
         child: SizeTransition(
           axisAlignment: -1,
           sizeFactor: widget.animation,
@@ -1249,6 +1249,8 @@ class _ShadowPainter extends CustomPainter {
   bool shouldRebuildSemantics(_ShadowPainter oldDelegate) => false;
 }
 
+
+
 // The blurred and saturated background of the menu
 //
 // For performance, the backdrop filter is only applied if the menu's
@@ -1269,28 +1271,36 @@ class _BlurredSurface extends AnimatedWidget {
   ///
   /// Adapted from https://docs.rainmeter.net/tips/colormatrix-guide/, but
   /// changed to be more similar to iOS
-  static List<double> _buildBrightnessAndSaturateMatrix({
-    required double progress,
+   static List<double> _buildBrightnessAndSaturateMatrix({
+    required double strength,
   }) {
-    const double sat = 1.075;
-    final double sr = (1 - sat) * 0.2 * progress;
-    final double sg = (1 - sat) * 0.2 * progress;
-    final double sb = (1 - sat) * 0.2 * progress;
-    final double lr = progress / 6.5;
-
+    final double saturation = strength * 1.2 + 1;
+    const double lumR = 0.4;
+    const double lumG = 0.3;
+    const double lumB = 0.0;
+    final double sr = (1 - saturation) * lumR * strength;
+    final double sg = (1 - saturation) * lumG * strength;
+    final double sb = (1 - saturation) * lumB * strength;
     return <double>[
-      ui.lerpDouble(1.0, sr + sat, progress)!, sg,  sb, 0, 0,
-      sr,  ui.lerpDouble(1.0, sg + sat, progress)!, sb, 0, 0,
-      sr, sg,  ui.lerpDouble(1.0, sb + sat, progress)!, 0, 0,
-      -lr, -lr, -lr, 1 - lr, 0,
+      sr + saturation, sg, sb, 0.0, 0.0,
+      sr, sg + saturation, sb, 0.0, 0.0,
+      sr, sg, sb + saturation, 0.0, 0.0,
+      0.0, 0.0, 0.0, 1, 0.0,
     ];
   }
 
+
   @override
   Widget build(BuildContext context) {
+
+    Color color = CupertinoMenu.background.resolveFrom(context);
+    final bool transparent = color.alpha != 0xFF && !kIsWeb;
+    if (transparent) {
+      color = color.withOpacity(color.opacity * value);
+    }
     ui.ImageFilter? filter = ColorFilter.matrix(
       _buildBrightnessAndSaturateMatrix(
-        progress: value,
+        strength: value,
       ),
     );
     if (value != 0) {
@@ -1307,13 +1317,35 @@ class _BlurredSurface extends AnimatedWidget {
     return BackdropFilter(
       blendMode: BlendMode.src,
       filter: filter,
-      child: ColoredBox(
-         color: const Color.fromRGBO(0, 0, 0, 0.2),
-        child: child),
+      child: CustomPaint(
+        willChange: value != 0 && value != 1,
+        painter: _UnclippedColorPainter(color: color),
+        child: child
+      ),
     );
   }
 }
 
+class _UnclippedColorPainter extends CustomPainter {
+  const _UnclippedColorPainter({
+    required this.color,
+  });
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawColor(
+     color,
+     BlendMode.srcOver,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_UnclippedColorPainter oldDelegate) {
+    return oldDelegate.color != color;
+  }
+}
 
 class _MenuBody extends StatefulWidget {
   const _MenuBody({
@@ -1384,4 +1416,6 @@ class _MenuBodyState extends State<_MenuBody> {
     return const CupertinoMenuDivider();
   }
 }
+
+
 

@@ -62,6 +62,20 @@ const double _kMenuViewPadding = 8;
 // The minimum horizontal spacing on the outside of the top level menu.
 const double _kTopLevelMenuHorizontalMinPadding = 4;
 
+
+
+const Map<ShortcutActivator, Intent> _kMenuTraversalShortcuts = <ShortcutActivator, Intent>{
+  SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
+  SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
+  SingleActivator(LogicalKeyboardKey.tab): NextFocusIntent(),
+  SingleActivator(LogicalKeyboardKey.tab, shift: true): PreviousFocusIntent(),
+  SingleActivator(LogicalKeyboardKey.arrowDown): DirectionalFocusIntent(TraversalDirection.down),
+  SingleActivator(LogicalKeyboardKey.arrowUp): DirectionalFocusIntent(TraversalDirection.up),
+  SingleActivator(LogicalKeyboardKey.arrowLeft): DirectionalFocusIntent(TraversalDirection.left),
+  SingleActivator(LogicalKeyboardKey.arrowRight): DirectionalFocusIntent(TraversalDirection.right),
+};
+
+
 /// The type of builder function used by [MenuAnchor.builder] to build the
 /// widget that the [MenuAnchor] surrounds.
 ///
@@ -253,19 +267,6 @@ class MenuAnchor extends StatefulWidget {
   /// to rebuild this child when those change.
   final Widget? child;
 
-
-  static const Map<ShortcutActivator, Intent> kMenuTraversalShortcuts = <ShortcutActivator, Intent>{
-  SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
-  SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
-  SingleActivator(LogicalKeyboardKey.tab): NextFocusIntent(),
-  SingleActivator(LogicalKeyboardKey.tab, shift: true): PreviousFocusIntent(),
-  SingleActivator(LogicalKeyboardKey.arrowDown): DirectionalFocusIntent(TraversalDirection.down),
-  SingleActivator(LogicalKeyboardKey.arrowUp): DirectionalFocusIntent(TraversalDirection.up),
-  SingleActivator(LogicalKeyboardKey.arrowLeft): DirectionalFocusIntent(TraversalDirection.left),
-  SingleActivator(LogicalKeyboardKey.arrowRight): DirectionalFocusIntent(TraversalDirection.right),
-};
-
-
   @override
   State<MenuAnchor> createState() => MenuAnchorState();
 
@@ -348,8 +349,7 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
     _scrollPosition?.isScrollingNotifier.addListener(handleScroll);
     final Size newSize = MediaQuery.sizeOf(context);
     if (_viewSize != null && newSize != _viewSize) {
-      // Close the menus if the view changes size.
-      _root._close();
+      handleScreenSizeChanged();
     }
     _viewSize = newSize;
   }
@@ -375,7 +375,7 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
   Widget build(BuildContext context) {
     Widget child = OverlayPortal(
       controller: _overlayController,
-      overlayChildBuilder: (BuildContext context)=>overlayChildBuilder(context),
+      overlayChildBuilder: overlayChildBuilder,
       child: _buildContents(context),
     );
 
@@ -397,6 +397,12 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
       isOpen: _isOpen,
       child: child,
     );
+  }
+
+  @protected
+  void handleScreenSizeChanged() {
+    // Close the menus if the view changes size.
+    _root._close();
   }
 
   @protected
@@ -2349,7 +2355,7 @@ class _MenuBarAnchorState extends MenuAnchorState {
       child: ExcludeFocus(
         excluding: !isOpen,
         child: Shortcuts(
-          shortcuts: MenuAnchor.kMenuTraversalShortcuts,
+          shortcuts: _kMenuTraversalShortcuts,
           child: Actions(
             actions: <Type, Action<Intent>>{
               DirectionalFocusIntent: MenuDirectionalFocusAction(),
@@ -3607,7 +3613,7 @@ class _Submenu extends StatelessWidget {
                     DismissIntent: DismissMenuAction(controller: anchor._menuController),
                   },
                   child: Shortcuts(
-                    shortcuts: MenuAnchor.kMenuTraversalShortcuts,
+                    shortcuts: _kMenuTraversalShortcuts,
                     child: _MenuPanel(
                       menuStyle: menuStyle,
                       clipBehavior: clipBehavior,

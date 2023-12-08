@@ -477,7 +477,7 @@ void main() {
           scale: 2,
         ),
         builder: (MenuItemWidgetSet variant, {bool truncated = false}) {
-          return CupertinoBaseMenuItem<String>(
+          return CupertinoMenuItem<String>(
               trailing: trailing,
               leading: leading,
               subtitle: Text(
