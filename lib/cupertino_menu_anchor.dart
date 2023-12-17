@@ -8,6 +8,8 @@ import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart' show CupertinoDynamicColor, CupertinoScrollbar, CupertinoTheme;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show MenuStyle;
+import 'package:flutter/physics.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -16,25 +18,28 @@ import 'test_anchor.dart';
 
 final GlobalKey<State<StatefulWidget>> key = GlobalKey<State<StatefulWidget>>();
 
-const  bool _kDebugMenus = true;
+const  bool _kDebugMenus = false;
 
 const Map<ShortcutActivator, Intent> _kMenuTraversalShortcuts = <ShortcutActivator, Intent>{
   SingleActivator(LogicalKeyboardKey.gameButtonA): ActivateIntent(),
   SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
-  SingleActivator(LogicalKeyboardKey.tab): NextFocusIntent(),
-  SingleActivator(LogicalKeyboardKey.tab, shift: true): PreviousFocusIntent(),
+  // SingleActivator(LogicalKeyboardKey.tab): NextFocusIntent(),
+  // SingleActivator(LogicalKeyboardKey.tab, shift: true): PreviousFocusIntent(),
   SingleActivator(LogicalKeyboardKey.arrowDown): DirectionalFocusIntent(TraversalDirection.down),
   SingleActivator(LogicalKeyboardKey.arrowUp): DirectionalFocusIntent(TraversalDirection.up),
   SingleActivator(LogicalKeyboardKey.arrowLeft): DirectionalFocusIntent(TraversalDirection.left),
   SingleActivator(LogicalKeyboardKey.arrowRight): DirectionalFocusIntent(TraversalDirection.right),
 };
 
+
 /// A mixin that specifies that a widget can be used in a [_CupertinoMenuPanel] or a
 /// [CupertinoNestedMenu].
 mixin CupertinoMenuEntryMixin {
-  /// Whether this menu item should have a separator drawn after it.
-  bool get hasSeparator => false;
+  /// Whether this menu item should have a separator separating
+  bool get hasSeparatorBefore => true;
 
+  /// Whether this menu item should have a separator drawn before it.
+  bool get hasSeparatorAfter => true;
   bool get hasLeading => false;
 
   /// Whether this menu item has a leading widget. If it does, the menu
@@ -42,6 +47,10 @@ mixin CupertinoMenuEntryMixin {
   /// the leading edges of all menu items.
   bool getMenuLayerHasLeading(BuildContext context) {
     return CupertinoMenuAnchor._maybeOf(context)?._hasLeadingWidget ?? false;
+  }
+
+  void closeMenu(BuildContext context) {
+    CupertinoMenuAnchor._maybeOf(context)?._beginClose();
   }
 }
 
@@ -51,6 +60,8 @@ class CupertinoMenuController extends MenuController {
   /// This is set automatically when a [MenuController] is given to the anchor
   /// it controls.
   _CupertinoMenuAnchorState? _anchor;
+
+  /// The [AnimationStatus] of the animation that reveals this controller's menu.
   AnimationStatus get animationStatus => _anchor!._animationStatus;
 
   /// Close the menu that this menu controller is associated with.
@@ -73,6 +84,7 @@ class CupertinoMenuController extends MenuController {
     super.open(position: position);
   }
 
+  void _openOverlay() => super.open();
   void _closeOverlay() => super.close();
 
   // ignore: use_setters_to_change_properties
@@ -87,17 +99,13 @@ class CupertinoMenuController extends MenuController {
   }
 }
 
-class _InheritedAnchorState extends InheritedWidget {
-  const _InheritedAnchorState({super.key,  required this.state, required super.child});
+class _AnchorScope extends InheritedWidget {
+  const _AnchorScope({super.key,  required this.state, required super.child});
   final _CupertinoMenuAnchorState state;
 
-  static _CupertinoMenuAnchorState? of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<_InheritedAnchorState>()!.state;
-  }
-
   @override
-  bool updateShouldNotify(_InheritedAnchorState oldWidget) {
-    return true;
+  bool updateShouldNotify(_AnchorScope oldWidget) {
+    return state != oldWidget.state;
   }
 }
 
@@ -108,7 +116,6 @@ typedef CupertinoMenuAnchorChildBuilder = Widget Function(
 );
 
 class CupertinoMenuAnchor extends StatefulWidget {
-
   const CupertinoMenuAnchor({
     super.key,
     this.controller,
@@ -122,7 +129,6 @@ class CupertinoMenuAnchor extends StatefulWidget {
     this.builder,
     this.child,
     this.scrollPhysics,
-    this.containerKey,
     required this.menuChildren,
   });
 
@@ -215,16 +221,35 @@ class CupertinoMenuAnchor extends StatefulWidget {
   /// to rebuild this child when those change.
   final Widget? child;
 
-  final GlobalKey? containerKey;
-
   final ScrollPhysics? scrollPhysics;
 
   static _CupertinoMenuAnchorState? _maybeOf(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<_InheritedAnchorState>()?.state;
+    return context.dependOnInheritedWidgetOfExactType<_AnchorScope>()?.state;
   }
 
   @override
   State<CupertinoMenuAnchor> createState() => _CupertinoMenuAnchorState();
+}
+
+// Used by the down/up arrow shortcuts to open the menu anchor if it is closed.
+//
+// This behavior was observed on Chrome.
+class _MenuOpenAction extends ContextAction<_MenuOpenIntent> {
+
+  @override
+  void invoke(_MenuOpenIntent intent, [BuildContext? context]) {
+    print('activate');
+    CupertinoMenuAnchor._maybeOf(context!)!._menuController._openOverlay();
+  }
+
+  @override
+  bool isEnabled(_MenuOpenIntent intent, [BuildContext? context]) {
+    return context!.mounted && !(CupertinoMenuAnchor._maybeOf(context)?._isOpen ?? true);
+  }
+}
+
+class _MenuOpenIntent extends ActivateIntent {
+  const _MenuOpenIntent();
 }
 
 class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
@@ -233,30 +258,57 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
   final Cubic reverseCurve = Curves.easeIn;
   final Duration transitionDuration = const Duration(milliseconds: 444);
   final Duration reverseTransitionDuration = const Duration(milliseconds: 300);
-  late final AnimationController _controller;
-  late final Animation<double> _animation;
+  final Map<ShortcutActivator, Intent> shortcuts = <ShortcutActivator, Intent>{
+    const SingleActivator(LogicalKeyboardKey.gameButtonA): const ActivateIntent(),
+    const SingleActivator(LogicalKeyboardKey.escape): const DismissIntent(),
+    const SingleActivator(LogicalKeyboardKey.tab): const PrioritizedIntents(
+      orderedIntents: <Intent>[DismissIntent(), NextFocusIntent()],
+    ),
+    const SingleActivator(LogicalKeyboardKey.tab, shift: true): const PrioritizedIntents(
+      orderedIntents: <Intent>[DismissIntent(), PreviousFocusIntent()],
+    ),
+    const SingleActivator(LogicalKeyboardKey.arrowUp):  const PrioritizedIntents(orderedIntents: <Intent>[
+    DirectionalFocusIntent(TraversalDirection.up)
+    ]),
+    const SingleActivator(LogicalKeyboardKey.arrowDown):
+    const PrioritizedIntents(orderedIntents: <Intent>[
+    DirectionalFocusIntent(TraversalDirection.down)
+    ]),
+      const SingleActivator(LogicalKeyboardKey.arrowLeft): const DirectionalFocusIntent(TraversalDirection.left),
+  const SingleActivator(LogicalKeyboardKey.arrowRight): const DirectionalFocusIntent(TraversalDirection.right),
+
+  };
+   /// The SpringDescription used for the opening animation of a nested menu
+   /// layer.
+  static const SpringDescription forwardSpring = SpringDescription(
+    mass: 1,
+    stiffness: (2 * (math.pi / 0.35)) * (2 * (math.pi / 0.35)),
+    damping: (4 * math.pi * 0.81) / 0.35,
+  );
+
+  /// The SpringDescription used for the closing animation of a nested menu layer.
+  static const SpringDescription reverseSpring = SpringDescription(
+    mass: 1,
+    stiffness: (2 * (math.pi / 0.25)) * (2 * (math.pi / 0.25)),
+    damping: (4 * math.pi * 1.8) / 0.25,
+  );
   CupertinoMenuController? _internalMenuController;
   bool _hasLeadingWidget = false;
+  late final AnimationController _controller;
+  AnimationStatus _animationStatus = AnimationStatus.dismissed;
   CupertinoMenuController get _menuController => widget.controller
-                                                  ?? _internalMenuController!;
-  AnimationStatus get _animationStatus => _controller.status;
-GlobalKey? get containerKey =>  widget.containerKey;
+                                                 ?? _internalMenuController!;
 
+  bool get _isOpen => _animationStatus == AnimationStatus.completed ||
+                     _animationStatus == AnimationStatus.forward;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      value: 0.0,
+    _controller = AnimationController.unbounded(
       vsync: this,
       duration: transitionDuration,
       reverseDuration: reverseTransitionDuration,
-    );
-
-    _animation = CurvedAnimation(
-      parent: _controller,
-      curve: curve,
-      reverseCurve: reverseCurve,
     );
 
     if (widget.controller == null) {
@@ -299,63 +351,100 @@ GlobalKey? get containerKey =>  widget.containerKey;
       return;
     }
 
-    void handleStatusChange(AnimationStatus status) {
-      if (status != AnimationStatus.reverse) {
-        _controller.removeStatusListener(handleStatusChange);
-        if (status == AnimationStatus.dismissed) {
-          _menuController._closeOverlay();
-        }
-      }
-    }
 
+   widget.childFocusNode?.requestFocus();
+
+    _controller.stop();
     _controller
-      ..addStatusListener(handleStatusChange)
-      ..reverse();
+      ..stop()
+      ..animateWith(SpringSimulation(reverseSpring, _controller.value, 0, 5, tolerance: const Tolerance(velocity: 1, distance: 1)))
+        .whenComplete(() {
+        _animationStatus = AnimationStatus.dismissed;
+        _menuController._closeOverlay();
+      });
+
+    _animationStatus = AnimationStatus.reverse;
+
   }
 
   void _close() {
-    widget.onClose?.call();
-    _controller.reset();
+    _controller.stop();
+    _controller.value = 0;
+    _animationStatus = AnimationStatus.dismissed;
+    SchedulerBinding.instance.addPostFrameCallback((Duration _) {
+      FocusManager.instance.applyFocusChangesIfNeeded();
+      widget.onClose?.call();
+    }, debugLabel: 'MenuAnchor.onPressed');
+
   }
 
   void _open() {
-    _controller.forward();
-    if (_controller.isDismissed) {
-      widget.onOpen?.call();
+    switch (_animationStatus) {
+      case AnimationStatus.completed:
+      case AnimationStatus.forward:
+        return;
+      case AnimationStatus.dismissed:
+        widget.onOpen?.call();
+      case AnimationStatus.reverse:
+        break;
     }
+
+    _controller
+      ..stop()
+      ..animateWith(SpringSimulation(forwardSpring, _controller.value, 1, 5))
+        .whenComplete(() {
+        _animationStatus = AnimationStatus.completed;
+        _controller.value = 1;
+    });
+
+    _animationStatus = AnimationStatus.forward;
   }
 
   @override
   Widget build(BuildContext context) {
-    return _CupertinoMenuAnchorProxy(
-      menuChildren: widget.menuChildren,
-      builder:
-          (BuildContext context, MenuController controller, Widget? child) {
-        return TapRegion(
-          groupId: controller,
-          child: widget.builder?.call(context, _menuController, widget.child)
-                  ?? widget.child!,
-        );
-      },
-      controller: _menuController,
-      childFocusNode: widget.childFocusNode,
-      style: widget.style,
-      scrollPhysics: widget.scrollPhysics,
-      alignmentOffset: widget.alignmentOffset,
-      clipBehavior: widget.clipBehavior,
-      consumeOutsideTap: widget.consumeOutsideTap,
-      onClose: _close,
-      onOpen: _open,
-      animation: _animation,
-      child: widget.child,
+    return _AnchorScope(
+      state: this,
+      child:  _CupertinoMenuAnchorBase(
+          menuChildren: widget.menuChildren,
+          builder: (
+            BuildContext context,
+            MenuController controller,
+            Widget? child
+          ) {
+            return FocusableActionDetector(
+              actions: <Type, Action<Intent>>{
+                _MenuOpenIntent: _MenuOpenAction(),
+              },
+              shortcuts: shortcuts,
+              child: TapRegion(
+                groupId: controller,
+                child: widget.builder?.call(
+                  context,
+                  _menuController,
+                  widget.child,
+                ) ?? widget.child!,
+              ),
+            );
+          },
+          controller: _menuController,
+          childFocusNode: widget.childFocusNode,
+          style: widget.style,
+          scrollPhysics: widget.scrollPhysics,
+          alignmentOffset: widget.alignmentOffset,
+          clipBehavior: widget.clipBehavior,
+          consumeOutsideTap: widget.consumeOutsideTap,
+          onClose: _close,
+          onOpen: _open,
+          animation: _controller,
+          child: widget.child,
+        ),
     );
   }
 }
 
-class _CupertinoMenuAnchorProxy extends MenuAnchor {
-  const _CupertinoMenuAnchorProxy({
+class _CupertinoMenuAnchorBase extends MenuAnchor {
+  const _CupertinoMenuAnchorBase({
     required super.menuChildren,
-    required super.controller,
     super.clipBehavior,
     super.style,
     super.builder,
@@ -366,6 +455,7 @@ class _CupertinoMenuAnchorProxy extends MenuAnchor {
     super.onOpen,
     super.child,
     this.scrollPhysics,
+    required super.controller,
     required this.animation,
   });
 
@@ -376,39 +466,111 @@ class _CupertinoMenuAnchorProxy extends MenuAnchor {
   ///
   /// Defaults to true.
   final ScrollPhysics? scrollPhysics;
-
   final Animation<double> animation;
 
   @override
-  CupertinoMenuController get controller => super.controller! as CupertinoMenuController;
-
-  @override
-  State<_CupertinoMenuAnchorProxy> createState() => _CupertinoMenuAnchorProxyState();
+  State<_CupertinoMenuAnchorBase> createState() => _CupertinoMenuAnchorProxyState();
 }
 
-class _CupertinoMenuAnchorProxyState extends MenuAnchorState<_CupertinoMenuAnchorProxy> {
+class _CupertinoMenuAnchorProxyState extends MenuAnchorState<_CupertinoMenuAnchorBase>
+      with TickerProviderStateMixin {
+
+  final GlobalKey _panelKey = GlobalKey();
+  late final AnimationController _panAnimationController;
+  late final ProxyAnimation _menuAnimation;
+  late final Animation<double> _scaleAnimation;
+  CupertinoMenuController get _controller => widget.controller! as CupertinoMenuController;
+  ui.Rect _anchorRect = ui.Rect.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _menuAnimation = ProxyAnimation(widget.animation);
+    _panAnimationController = AnimationController.unbounded(
+      value: 1.0,
+      vsync: this,
+    );
+    _scaleAnimation = _AnimationProduct(
+      first: _menuAnimation,
+      next: _panAnimationController
+    );
+  }
+
+  @override
+  void didUpdateWidget(_CupertinoMenuAnchorBase oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.animation != widget.animation) {
+      _menuAnimation.parent = widget.animation;
+    }
+  }
+
+  void _handlePanUpdate(Offset position) {
+    if (!mounted || _panelKey.currentContext?.mounted != true){
+      return;
+    }
+
+    if (_panAnimationController.isAnimating) {
+      _panAnimationController.stop();
+    }
+
+    final RenderBox renderObj = _panelKey.currentContext!.findRenderObject()! as RenderBox;
+    final Rect rect = (renderObj.localToGlobal(Offset.zero) & renderObj.size).expandToInclude(_anchorRect);
+    if (rect.contains(position)) {
+      _panAnimationController.value = 1.0;
+      return;
+    }
+
+    final double x = math.max(
+      (position.dx - rect.center.dx).abs() - rect.width / 2,
+      0.0,
+    );
+
+    final double y = math.max(
+      (position.dy - rect.center.dy).abs() - rect.height / 2,
+      0.0,
+    );
+
+    final double squaredDistance = x * x + y * y;
+    if (squaredDistance < 5) {
+      _panAnimationController.value = 1.0;
+      return;
+    }
+
+    final double value = math.min(squaredDistance / 60000, 1);
+    _panAnimationController.value = 1.0 - Curves.easeOutExpo.transform(value) * 0.3;
+  }
+
+  void _handlePanEnd(Offset position) {
+    _panAnimationController
+      ..stop()
+      ..animateTo(
+        1.0,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeOutQuint,
+      );
+  }
 
   @override
   void handleScroll() {
-    if (widget.controller.isOpen) {
-      widget.controller._anchor!._beginClose();
+    if (_controller.isOpen) {
+      _controller._anchor!._beginClose();
     }
   }
 
   @override
   void handleScreenSizeChanged() {
-    if (widget.controller.isOpen) {
-      widget.controller._anchor!._beginClose();
+    if (_controller.isOpen) {
+      _controller._anchor!._beginClose();
     }
   }
 
   @override
-  Widget overlayChildBuilder(BuildContext portalContext) {
+  Widget buildOverlayChild(BuildContext portalContext, FocusScopeNode menuScopeNode) {
     final RenderBox anchor = context.findRenderObject()! as RenderBox;
     final RenderBox overlay =
         Overlay.of(portalContext).context.findRenderObject()! as RenderBox;
     final Offset offset = widget.alignmentOffset ?? Offset.zero;
-    final Rect anchorRect = Rect.fromPoints(
+    _anchorRect = Rect.fromPoints(
       anchor.localToGlobal(offset, ancestor: overlay),
       anchor.localToGlobal(
         anchor.size.bottomRight(offset) + offset,
@@ -416,85 +578,119 @@ class _CupertinoMenuAnchorProxyState extends MenuAnchorState<_CupertinoMenuAncho
       ),
     );
 
-    return _CupertinoSubmenu(
-      context: context,
-      menuScopeNode: menuScopeNode,
-      animation: widget.animation,
-      consumeOutsideTap: widget.consumeOutsideTap,
-      menuChildren: widget.menuChildren,
-      controller: widget.controller,
-      alignmentOffset: widget.alignmentOffset,
-      anchorRect: anchorRect,
-      overlaySize: overlay.size,
-    );
-  }
-}
-
-
-class _CupertinoSubmenu extends StatelessWidget {
-  const _CupertinoSubmenu({
-    required this.context,
-    required this.menuScopeNode,
-    required this.animation,
-    required this.consumeOutsideTap,
-    required this.menuChildren,
-    required this.controller,
-    required this.anchorRect,
-    required this.overlaySize,
-    this.alignmentOffset,
-  });
-
-  final BuildContext context;
-  final FocusScopeNode menuScopeNode;
-  final Animation<double> animation;
-  final bool consumeOutsideTap;
-  final List<Widget> menuChildren;
-  final CupertinoMenuController controller;
-  final Offset? alignmentOffset;
-  final Rect anchorRect;
-  final Size overlaySize;
-
-  @override
-  Widget build(BuildContext context) {
+    final Size overlaySize = overlay.size;
     final RelativeRect anchorPosition = RelativeRect.fromSize(
-      anchorRect,
+      _anchorRect,
       overlaySize,
     );
 
     final Alignment alignment = Alignment(
-      (anchorRect.center.dx / overlaySize.width) * 2 - 1,
-      (anchorRect.center.dy / overlaySize.height) * 2 - 1,
+      (_anchorRect.center.dx / overlaySize.width) * 2 - 1,
+      (_anchorRect.center.dy / overlaySize.height) * 2 - 1,
     );
 
     return ConstrainedBox(
       constraints: BoxConstraints.loose(overlaySize),
-      child: FocusScope(
-        node: menuScopeNode,
-        skipTraversal: true,
-        child: Actions(
+      child:Actions(
           actions: <Type, Action<Intent>>{
             DirectionalFocusIntent: MenuDirectionalFocusAction(),
-            DismissIntent: _DismissMenuAction(controller: controller),
+            DismissIntent: _DismissMenuAction(controller: _controller),
           },
-          child: Shortcuts(
-            shortcuts: _kMenuTraversalShortcuts,
-            child: _CupertinoMenuPanel(
-              controller: controller,
-              animation: animation,
-              anchorPosition: anchorPosition,
-              hasLeadingWidget: true,
-              alignment: alignment,
-              anchorSize: anchorRect.size,
-              children: menuChildren,
-            ),
-          ),
-        ),
+          child: FocusScope(
+              debugLabel: 'child focus',
+              node: menuScopeNode,
+              child: Shortcuts(
+              shortcuts: _kMenuTraversalShortcuts,
+              child: CupertinoPanListener<PanTarget<StatefulWidget>>(
+                onPanEnd: _handlePanEnd,
+                onPanUpdate: _handlePanUpdate,
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  alignment: alignment,
+                  child:  _CupertinoSubmenu(
+                    context: context,
+                    animation: widget.animation,
+                    consumeOutsideTap: widget.consumeOutsideTap,
+                    controller: _controller,
+                    alignmentOffset: widget.alignmentOffset,
+                    anchorRect: _anchorRect,
+                    alignment: alignment,
+                    anchorPosition: anchorPosition,
+                    physics: widget.scrollPhysics,
+                    child:  _MenuBody(
+                          key: _panelKey,
+                          children: widget.menuChildren,
+                    ),
+                  )
+                ),
+              ),
+                        ),
+            )
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoPanListener<PanTarget<StatefulWidget>>(
+            onPanEnd: _handlePanEnd,
+            onPanUpdate: _handlePanUpdate,
+            child: super.build(context),
     );
   }
 }
 
+class _CupertinoSubmenu extends StatelessWidget {
+  const _CupertinoSubmenu({
+     super.key,
+    required this.context,
+    required this.animation,
+    required this.consumeOutsideTap,
+    required this.child,
+    required this.controller,
+    required this.anchorRect,
+    required this.anchorPosition,
+    required this.alignment,
+    this.alignmentOffset,
+    this.physics,
+  });
 
+  final BuildContext context;
+  final Animation<double> animation;
+  final bool consumeOutsideTap;
+  final Widget child;
+  final CupertinoMenuController controller;
+  final Offset? alignmentOffset;
+  final Alignment alignment;
+  final RelativeRect anchorPosition;
+  final Rect anchorRect;
+  final ScrollPhysics? physics;
+
+  @override
+  Widget build(BuildContext context) {
+    return _CupertinoMenuPanel(
+      controller: controller,
+      animation: animation,
+      anchorPosition: anchorPosition,
+      hasLeadingWidget: true,
+      alignment: alignment,
+      anchorSize: anchorRect.size,
+      child: TapRegion(
+        consumeOutsideTaps: true,
+        groupId: controller,
+        onTapOutside: _handleOutsideTap,
+        child: child,
+      ),
+    );
+  }
+
+  void _handleOutsideTap(PointerDownEvent event) {
+    if (controller._anchor!._animationStatus
+        case AnimationStatus.completed || AnimationStatus.forward) {
+      controller._anchor!._beginClose();
+    }
+  }
+}
 
 
 class _DismissMenuAction extends DismissAction {
@@ -515,6 +711,8 @@ class _DismissMenuAction extends DismissAction {
     return controller.isOpen;
   }
 }
+
+
 
 /// A debug print function, which should only be called within an assert, like
 /// so:
@@ -542,14 +740,6 @@ bool _debugMenuInfo(String message, [Iterable<String>? details]) {
 }
 
 
-// import 'button.dart';
-// import 'colors.dart';
-// import 'icons.dart';
-// import 'localizations.dart';
-// import 'menu_item.dart';
-// import 'scrollbar.dart';
-// import 'theme.dart';
-
 // TODO(davidhicks980): Shuffle the classes to make the file more readable.
 
 /// Signature used by [CupertinoMenuButton] to lazily construct menu items shown
@@ -558,12 +748,6 @@ bool _debugMenuInfo(String message, [Iterable<String>? details]) {
 /// Used by [CupertinoMenuButton.itemBuilder].
 typedef CupertinoMenuItemBuilder =
           List<Widget> Function(BuildContext context);
-
-final Animatable<double> _clampedAnimatable =
-          Animatable<double>.fromCallback(
-            (double value) => ui.clampDouble(value, 0.0, 1.0),
-          );
-
 
 /// An inherited widget that communicates the size and position of this menu
 /// layer to its children.
@@ -618,13 +802,12 @@ class CupertinoMenuLayerModel extends InheritedWidget {
   bool updateShouldNotify(CupertinoMenuLayerModel oldWidget) {
     return constraintsTween.begin != oldWidget.constraintsTween.begin
         || constraintsTween.end   != oldWidget.constraintsTween.end
-        ||
-        hasLeadingWidget != oldWidget.hasLeadingWidget;
+        || hasLeadingWidget != oldWidget.hasLeadingWidget;
   }
 }
 
 /// A root menu layer that displays a list of [Widget] widgets
-/// provided by the [children] parameter.
+/// provided by the [child] parameter.
 ///
 /// The [_CupertinoMenuPanel] is a [StatefulWidget] that manages the opening and
 /// closing of nested [_CupertinoMenuPanel] layers.
@@ -654,7 +837,7 @@ class _CupertinoMenuPanel extends StatefulWidget {
   /// Creates a [_CupertinoMenuPanel] that displays a list of [Widget]s
   const _CupertinoMenuPanel({
     super.key,
-    required this.children,
+    required this.child,
     required this.animation,
     required this.anchorPosition,
     required this.hasLeadingWidget,
@@ -670,7 +853,7 @@ class _CupertinoMenuPanel extends StatefulWidget {
   }) : _edgeInsets = edgeInsets ?? const EdgeInsets.all(defaultEdgeInsets);
 
   /// The menu items to display.
-  final List<Widget> children;
+  final Widget child;
 
   /// The insets of the menu anchor relative to the screen.
   final RelativeRect anchorPosition;
@@ -710,33 +893,8 @@ class _CupertinoMenuPanel extends StatefulWidget {
   /// The [ui.Brightness] of the menu.
   final ui.Brightness? brightness;
 
-  /// The [Radius] of the menu surface [ClipPath].
-  static const Radius radius = Radius.circular(14);
-
   /// The amount of padding between the menu and the screen edge.
   static const double defaultEdgeInsets = 8;
-
-  /// The SpringDescription used for the opening animation of a nested menu layer.
-  static const SpringDescription forwardNestedSpring = SpringDescription(
-    mass: 1,
-    stiffness: (2 * (math.pi / 0.35)) * (2 * (math.pi / 0.35)),
-    damping: (4 * math.pi * 0.81) / 0.35,
-  );
-
-  /// The SpringDescription used for the closing animation of a nested menu layer.
-  static const SpringDescription reverseNestedSpring = SpringDescription(
-    mass: 1,
-    stiffness: (2 * (math.pi / 0.25)) * (2 * (math.pi / 0.25)),
-    damping: (4 * math.pi * 1.8) / 0.25,
-  );
-
-  /// The SpringDescription used for when a pointer is dragged outside of the
-  /// menu area.
-  static const SpringDescription panReboundSpring = SpringDescription(
-    mass: 1,
-    stiffness: (2 * (math.pi / 0.4)) * (2 * math.pi / 0.4),
-    damping: (4 * math.pi * 0.99) / 0.4,
-  );
 
   /// The default transparent [_CupertinoMenuPanel] background color.
   //
@@ -749,7 +907,7 @@ class _CupertinoMenuPanel extends StatefulWidget {
   static const CupertinoDynamicColor background =
       CupertinoDynamicColor.withBrightness(
     color: Color.fromRGBO(250, 251, 250, 0.775),
-    darkColor: Color.fromRGBO(40, 40, 40, 0.75),
+    darkColor: Color.fromRGBO(0, 0, 0, 0.675),
   );
 
   /// The default opaque [_CupertinoMenuPanel] background color.
@@ -766,156 +924,53 @@ class _CupertinoMenuPanel extends StatefulWidget {
 
 class _CupertinoMenuPanelState extends State<_CupertinoMenuPanel>
       with SingleTickerProviderStateMixin {
-  late final AnimationController _panAnimation;
   final FocusNode _focusNode = FocusNode(debugLabel: 'CupertinoMenu-FocusNode');
-  final ValueNotifier<double?> _panPosition = ValueNotifier<double?>(0);
   // Used for pan animation to determine whether user has dragged
   // outside of the menu area
-  final ValueNotifier<Rect?> _rootMenuRectNotifier = ValueNotifier<Rect?>(null);
 
-  late final _AnimationProduct _scaledAnimation;
-  late final ProxyAnimation _menuAnimation;
   EdgeInsets get edgeInsets => widget._edgeInsets;
-
-  @override
-  void initState() {
-    super.initState();
-    _menuAnimation = ProxyAnimation(widget.animation);
-    _panAnimation = AnimationController.unbounded(
-      value: 1.0,
-      vsync: this,
-    );
-    _scaledAnimation = _AnimationProduct(first: _menuAnimation, next: _panAnimation);
-    _panAnimation.addListener(() {
-      print(_panAnimation.value);
-    });
-  }
-
-  @override
-  void didUpdateWidget(covariant _CupertinoMenuPanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if(oldWidget.animation != widget.animation) {
-      _menuAnimation.parent = widget.animation;
-    }
-  }
-
 
   @override
   void dispose() {
     _focusNode.dispose();
-    _panAnimation.dispose();
-    _panPosition.dispose();
-    _rootMenuRectNotifier.dispose();
     super.dispose();
   }
 
-  Future<void> _handlePanEnd(Offset offset) async {
-    _panAnimation.stop();
-    _panAnimation.animateTo(1, duration: const Duration(milliseconds: 600), curve: Curves.easeOutQuint);
-  }
-
-  void _handlePanUpdate(Offset position, Rect? pannedArea) {
-    if (_panAnimation.isAnimating) {
-      _panAnimation.stop();
-    }
-
-    if (!(pannedArea?.contains(position) ?? true)) {
-      final double squaredDistance = _calculateSquaredDistanceToMenuEdge(
-        rect: pannedArea!,
-        position: position,
-      );
-      final double value = math.min(squaredDistance / 20000, 1);
-
-
-      _panAnimation.value = 1 - Curves.fastEaseInToSlowEaseOut.transform(
-       value
-      ) * 0.2;
-
-    }
-  }
-
-  double _calculateSquaredDistanceToMenuEdge({
-    required Rect rect,
-    required Offset position,
-  }) {
-    // Compute squared distance
-    final double dx = math.max(
-      (position.dx - rect.center.dx).abs() - rect.width / 2,
-      0.0,
-    );
-
-    final double dy = math.max(
-      (position.dy - rect.center.dy).abs() - rect.height / 2,
-      0.0,
-    );
-    return dx * dx + dy * dy;
-
-  }
 
   @override
   Widget build(BuildContext context) {
-    Widget menu = CupertinoPanListener<PanTarget<StatefulWidget>>(
-        onPanUpdate: _handlePanUpdate,
-        onPanEnd: _handlePanEnd,
-        child: MetaData(
-          metaData: CupertinoTheme.brightnessOf(context),
-          child: RepaintBoundary(
-            child: _MenuContainer(
-              depth: 0,
-              animation: widget.animation,
-              child: _MenuBody(
-                physics: widget.physics,
-                children: widget.children,
-              ),
-            ),
+    final Widget menu = _MenuContainer(
+        depth: 0, animation: widget.animation, child: widget.child);
+
+    return Builder(
+      builder: (BuildContext context) {
+        final MediaQueryData mediaQuery = MediaQuery.of(context);
+        final ui.Size size = mediaQuery.size;
+        final double textScale = mediaQuery.textScaler.scale(1);
+        final double width = textScale > 1.25 ? 350.0 : 250.0;
+        final BoxConstraints constraints = BoxConstraints(
+          minWidth: widget.constraints?.minWidth ?? width,
+          maxWidth: widget.constraints?.maxWidth ?? width,
+          minHeight: widget.constraints?.minHeight ?? 0.0,
+          maxHeight: widget.constraints?.maxHeight ?? size.height,
+        );
+        return CustomSingleChildLayout(
+          delegate: _RootMenuLayout(
+            growthDirection: widget.alignment.y > 0
+                ? VerticalDirection.up
+                : VerticalDirection.down,
+            anchorPosition: widget.anchorPosition,
+            textDirection: Directionality.of(context),
+            edgeInsets: widget._edgeInsets,
+            avoidBounds:
+                DisplayFeatureSubScreen.avoidBounds(mediaQuery).toSet(),
           ),
-        ),
-      );
-
-    if (widget.controller != null) {
-      menu = TapRegion(
-        groupId: widget.controller,
-        onTapOutside: (PointerDownEvent event) {
-          // if (widget.controller!._anchor!._animationStatus
-          //     case AnimationStatus.completed || AnimationStatus.forward) {
-          //   widget.controller!._anchor!._beginClose();
-          // }
-        },
-        child: menu,
-      );
-    }
-
-    return ScaleTransition(
-        alignment: widget.alignment,
-        scale: _scaledAnimation,
-        child: Builder(
-          builder: (BuildContext context) {
-            final MediaQueryData mediaQuery = MediaQuery.of(context);
-            final ui.Size size = mediaQuery.size;
-            final double textScale = mediaQuery.textScaler.scale(1);
-            final double width = textScale > 1.25 ? 350.0 : 250.0;
-            final BoxConstraints constraints = BoxConstraints(
-              minWidth: widget.constraints?.minWidth ?? width,
-              maxWidth: widget.constraints?.maxWidth ?? width,
-              minHeight: widget.constraints?.minHeight ?? 0.0,
-              maxHeight: widget.constraints?.maxHeight ?? size.height,
-            );
-            return CustomSingleChildLayout(
-              delegate: _RootMenuLayout(
-                growthDirection: VerticalDirection.down,
-                anchorPosition: widget.anchorPosition,
-                textDirection: Directionality.of(context),
-                edgeInsets: widget._edgeInsets,
-                avoidBounds:
-                    DisplayFeatureSubScreen.avoidBounds(mediaQuery).toSet(),
-              ),
-              child: ConstrainedBox(
-                constraints: constraints,
-                child: menu,
-              ),
-            );
-          },
-        ),
+          child: ConstrainedBox(
+            constraints: constraints,
+            child: menu,
+          ),
+        );
+      },
     );
   }
 }
@@ -1142,7 +1197,6 @@ class _MenuContainerState extends State<_MenuContainer>
             color: Color.fromRGBO(0, 0, 0, 0.12),
             spreadRadius: 30,
             blurRadius: 50,
-
           ),
         ]),
   );
@@ -1150,7 +1204,7 @@ class _MenuContainerState extends State<_MenuContainer>
  Align _alignTransitionBuilder(BuildContext context, Widget? child){
     return Align(
       alignment: Alignment.topCenter,
-      heightFactor: _clampedAnimation.value,
+      heightFactor: _proxiedAnimation.value,
       child: child,
     );
   }
@@ -1165,6 +1219,7 @@ class _MenuContainerState extends State<_MenuContainer>
           animation: _clampedAnimation,
           builder: _alignTransitionBuilder,
           child: _BlurredSurface(
+            color: _CupertinoMenuPanel.background.resolveFrom(context),
             listenable: _clampedAnimation,
             child: FadeTransition(
               opacity: _clampedAnimation,
@@ -1177,14 +1232,30 @@ class _MenuContainerState extends State<_MenuContainer>
   }
 }
 
- /// A Color matrix that saturates and brightens
+
+
+
+class _BlurredSurface extends AnimatedWidget {
+  const _BlurredSurface({
+    required Animation<double> listenable,
+    required this.color,
+    required this.child,
+  }) : super(listenable: listenable);
+
+  static const Interval _surfaceDelay =  Interval(0.55, 1.0);
+  final Widget child;
+  final Color color;
+  double get value => (super.listenable as Animation<double>).value;
+
+  /// A Color matrix that saturates and brightens
   ///
-  /// Adapted from https://docs.rainmeter.net/tips/colormatrix-guide/, but
-  /// changed to be more similar to iOS
-    List<double> buildBrightnessAndSaturateMatrix({
+  /// Adapted from https://docs.rainmeter.net/tips/colormatrix-guide/, but adapted
+  /// to resemble the iOS 17 menu.
+  List<double> buildBrightnessAndSaturateMatrix({
     required double strength,
   }) {
-    final double saturation = strength * 0.8 + 1;
+    final double saturation = strength * 0.7 + 1;
+    final double brightness = strength * 66;
     const double lumR = 0.3086;
     const double lumG = 0.6094;
     const double lumB = 0.0820;
@@ -1192,66 +1263,63 @@ class _MenuContainerState extends State<_MenuContainer>
     final double sg = (1 - saturation) * lumG * strength;
     final double sb = (1 - saturation) * lumB * strength;
     return <double>[
-      sr + saturation, sg,              sb,              0.0, 0.0,
-      sr,              sg + saturation, sb,              0.0, 0.0,
-      sr,              sg,              sb + saturation, 0.0, 0.0,
-      0.0,             0.0,             0.0,             1.0, 0.0,
+      sr + saturation, sg             , sb             , 0.0, brightness,
+      sr             , sg + saturation, sb             , 0.0, brightness,
+      sr             , sg             , sb + saturation, 0.0, brightness,
+      0.0            , 0.0            ,0.0             , 1.0, 0.0       ,
     ];
   }
-class _BlurredSurface extends AnimatedWidget {
-  const _BlurredSurface({
-    required Animation<double> listenable,
-    required this.child,
-  }) : super(listenable: listenable);
-
-  final Widget child;
-
-  double get value => (super.listenable as Animation<double>).value;
-
-  static const Interval delayedInterval =  Interval(0.55, 1.0);
-
-
-
 
   @override
   Widget build(BuildContext context) {
-    Color color = _CupertinoMenuPanel.background.resolveFrom(context);
-    final double delayedValue = delayedInterval.transform(value);
-    final bool transparent = color.alpha != 0xFF && !kIsWeb;
+
+    final ui.Color resolvedColor = color.withOpacity(color.opacity * value);
+
+    final double delayedValue = _surfaceDelay.transform(value);
+    final bool transparent = resolvedColor.alpha != 0xFF;
+
+    Widget surface = CustomPaint(
+      willChange: value != 0 && value != 1,
+      painter: _UnclippedColorPainter(color: resolvedColor),
+      child: child,
+    );
+
     if (transparent) {
-      color = color.withOpacity(color.opacity * value);
+      ui.ImageFilter filter = ui.ImageFilter.blur(
+        tileMode: ui.TileMode.mirror,
+        sigmaX: 30 * delayedValue,
+        sigmaY: 30 * delayedValue,
+      );
+
+      if (!kIsWeb) {
+        filter = ui.ImageFilter.compose(
+          outer: filter,
+          inner: ui.ColorFilter.matrix(
+            buildBrightnessAndSaturateMatrix(
+              strength: delayedValue
+            )
+          ),
+        );
+      }
+
+      surface = BackdropFilter(
+        blendMode: BlendMode.src,
+        filter: filter,
+        child: surface,
+      );
     }
 
-    final ui.ImageFilter filter =
-        ui.ImageFilter.compose(
-          outer: ui.ImageFilter.blur(
-            tileMode: TileMode.mirror,
-            sigmaX: 30 * delayedValue,
-            sigmaY: 30 * delayedValue,
-          ),
-          inner: ui.ColorFilter.matrix(
-            buildBrightnessAndSaturateMatrix(strength: delayedValue)
-          )
-        );
-
-
-
-    return BackdropFilter(
-      blendMode: BlendMode.src,
-      filter: filter,
-      child: CustomPaint(
-        willChange: value != 0 && value != 1,
-        painter: _UnclippedColorPainter(color: color),
-        child: child
-      ),
-    );
+    return surface;
   }
 }
 
+
+// A custom painter that paints a color without clipping.
+//
+// Used to fill the background color of the menu even when the menu size animation
+// surpasses a heightFactor of 1.0.
 class _UnclippedColorPainter extends CustomPainter {
-  const _UnclippedColorPainter({
-    required this.color,
-  });
+  const _UnclippedColorPainter({required this.color});
 
   final Color color;
 
@@ -1271,17 +1339,13 @@ class _UnclippedColorPainter extends CustomPainter {
 
 class _MenuBody extends StatefulWidget {
   const _MenuBody({
+    super.key,
     required this.children,
     this.physics,
   });
 
   final List<Widget> children;
   final ScrollPhysics? physics;
-
-  @override
-  List<DiagnosticsNode> debugDescribeChildren() {
-    return children.map<DiagnosticsNode>((Widget child) => child.toDiagnosticsNode()).toList();
-  }
 
   @override
   State<_MenuBody> createState() => _MenuBodyState();
@@ -1318,9 +1382,7 @@ class _MenuBodyState extends State<_MenuBody> {
               addRepaintBoundaries: false,
               itemCount: widget.children.length,
               separatorBuilder: _separatorBuilder,
-              itemBuilder: (BuildContext context, int index) {
-                return widget.children[index];
-              },
+              itemBuilder: _itemBuilder,
             )
           ],
         ),
@@ -1328,12 +1390,17 @@ class _MenuBodyState extends State<_MenuBody> {
     );
   }
 
+  Widget? _itemBuilder(BuildContext context, int index) => widget.children[index];
   Widget? _separatorBuilder(BuildContext context, int index) {
-    if (
-      index == widget.children.length - 1 ||
-      widget.children[index] is CupertinoMenuLargeDivider ||
-      widget.children[index + 1] is CupertinoMenuLargeDivider
-    ) {
+    if (index == widget.children.length - 1) {
+      return const SizedBox.shrink();
+    }
+
+    if (widget.children[index] case CupertinoMenuEntryMixin(hasSeparatorAfter: false)) {
+      return const SizedBox.shrink();
+    }
+
+    if (widget.children[index + 1] case CupertinoMenuEntryMixin(hasSeparatorBefore: false)) {
       return const SizedBox.shrink();
     }
 
@@ -1342,8 +1409,10 @@ class _MenuBodyState extends State<_MenuBody> {
 }
 
 
-// Multiplies the values of two animations. Used to multiply the route animation
-// and the nesting animation to apply effects when the menu closes.
+/// Multiplies the values of two animations.
+///
+/// This class is used to animate the scale of the menu when the user drags
+/// outside of the menu area.
 class _AnimationProduct extends CompoundAnimation<double> {
   _AnimationProduct({
     required super.first,

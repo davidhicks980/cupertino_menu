@@ -1,17 +1,47 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart'
-    show Brightness, CupertinoApp, CupertinoButton, CupertinoColors, CupertinoIcons, CupertinoNavigationBar, CupertinoPageScaffold, CupertinoSlider, CupertinoSwitch, CupertinoTheme, CupertinoThemeData;
-import 'package:flutter/material.dart' show Colors, MenuStyle, TextButton;
+    show
+        Brightness,
+        CupertinoApp,
+        CupertinoButton,
+        CupertinoCheckbox,
+        CupertinoColors,
+        CupertinoContextMenu,
+        CupertinoContextMenuAction,
+        CupertinoIcons,
+        CupertinoNavigationBar,
+        CupertinoPageScaffold,
+        CupertinoSlider,
+        CupertinoSwitch,
+        CupertinoTheme,
+        CupertinoThemeData;
+import 'package:flutter/material.dart'
+    show
+        ButtonStyle,
+        Colors,
+        InkResponse,
+        InkWell,
+        MaterialStateProperty,
+        MenuAnchor,
+        MenuController,
+        MenuItemButton,
+        MenuStyle,
+        SubmenuButton,
+        TextButton,
+        Theme,
+        showAboutDialog;
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import 'cupertino_menu_anchor.dart';
+import 'menu_bar.dart';
 import 'menu_item.dart';
+import 'resize.dart';
 
 // import 'menu.dart';
 // import 'menu_item.dart';
-
 
 enum SortOption {
   name('Name'),
@@ -44,7 +74,8 @@ enum ViewOption {
 }
 
 class CupertinoMenuExample extends StatefulWidget {
-  const CupertinoMenuExample({super.key});
+  const CupertinoMenuExample({super.key, this.onDarkModeChanged});
+  final VoidCallback? onDarkModeChanged;
 
   @override
   State<CupertinoMenuExample> createState() => _CupertinoMenuExampleState();
@@ -56,14 +87,16 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
    bool _darkMode = true;
    bool _background = true;
   Rect anchorPosition = const Rect.fromLTWH(0, 0, 50, 40);
+  Rect settingsPosition = const Rect.fromLTWH(0, 0, 50, 40);
   ui.Image? _lightImage;
   ui.Image? _darkImage;
-  final GlobalKey lightKey = GlobalKey();
-  final GlobalKey darkKey = GlobalKey();
+   GlobalKey lightKey = GlobalKey();
+   GlobalKey darkKey = GlobalKey();
 
-  void visitAllChildren(RenderObject? renderObject, void Function(RenderRepaintBoundary) onBoundary) {
+  void visitAllChildren(RenderObject? renderObject,
+      void Function(RenderRepaintBoundary) onBoundary) {
     if (renderObject == null || renderObject is RenderRepaintBoundary) {
-       onBoundary(renderObject! as RenderRepaintBoundary);
+      onBoundary(renderObject! as RenderRepaintBoundary);
     }
     renderObject.visitChildrenForSemantics((RenderObject child) {
       visitAllChildren(child, onBoundary);
@@ -86,140 +119,218 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: _directionality,
+    return SizedBox(
+      width: MediaQuery.of(context).size.width,
+      height: MediaQuery.of(context).size.height,
       child: MediaQuery(
-        data: MediaQuery.of(context)
-            .copyWith(
-              textScaler: TextScaler.linear(_textSizeSliderValue),
-              platformBrightness:  Brightness.dark,
-            ),
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(_textSizeSliderValue),
+          platformBrightness: _darkMode ? Brightness.dark : Brightness.light,
+        ),
         child: CupertinoTheme(
-          data: const CupertinoThemeData(
-            brightness: Brightness.dark,
-            primaryColor: Colors.lightBlue,
-            scaffoldBackgroundColor: Colors.white,
-
+          data:  CupertinoThemeData(
+            brightness:_darkMode ? Brightness.dark : Brightness.light,
           ),
-          child: SafeArea(
-            child: Stack(
-              children: <Widget>[
-                // if(_lightImage != null)
-                //   Positioned(
-                //     left: 0,
-                //     top: -200,
-                //     bottom: 0,
-                //     child: RawImage(
-                //       width: 250,
-                //       image: _lightImage, fit: BoxFit.contain,)),
-                // if(_darkImage != null)
-                //   Positioned(
-                //     left: 0,
-                //     top: 200,
-                //     bottom: 0,
-                //     child: RawImage(
-                //       width: 250,
-                //       image: _darkImage, fit: BoxFit.contain,)),
-                // if (_background)
-                //   Positioned(
-                //     right: -150,
-                //     top: 0,
-                //     bottom: 0,
-                //       child: Image.asset(
-                //     'assets/image.avif',
-                //     fit: BoxFit.fitWidth,
-                //     width: 600
-                //   )),
-                if (_background)
-                  Positioned(
-                    top: 0,
-                    bottom: 0,
-                    left: 0,
-                      child: Image.asset(
-                    'assets/p3.png',
-                    fit: BoxFit.fitWidth,
-                  )),
+          child: Stack(
+            children: <Widget>[
+              // if(_lightImage != null)
+              //   Positioned(
+              //     left: 0,
+              //     top: -200,
+              //     bottom: 0,
+              //     child: RawImage(
+              //       width: 250,
+              //       image: _lightImage, fit: BoxFit.contain,)),
+              // if(_darkImage != null)
+              //   Positioned(
+              //     left: 0,
+              //     top: 200,
+              //     bottom: 0,
+              //     child: RawImage(
+              //       width: 250,
+              //       image: _darkImage, fit: BoxFit.contain,)),
 
-                 Dropdown(
-                    containerKey: lightKey,
-                  ),
-                 CupertinoTheme(
-                   data: const CupertinoThemeData(
-                     brightness: Brightness.dark,
-                   ),
-                  child: Dropdown(
-                    containerKey: darkKey,
-                  )),
-                Positioned.fill(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      Container(
-                        margin: const EdgeInsets.all(20),
-                        height: 50,
-                        width: 200,
-                        child: CupertinoSlider(
-                            value: _textSizeSliderValue,
-                            min: 0.9,
-                            max: 3,
-                            onChanged: (double value) {
-                              setState(() {
-                                _textSizeSliderValue = value;
-                              });
-                            }),
-                      ),
-                      Text('Text ${MediaQuery.textScalerOf(context).scale(1)}'),
-                      CupertinoSwitch(
-                        value: _directionality == TextDirection.ltr,
-                        onChanged: (bool value) {
-                          setState(
-                            () {
-                              _directionality =
-                                  value ? TextDirection.ltr : TextDirection.rtl;
-                            },
-                          );
-                        },
-                      ),
-                      CupertinoSwitch(
-                        value: _background,
-                        onChanged: (bool value) {
-                          setState(
-                            () {
-                              _background = value;
-                            },
-                          );
-                        },
-                      ),
+              // if (_background)
+              //   Positioned(
+              //       right: -150,
+              //       top: 0,
+              //       bottom: 0,
+              //       child: Image.asset('assets/image.avif',
+              //           fit: BoxFit.fitWidth, width: 600)),
+              // if (_background)
+              //   Positioned(
+              //       top: 0,
+              //       bottom: 0,
+              //       left: 0,
+              //       child: Image.asset(
+              //         'assets/p3.png',
+              //         fit: BoxFit.fitWidth,
+              //       )),
 
-                      TextButton(onPressed: takeScreenShot, child: const Text('Screenshot')),
-                      CupertinoSwitch(
-                        value: _darkMode,
-                        onChanged: (bool value) {
-                          setState(
-                            () {
-                              _darkMode = value;
-                            },
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+
+              ExcludeFocus(
+                child: Settings(
+                    textSizeSliderValue: _textSizeSliderValue,
+                    directionality: _directionality,
+                    darkMode: _darkMode,
+                    background: _background,
+                    onTextSizeSliderChanged: (double size) {
+                      setState(() {
+                        _textSizeSliderValue = size;
+                      });
+                    },
+                    onDirectionalityChanged: (bool? isLTR) {
+                      setState(() {
+                        _directionality =
+                            isLTR! ? TextDirection.ltr : TextDirection.rtl;
+                      });
+                    },
+                    onDarkModeChanged: (bool? isDark) {
+                      setState(() {
+                        _darkMode = isDark!;
+                      });
+                      widget.onDarkModeChanged?.call();
+                    },
+                    onBackgroundChanged: (bool? isBackground) {
+                      setState(() {
+                        _background = isBackground!;
+                      });
+                    }),
+              ),
+              const MyMenuBar(),
+
+
+              Positioned(
+                top: 100,
+                child: Directionality(
+                    textDirection: _directionality,
+                    child: MediaQuery(
+                        data: MediaQuery.of(context).copyWith(
+                          textScaler: TextScaler.linear(_textSizeSliderValue),
+                          platformBrightness:
+                              _darkMode ? Brightness.dark : Brightness.light,
+                        ),
+                        child: SafeArea(
+                              child: Stack(children: <Widget>[
+                            Dropdown(
+                              containerKey: lightKey,
+                            ),
+
+                            // CupertinoTheme(
+                            //   data: const CupertinoThemeData(
+                            //     brightness: Brightness.dark,
+                            //   ),
+                            //   child: Dropdown(
+                            //     containerKey: darkKey,
+                            //   ),
+                            // ),
+                          ])),
+                        ))),
+
+               const Positioned(left: 100,
+                  top: 150,
+                  bottom: 0,
+                  right: 0, child: MyCascadingMenu(message: 'test')),
+            ],
           ),
         ),
-      )
+      ),
     );
   }
 }
 
+class Settings extends StatefulWidget {
+  const Settings({
+    super.key,
+    required this.textSizeSliderValue,
+    required this.directionality,
+    required this.darkMode,
+    required this.background,
+    required this.onTextSizeSliderChanged,
+    required this.onDirectionalityChanged,
+    required this.onDarkModeChanged,
+    required this.onBackgroundChanged,
+  });
 
+  final double textSizeSliderValue;
+  final TextDirection directionality;
+  final bool darkMode;
+  final bool background;
+  final ValueChanged<double> onTextSizeSliderChanged;
+  final ValueChanged<bool?> onDirectionalityChanged;
+  final ValueChanged<bool?> onDarkModeChanged;
+  final ValueChanged<bool?> onBackgroundChanged;
 
+  @override
+  State<Settings> createState() => _SettingsState();
+}
+
+class _SettingsState extends State<Settings> {
+  Offset _offset = const Offset(0, 0);
+
+  @override
+  Widget build(BuildContext context) {
+    return ResizebleWidget(
+        id: 'settings',
+        child: Draggable(
+          onDragUpdate: (DragUpdateDetails location) {
+            setState(() {
+              _offset = _offset + location.delta;
+            });
+          },
+          feedback: const SizedBox(),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              children: <Widget>[
+                SizedBox(
+                  height: 50,
+                  width: 100,
+                  child: CupertinoSlider(
+                      value: widget.textSizeSliderValue,
+                      min: 0.9,
+                      max: 2,
+                      onChanged: widget.onTextSizeSliderChanged),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    Flexible(child: Text('Direction ${widget.directionality}')),
+                    CupertinoCheckbox(
+                      value: widget.directionality == TextDirection.ltr,
+                      onChanged: widget.onDirectionalityChanged,
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    const Flexible(child: Text('Background')),
+                    CupertinoCheckbox(
+                      value: widget.background,
+                      onChanged: widget.onBackgroundChanged,
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: <Widget>[
+                    const Flexible(child: Text('Dark mode')),
+                    CupertinoCheckbox(
+                      value: widget.darkMode,
+                      onChanged: widget.onDarkModeChanged,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ));
+  }
+}
 
 class Dropdown extends StatefulWidget {
-
-  const Dropdown({super.key,  this.containerKey});
+  const Dropdown({super.key, this.containerKey});
   final GlobalKey? containerKey;
 
   @override
@@ -227,86 +338,260 @@ class Dropdown extends StatefulWidget {
 }
 
 class _DropdownState extends State<Dropdown> {
-  Rect _offset =  const Rect.fromLTWH(0, 0, 50, 40);
-
   bool _textVariant = false;
+  final FocusNode _buttonFocusNode = FocusNode();
   // late final CupertinoMenuController controller = CupertinoMenuController();
 
   @override
   Widget build(BuildContext context) {
-    return Positioned.fromRect(
-                    rect: _offset,
-                    child:  Draggable(
-                        onDragUpdate: (DragUpdateDetails location) {
-                          setState((){
-                            _offset = _offset.shift(location.delta);
-                          });
-                        },
-                        feedback: const Icon(CupertinoIcons.bars),
-                        child: CupertinoMenuAnchor(
-                          containerKey: widget.containerKey,
-                          menuChildren: <Widget>[
-                            CupertinoMenuItem(
-                              trailing:
-                                  const Icon(CupertinoIcons.check_mark_circled),
-                              child: const Text('Favorite Animal'),
-                              onPressed: () {},
-                            ),
-                            CupertinoMenuItem(
-                              trailing:
-                                  const Icon(CupertinoIcons.folder_badge_plus),
-                              child: const Text('New Folder'),
-                              onPressed: () {
-                                setState(() {
+    return
+        // Draggable(
+        //   feedback: const SizedBox.shrink(),
+        //   onDragUpdate: (DragUpdateDetails location) {
+        //     setState(() {
+        //       _offset = _offset.shift(location.delta);
+        //     });
+        //   },
+        //   child:
+      CupertinoMenuAnchor(
+      childFocusNode: _buttonFocusNode,
+      menuChildren: <Widget>[
+        CupertinoMenuItem(
+          panActivationDelay: const Duration(milliseconds: 300),
+          trailing: const Icon(CupertinoIcons.check_mark_circled),
+          child: const Text('Favorite Animal'),
+          onPressed: () {
+            print('activated');
+          },
+        ),
+        CupertinoMenuItem(
+          trailing: const Icon(CupertinoIcons.folder_badge_plus),
+          child: const Text('New Folder'),
+          onPressed: () {
+            setState(() {
+              _textVariant = !_textVariant;
+            });
+          },
+        ),
+        const CupertinoMenuLargeDivider(),
+        CupertinoMenuItem(
+          trailing: const Icon(CupertinoIcons.square_grid_2x2),
+          subtitle: _textVariant
+              ? const Text('Small text')
+              : const Text(
+                  'An unusually long string of text to demonstrate how the menu will wrap.'),
+          onPressed: () {},
+          child: _textVariant
+              ? const Text('Small text')
+              : const Text(
+                  'An unusually long string of text to demonstrate how the menu will wrap.'),
+        ),
+        const CupertinoMenuLargeDivider(),
+        CupertinoMenuItem(
+          trailing: const Icon(CupertinoIcons.square_grid_2x2),
+          child: const Text('Icons'),
+          onPressed: () {},
+        ),
+        CupertinoMenuItem(
+          trailing: const Icon(CupertinoIcons.square_grid_2x2),
+          child: const Text('Icons'),
+          onPressed: () {},
+        ),
+      ],
+      builder: (
+        BuildContext context,
+        CupertinoMenuController controller,
+        Widget? child,
+      ) {
+        return TextButton(
+          focusNode: _buttonFocusNode,
+          onPressed: () {
+            if (controller.animationStatus case AnimationStatus.forward || AnimationStatus.completed) {
+              controller.close();
+            } else {
+              controller.open();
+            }
+          },
+          child: const Text(
+            'OPEN MENU',
+          ),
+        );
+      },
+      // ),
+    );
+  }
+}
 
-                                _textVariant = !_textVariant;
-                                });
-                              },
-                            ),
+/// An enhanced enum to define the available menus and their shortcuts.
+///
+/// Using an enum for menu definition is not required, but this illustrates how
+/// they could be used for simple menu systems.
+enum MenuEntry {
+  about('About'),
+  showMessage(
+      'Show Message', SingleActivator(LogicalKeyboardKey.keyS, control: true)),
+  hideMessage(
+      'Hide Message', SingleActivator(LogicalKeyboardKey.keyS, control: true)),
+  colorMenu('Color Menu'),
+  colorRed('Red Background',
+      SingleActivator(LogicalKeyboardKey.keyR, control: true)),
+  colorGreen('Green Background',
+      SingleActivator(LogicalKeyboardKey.keyG, control: true)),
+  colorBlue('Blue Background',
+      SingleActivator(LogicalKeyboardKey.keyB, control: true));
 
-                            const CupertinoMenuLargeDivider(),
-                            CupertinoMenuItem(
-                              trailing: const Icon(CupertinoIcons.square_grid_2x2),
-                              subtitle: _textVariant ? const Text('Small text'): const Text('An unusually long string of text to demonstrate how the menu will wrap.'),
-                              onPressed: () {},
-                              child:_textVariant
-                                ? const Text('Small text')
-                                : const Text('An unusually long string of text to demonstrate how the menu will wrap.'),
-                            ),
-                            const CupertinoMenuLargeDivider(),
-                             CupertinoMenuItem(
-                              trailing: const Icon(CupertinoIcons.square_grid_2x2),
-                              child: const Text('Icons'),
-                              onPressed: () {},
-                            ),
+  const MenuEntry(this.label, [this.shortcut]);
+  final String label;
+  final MenuSerializableShortcut? shortcut;
+}
 
+class MyCascadingMenu extends StatefulWidget {
+  const MyCascadingMenu({super.key, required this.message});
 
-                             CupertinoMenuItem(
-                              trailing: const Icon(CupertinoIcons.square_grid_2x2),
-                              child: const Text('Icons'),
-                              onPressed: () {},
-                            ),
+  final String message;
 
-                          ],
-                          child: Container(
-                                  color: Colors.lightBlue,
-                                  child: const Center(child: Text('OPEN MENU'),),),
-                          builder: (BuildContext context, CupertinoMenuController controller,
-                              Widget? child) {
-                            return GestureDetector(
-                              onTap: () {
-                                if(controller.animationStatus case AnimationStatus.completed || AnimationStatus.forward) {
-                                  controller.close();
-                                } else {
-                                  controller.open();
-                                }
+  @override
+  State<MyCascadingMenu> createState() => _MyCascadingMenuState();
+}
 
-                              },
-                              child: child
-                            );
-                          },
-                      ),
-                    ),
-                  );
+class _MyCascadingMenuState extends State<MyCascadingMenu> {
+  MenuEntry? _lastSelection;
+  final FocusNode _buttonFocusNode = FocusNode(debugLabel: 'Menu Button');
+  ShortcutRegistryEntry? _shortcutsEntry;
+
+  Color get backgroundColor => _backgroundColor;
+  Color _backgroundColor = Colors.red;
+  set backgroundColor(Color value) {
+    if (_backgroundColor != value) {
+      setState(() {
+        _backgroundColor = value;
+      });
+    }
+  }
+
+  bool get showingMessage => _showingMessage;
+  bool _showingMessage = false;
+  set showingMessage(bool value) {
+    if (_showingMessage != value) {
+      setState(() {
+        _showingMessage = value;
+      });
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Dispose of any previously registered shortcuts, since they are about to
+    // be replaced.
+    _shortcutsEntry?.dispose();
+    // Collect the shortcuts from the different menu selections so that they can
+    // be registered to apply to the entire app. Menus don't register their
+    // shortcuts, they only display the shortcut hint text.
+    final Map<ShortcutActivator, Intent> shortcuts =
+        <ShortcutActivator, Intent>{
+      for (final MenuEntry item in MenuEntry.values)
+        if (item.shortcut != null)
+          item.shortcut!: VoidCallbackIntent(() => _activate(item)),
+    };
+    // Register the shortcuts with the ShortcutRegistry so that they are
+    // available to the entire application.
+    _shortcutsEntry = ShortcutRegistry.of(context).addAll(shortcuts);
+  }
+
+  @override
+  void dispose() {
+    _shortcutsEntry?.dispose();
+    _buttonFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        MenuAnchor(
+          menuChildren: <Widget>[
+            MenuItemButton(
+              child: Text(MenuEntry.about.label),
+              onPressed: () => _activate(MenuEntry.about),
+            ),
+            if (_showingMessage)
+              MenuItemButton(
+                onPressed: () => _activate(MenuEntry.hideMessage),
+                shortcut: MenuEntry.hideMessage.shortcut,
+                child: Text(MenuEntry.hideMessage.label),
+              ),
+            if (!_showingMessage)
+              MenuItemButton(
+                onPressed: () => _activate(MenuEntry.showMessage),
+                shortcut: MenuEntry.showMessage.shortcut,
+                child: Text(MenuEntry.showMessage.label),
+              ),
+            SubmenuButton(
+              menuChildren: <Widget>[
+                MenuItemButton(
+                  onPressed: () => _activate(MenuEntry.colorRed),
+                  shortcut: MenuEntry.colorRed.shortcut,
+                  child: Text(MenuEntry.colorRed.label),
+                ),
+                MenuItemButton(
+                  onPressed: () => _activate(MenuEntry.colorGreen),
+                  shortcut: MenuEntry.colorGreen.shortcut,
+                  child: Text(MenuEntry.colorGreen.label),
+                ),
+                MenuItemButton(
+                  onPressed: () => _activate(MenuEntry.colorBlue),
+                  shortcut: MenuEntry.colorBlue.shortcut,
+                  child: Text(MenuEntry.colorBlue.label),
+                ),
+              ],
+              child: const Text('Background Color'),
+            ),
+          ],
+          builder:
+              (BuildContext context, MenuController controller, Widget? child) {
+            return TextButton(
+              focusNode: _buttonFocusNode,
+              onPressed: () {
+                if (controller.isOpen) {
+                  controller.close();
+                } else {
+                  controller.open();
+                }
+              },
+              child: const Text('OPEN MENU'),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  void _activate(MenuEntry selection) {
+    setState(() {
+      _lastSelection = selection;
+    });
+
+    switch (selection) {
+      case MenuEntry.about:
+        showAboutDialog(
+          context: context,
+          applicationName: 'MenuBar Sample',
+          applicationVersion: '1.0.0',
+        );
+      case MenuEntry.hideMessage:
+      case MenuEntry.showMessage:
+        showingMessage = !showingMessage;
+      case MenuEntry.colorMenu:
+        break;
+      case MenuEntry.colorRed:
+        backgroundColor = Colors.red;
+      case MenuEntry.colorGreen:
+        backgroundColor = Colors.green;
+      case MenuEntry.colorBlue:
+        backgroundColor = Colors.blue;
+    }
   }
 }

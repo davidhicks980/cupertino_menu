@@ -297,8 +297,6 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
   final GlobalKey<MenuAnchorState> _anchorKey = GlobalKey<MenuAnchorState>(debugLabel: kReleaseMode ? null : 'MenuAnchor');
   MenuAnchorState? _parent;
   late final FocusScopeNode _menuScopeNode;
-  @protected
-  FocusScopeNode get menuScopeNode => _menuScopeNode;
   MenuController? _internalMenuController;
   final List<MenuAnchorState> _anchorChildren = <MenuAnchorState>[];
   ScrollPosition? _scrollPosition;
@@ -375,7 +373,9 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
   Widget build(BuildContext context) {
     Widget child = OverlayPortal(
       controller: _overlayController,
-      overlayChildBuilder: overlayChildBuilder,
+      overlayChildBuilder: (BuildContext context) {
+        return buildOverlayChild(context, _menuScopeNode);
+      },
       child: _buildContents(context),
     );
 
@@ -406,7 +406,7 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
   }
 
   @protected
-  Widget overlayChildBuilder(BuildContext context) {
+  Widget buildOverlayChild(BuildContext context, FocusScopeNode menuFocusScopeNode) {
     return _Submenu(
       anchor: this,
       menuStyle: widget.style,

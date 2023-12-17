@@ -42,7 +42,7 @@ bool get _platformSupportsAccelerators {
 const CupertinoDynamicColor _kMenuBackgroundOnPress =
     CupertinoDynamicColor.withBrightness(
       color: Color.fromRGBO(50, 50, 50, 0.1),
-      darkColor: Color.fromRGBO(255, 255, 255, 0.2),
+      darkColor: Color.fromRGBO(255, 255, 255, 0.1),
     );
 
 /// A widget that provides the default styling, semantics, and interactivity
@@ -54,7 +54,7 @@ class CupertinoInteractiveMenuItem extends StatefulWidget {
   const CupertinoInteractiveMenuItem({
     super.key,
     required this.child,
-    required this.requestFocusOnHover,
+    this.requestFocusOnHover = false,
     this.focusNode,
     this.onFocusChange,
     this.onPressed,
@@ -151,32 +151,13 @@ class CupertinoInteractiveMenuItem extends StatefulWidget {
 
   bool get enabled => onPressed != null;
 
-  /// The default text color for labels in a [CupertinoInteractiveMenuItem].
-  static const CupertinoDynamicColor _defaultTextColor =
-      CupertinoDynamicColor.withBrightness(
-          color: Color.fromRGBO(0, 0, 0, 0.96),
-          darkColor: Color.fromRGBO(255, 255, 255, 0.96),
-        );
-
-  /// The default text style for labels in a [CupertinoInteractiveMenuItem].
-  static const TextStyle _defaultTextStyle = TextStyle(
-    inherit: false,
-    fontFamily: 'SF Pro Text',
-    fontFamilyFallback: <String>[
-      '.AppleSystemUIFont'
-    ],
-    fontSize: 17,
-    letterSpacing: -0.48,
-    fontWeight: FontWeight.w300,
-  );
-
   @override
   State<CupertinoInteractiveMenuItem> createState() =>
       _CupertinoInteractiveMenuItemState();
 }
 
 class _CupertinoInteractiveMenuItemState
-      extends State<CupertinoInteractiveMenuItem> {
+      extends State<CupertinoInteractiveMenuItem> with CupertinoMenuEntryMixin {
   /// The handler for when the user selects the menu item.
   ///
   /// Along with calling [CupertinoInteractiveMenuItem.widget.onTap], it uses [Navigator.pop]
@@ -184,6 +165,9 @@ class _CupertinoInteractiveMenuItemState
   @protected
   void _handleSelect() {
     assert(_debugMenuInfo('Selected ${widget.child} menu'));
+    if (widget.closeOnActivate) {
+      closeMenu(context);
+    }
     // Delay the call to onPressed until post-frame so that the focus is
     // restored to what it was before the menu was opened before the action is
     // executed.
@@ -203,7 +187,7 @@ class _CupertinoInteractiveMenuItemState
         child: CupertinoMenuItemGestureHandler(
           mouseCursor: widget.mouseCursor,
           panPressActivationDelay: widget.panActivationDelay,
-          requestFocusOnHover: true,
+          requestFocusOnHover: widget.requestFocusOnHover,
           onPressed: _handleSelect,
           onHover: widget.onHover,
           onFocusChange: widget.onFocusChange,
@@ -220,9 +204,9 @@ class _CupertinoInteractiveMenuItemState
             widget.hoveredColor,
             context,
           ),
-          child:  _platformSupportsAccelerators && widget.enabled
-                      ? MenuAcceleratorCallbackBinding(child: widget.child)
-                      : widget.child,
+          child: _platformSupportsAccelerators && widget.enabled
+                   ? MenuAcceleratorCallbackBinding(child: widget.child)
+                   : widget.child,
 
         ),
       ),
@@ -243,7 +227,7 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
   const CupertinoMenuItem({
     super.key,
     required this.child,
-    this.requestFocusOnHover = true,
+    this.requestFocusOnHover = false,
     this.leading,
     this.trailing,
     this.subtitle,
@@ -356,103 +340,112 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
 
   bool get enabled => onPressed != null;
 
+  /// The default text style for labels in a [CupertinoInteractiveMenuItem].
+  static const TextStyle _defaultTextStyle = TextStyle(
+    inherit: false,
+    fontFamily: 'SF Pro Text',
+    fontFamilyFallback: <String>[
+      '.AppleSystemUIFont'
+    ],
+    height: 1.25,
+    fontSize: 17,
+    letterSpacing: -0.21,
+    fontWeight: FontWeight.w300,
+    color: CupertinoDynamicColor.withBrightness(
+          color: Color.fromRGBO(0, 0, 0, 0.96),
+          darkColor: Color.fromRGBO(255, 255, 255, 0.96),
+        )
+      ,
+      textBaseline: TextBaseline.alphabetic,
+  );
+
   /// Provides text styles in response to changes in [CupertinoThemeData.brightness],
   /// [widget.isDefaultAction], [widget.isDestructiveAction], and [widget.enable].
   //
   // Eyeballed from the iOS simulator.
   TextStyle _getTitleTextStyle(BuildContext context) {
     if (!enabled) {
-      return CupertinoInteractiveMenuItem._defaultTextStyle.copyWith(
+      return _defaultTextStyle.copyWith(
         color: CupertinoColors.systemGrey.resolveFrom(context),
       );
     }
 
     if (isDestructiveAction) {
-      return CupertinoInteractiveMenuItem._defaultTextStyle.copyWith(
+      return _defaultTextStyle.copyWith(
         color: CupertinoColors.destructiveRed,
       );
     }
 
-    final Color color =
-        CupertinoInteractiveMenuItem._defaultTextColor.resolveFrom(context);
+    final Color? color = CupertinoDynamicColor.maybeResolve(
+      _defaultTextStyle.color,
+      context,
+    );
 
     if (isDefaultAction) {
-      return CupertinoInteractiveMenuItem._defaultTextStyle
-          .copyWith(fontWeight: FontWeight.w600, color: color);
+      return _defaultTextStyle.copyWith(
+        fontWeight: FontWeight.w600,
+        color: color,
+      );
     }
 
-    return CupertinoInteractiveMenuItem._defaultTextStyle
-        .copyWith(color: color);
+    return _defaultTextStyle.copyWith(color: color);
   }
 
   /// The default text style for a [CupertinoStickyMenuHeader] subtitle.
-  TextStyle getDefaultSubtitleStyle (BuildContext context)=>   TextStyle(
-    height: 1.25,
-    // color: const CupertinoDynamicColor.withBrightness(
-    //     color: Color.fromRGBO(130, 130, 130, 1),
-    //     darkColor:  Color.fromRGBO(110, 110, 110, 1)).resolveFrom(context),
-    fontFamily: 'SF Pro Text',
-    fontFamilyFallback: const <String>['.AppleSystemUIFont'],
-    fontSize: 15,
-    letterSpacing: -0.41,
-    fontWeight: FontWeight.w300,
-    foreground: Paint()
-
-          ..color = const Color.fromRGBO(200, 200, 200, 0.55)
-          ..blendMode = BlendMode.colorDodge
-
-        ,
+  static final TextStyle _subtitleStyle = TextStyle(
+        height: 1.25,
+        fontFamily: 'SF Pro Text',
+        fontFamilyFallback: const <String>['.AppleSystemUIFont'],
+        fontSize: 15,
+        letterSpacing: -0.12,
+        fontWeight: FontWeight.w300,
         textBaseline: TextBaseline.alphabetic,
-  );
+        foreground: Paint()
+          ..color = const Color.fromRGBO(255, 255, 255, 0.4)
+          ..blendMode = BlendMode.plus,
+      );
 
   @override
   Widget build(BuildContext context) {
     final TextStyle titleTextStyle = _getTitleTextStyle(context);
     final TextScaler textScale = MediaQuery.textScalerOf(context);
     return CupertinoInteractiveMenuItem(
-        focusNode: focusNode,
-        onFocusChange: onFocusChange,
-        onPressed: onPressed,
-        onHover: onHover,
-        pressedColor: pressedColor,
-        focusedColor: focusedColor,
-        hoveredColor: hoveredColor,
-        mouseCursor: mouseCursor,
-        behavior: behavior,
-        closeOnActivate: closeOnActivate,
-        isDefaultAction: isDefaultAction,
-        isDestructiveAction: isDestructiveAction,
-        panActivationDelay: panActivationDelay,
-        shortcut: shortcut,
-        requestFocusOnHover: requestFocusOnHover,
-        child: IconTheme.merge(
+      focusNode: focusNode,
+      onFocusChange: onFocusChange,
+      onPressed: onPressed,
+      onHover: onHover,
+      pressedColor: pressedColor,
+      focusedColor: focusedColor,
+      hoveredColor: hoveredColor,
+      mouseCursor: mouseCursor,
+      behavior: behavior,
+      closeOnActivate: closeOnActivate,
+      isDefaultAction: isDefaultAction,
+      isDestructiveAction: isDestructiveAction,
+      panActivationDelay: panActivationDelay,
+      shortcut: shortcut,
+      requestFocusOnHover: requestFocusOnHover,
+      child: IconTheme.merge(
         data: IconThemeData(
-            color: titleTextStyle.color, size: textScale.scale(21)),
+          color: titleTextStyle.color,
+          size: textScale.scale(21),
+        ),
         child: _CupertinoMenuItemStructure(
           padding: padding,
-          // trailing: trailing,
-          leading: leading != null
-                    ? _ChildSwitcher(
-                        layoutBuilder: AnimatedSwitcher.defaultLayoutBuilder,
-                        child: leading!
-                      )
-                    : null,
+          trailing: trailing,
+          leading: leading,
           title: DefaultTextStyle.merge(
             maxLines: textScale.scale(1) > 1.25 ? null : 2,
             overflow: TextOverflow.ellipsis,
             style: titleTextStyle,
-            child: IconTheme.merge(
-              data: IconThemeData(
-                  color: titleTextStyle.color, size: textScale.scale(21)),
-              child: _ChildSwitcher(child: child),
-            ),
+            child: _TitleSwitcher(child: child),
           ),
           subtitle: subtitle != null
               ? DefaultTextStyle.merge(
                   maxLines: textScale.scale(1) > 1.25 ? null : 2,
                   overflow: TextOverflow.ellipsis,
-                  style: getDefaultSubtitleStyle(context),
-                  child: _ChildSwitcher(child: child),
+                  style: _subtitleStyle,
+                  child: _TitleSwitcher(child: child),
                 )
               : null,
         ),
@@ -461,8 +454,8 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
   }
 }
 
-class _ChildSwitcher extends StatelessWidget {
-  const _ChildSwitcher({
+class _TitleSwitcher extends StatelessWidget {
+  const _TitleSwitcher({
     required this.child,
     this.layoutBuilder = _layoutBuilder,
   });
@@ -529,7 +522,7 @@ class _CupertinoMenuItemStructure extends StatelessWidget with CupertinoMenuEntr
         _padding = padding ?? defaultPadding;
 
   static const EdgeInsetsDirectional defaultPadding =
-      EdgeInsetsDirectional.symmetric(vertical: 12);
+      EdgeInsetsDirectional.symmetric(vertical: 11.5);
   static const double defaultHorizontalWidth = 16;
   static const double leadingWidgetWidth = 32.0;
   static const double trailingWidgetWidth = 44.0;
@@ -613,6 +606,7 @@ class _CupertinoMenuItemStructure extends StatelessWidget with CupertinoMenuEntr
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: <Widget>[
                           title,
+                          const SizedBox(height: 1),
                           subtitle!,
                         ],
                       ),
@@ -640,17 +634,17 @@ class _CupertinoMenuItemStructure extends StatelessWidget with CupertinoMenuEntr
 /// * [CupertinoMenuItem], a Cupertino menu item.
 /// * [CupertinoMenuActionItem], a horizontal menu item.
 @immutable
-class CupertinoMenuLargeDivider extends StatelessWidget with CupertinoMenuEntryMixin
-       {
+class CupertinoMenuLargeDivider extends StatelessWidget
+      with CupertinoMenuEntryMixin {
   /// Creates a large horizontal divider for a [_CupertinoMenuPanel].
   const CupertinoMenuLargeDivider({
     super.key,
-    this.color = transparentColor,
+    this.color = _color,
   });
 
   /// Color for a transparent [CupertinoMenuLargeDivider].
   // The following colors were measured from debug mode on the iOS simulator,
-  static const CupertinoDynamicColor transparentColor =
+  static const CupertinoDynamicColor _color =
     CupertinoDynamicColor.withBrightness(
       color: Color.fromRGBO(0, 0, 0, 0.08),
       darkColor: Color.fromRGBO(0, 0, 0, 0.16),
@@ -658,15 +652,21 @@ class CupertinoMenuLargeDivider extends StatelessWidget with CupertinoMenuEntryM
 
   /// The color of the divider.
   ///
-  /// If this property is null, [CupertinoMenuLargeDivider.transparentColor] is
+  /// If this property is null, [CupertinoMenuLargeDivider._color] is
   /// used.
-  final CupertinoDynamicColor color;
+  final Color color;
+
+  @override
+  bool get hasSeparatorAfter => false;
+
+  @override
+  bool get hasSeparatorBefore => false;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       height: 8,
-      color: color.resolveFrom(context),
+      color: CupertinoDynamicColor.resolve(color, context),
     );
   }
 }
@@ -694,12 +694,12 @@ class CupertinoMenuDivider extends StatelessWidget {
   static const CupertinoDynamicColor dividerColor =
       CupertinoDynamicColor.withBrightness(
         color: Color.fromRGBO(0, 0, 0, 1),
-        darkColor: Color.fromRGBO(255, 255, 255, 0.1),
+        darkColor: Color.fromRGBO(255, 255, 255, 0.6),
       );
   static const CupertinoDynamicColor tintColor =
       CupertinoDynamicColor.withBrightness(
         color: Color.fromRGBO(0, 0, 0, 0.1),
-        darkColor: Color.fromRGBO(255, 255, 255, 0.1),
+        darkColor: Color.fromRGBO(0, 0, 0, 0.1),
       );
 
   /// The color of divider.
@@ -714,18 +714,20 @@ class CupertinoMenuDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double physicalThickness = thickness / (MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0);
     return CustomPaint(
+        size: Size(double.infinity, physicalThickness.ceilToDouble()),
         foregroundPainter: _AliasedBorderPainter(
           // Antialiasing is disabled to match the iOS native menu divider, but
           // is enabled on devices with a device pixel ratio < 1.0 to ensure the
           // divider is visible on low resolution devices.
-          isAntiAlias: (MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0) < 1.0,
+          isAntiAlias: physicalThickness < 1.0,
           tint: tintColor.resolveFrom(context),
-          begin: Alignment.topLeft,
-          end: Alignment.topRight,
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
           cutoutPainter: BorderSide(
             color: color.resolveFrom(context),
-            width: thickness / MediaQuery.of(context).devicePixelRatio,
+            width: physicalThickness,
             strokeAlign:  BorderSide.strokeAlignCenter,
           ),
         ),
@@ -759,24 +761,20 @@ class _AliasedBorderPainter extends CustomPainter {
                           ..isAntiAlias = isAntiAlias;
     final Offset p1 = begin.alongSize(size);
     final Offset p2 = end.alongSize(size);
+    canvas.drawLine(p1, p2, cutout);
     canvas.drawLine(
-      p1,
-      p2,
-      cutout,
-    );
-    canvas.drawLine(
-      p1,
-      p2,
-      Paint()..color = tint..isAntiAlias = isAntiAlias,
+      p1, p2, Paint()
+              ..color = tint
+              ..isAntiAlias = isAntiAlias,
     );
   }
 
   @override
   bool shouldRepaint(_AliasedBorderPainter oldDelegate) {
-    return cutoutPainter != oldDelegate.cutoutPainter
-        || tint != oldDelegate.tint
+    return tint != oldDelegate.tint
         || end != oldDelegate.end
         || begin != oldDelegate.begin
+        || cutoutPainter != oldDelegate.cutoutPainter
         || isAntiAlias != oldDelegate.isAntiAlias;
   }
 }
@@ -920,7 +918,7 @@ class _CupertinoMenuItemGestureHandlerState
     ButtonActivateIntent: CallbackAction<ButtonActivateIntent>(onInvoke: _simulateTap),
   };
   Timer? _longPanPressTimer;
-  final bool _isFocused = false;
+  bool _isFocused = false;
   bool _isSwiped = false;
   bool _isPressed = false;
   bool _isHovered = false;
@@ -954,15 +952,18 @@ class _CupertinoMenuItemGestureHandlerState
   }
 
   @override
-  void didPanLeave() {
+  void didPanLeave({required bool complete}) {
     _longPanPressTimer?.cancel();
     _longPanPressTimer = null;
-    if ((_isSwiped || _isPressed || _isHovered) && mounted) {
-      setState(() {
-        _isSwiped = false;
-        _isPressed = false;
-        _isHovered = false;
-      });
+    if (mounted) {
+      if (complete) {
+        _simulateTap();
+      } else if (_isSwiped || _isPressed) {
+        setState(() {
+          _isSwiped = false;
+          _isPressed = false;
+        });
+      }
     }
   }
 
@@ -975,9 +976,9 @@ class _CupertinoMenuItemGestureHandlerState
     super.dispose();
   }
 
-  void _simulateTap(Intent intent) {
+  void _simulateTap([Intent? intent]) {
     if (widget.enabled) {
-      widget.onPressed?.call();
+      _handleTap();
     }
   }
 
@@ -1004,8 +1005,6 @@ class _CupertinoMenuItemGestureHandlerState
     });
   }
 
-
-
   @override
   void initState() {
     super.initState();
@@ -1028,6 +1027,9 @@ class _CupertinoMenuItemGestureHandlerState
   }
 
   void _handleFocusChange([bool? focused]) {
+    setState(() {
+      _isFocused = focused ?? _focusNode.hasFocus;
+    });
     widget.onFocusChange?.call(_focusNode.hasFocus);
   }
 
@@ -1090,18 +1092,24 @@ class _CupertinoMenuItemGestureHandlerState
         child: Actions(
           actions: _actionMap,
           child: Focus(
+            focusNode: _focusNode,
             canRequestFocus: widget.enabled,
             skipTraversal: !widget.enabled,
-            onFocusChange: widget.enabled || _isFocused ? _handleFocusChange : null,
-            focusNode: widget.focusNode,
+            onFocusChange: widget.enabled || _isFocused
+                            ? _handleFocusChange
+                            : null,
             child: GestureDetector(
               behavior: widget.behavior ?? HitTestBehavior.opaque,
-              onTap: _handleTap,
-              onTapDown: widget.enabled && !_isPressed ? _handleTapDown : null,
-              onTapCancel: _isPressed || _isSwiped ? _handleTapCancel : null,
+              onTap: widget.enabled ? _handleTap : null,
+              onTapDown: widget.enabled && !_isPressed
+                          ? _handleTapDown
+                          : null,
+              onTapCancel: _isPressed || _isSwiped
+                            ? _handleTapCancel
+                            : null,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  backgroundBlendMode: BlendMode.luminosity,
+                  backgroundBlendMode: BlendMode.plus,
                   color: backgroundColor
                 ),
                 child: widget.child,
@@ -1114,13 +1122,12 @@ class _CupertinoMenuItemGestureHandlerState
   }
 }
 
-
 /// Called when a [PanTarget] is entered or exited.
 ///
 /// The [position] describes the global position of the pointer.
 ///
 /// The [onTarget] parameter is true when the pointer is on a [PanTarget].
-typedef CupertinoPanUpdateCallback = void Function(Offset position, Rect? dragArea);
+typedef CupertinoPanUpdateCallback = void Function(Offset position);
 
 /// Called when the user stops panning.
 ///
@@ -1150,8 +1157,10 @@ class CupertinoPanListener<T extends PanTarget<StatefulWidget>>
      this.onPanUpdate,
      this.onPanEnd,
      this.onPanStart,
+     this.id,
   });
 
+  final Object? id;
   /// Called when a [PanTarget] is entered or exited.
   ///
   /// The [position] describes the global position of the pointer.
@@ -1194,6 +1203,7 @@ class _CupertinoPanListenerState<T extends PanTarget<StatefulWidget>>
       extends State<CupertinoPanListener<T>> {
   ImmediateMultiDragGestureRecognizer? _recognizer;
   bool _isDragging = false;
+  final ValueNotifier<Offset?> _positionNotifier = ValueNotifier<Offset?>(null);
 
   @override
   void initState() {
@@ -1234,20 +1244,10 @@ class _CupertinoPanListenerState<T extends PanTarget<StatefulWidget>>
     return _PanHandler<T>(
       initialPosition: position,
       viewId: View.of(context).viewId,
-      onPanUpdate: widget.onPanUpdate != null ? (Offset offset, _) {
-        Rect? areaRect;
-        if(mounted) {
-          final RenderBox area = context.findRenderObject()! as RenderBox;
-          final Offset localPosition = area.localToGlobal(Offset.zero);
-          areaRect = Rect.fromLTWH(
-            localPosition.dx,
-            localPosition.dy,
-            area.size.width,
-            area.size.height,
-          );
-        }
-        widget.onPanUpdate?.call(offset, areaRect);
-      } : null,
+      onPanUpdate: (Offset position){
+        _positionNotifier.value = position;
+        widget.onPanUpdate?.call(position);
+      },
       onPanEnd: (Offset position) {
         if (mounted) {
           setState(() {
@@ -1258,6 +1258,7 @@ class _CupertinoPanListenerState<T extends PanTarget<StatefulWidget>>
           _disposeRecognizerIfInactive();
         }
         widget.onPanEnd?.call(position);
+        _positionNotifier.value = null;
       },
     );
   }
@@ -1282,7 +1283,7 @@ mixin PanTarget<T extends StatefulWidget> on State<T> {
 
   /// Called when the pointer leaves the [PanTarget]. If [pointerUp] is true,
   /// then the pointer left the screen while over this menu item.
-  void didPanLeave();
+  void didPanLeave({required bool complete});
 }
 
 // Handles panning events for a [CupertinoPanListener]
@@ -1298,7 +1299,7 @@ class _PanHandler<T extends PanTarget<StatefulWidget>> extends Drag {
     this.onPanEnd,
     this.onPanUpdate,
   }) : _position = initialPosition {
-    _updateDrag(initialPosition);
+    _updateDrag();
   }
 
   final int viewId;
@@ -1311,25 +1312,27 @@ class _PanHandler<T extends PanTarget<StatefulWidget>> extends Drag {
   void update(DragUpdateDetails details) {
     final Offset oldPosition = _position;
     _position += details.delta;
-    _updateDrag(_position);
+    _updateDrag();
     if (_position != oldPosition) {
-      onPanUpdate?.call(_position, Rect.zero);
+      onPanUpdate?.call(_position);
     }
   }
 
   @override
   void end(DragEndDetails details) {
-    _finishDrag();
+    _leaveAllEntered(complete: true);
+    onPanEnd?.call(_position);
   }
 
   @override
   void cancel() {
-    _finishDrag();
+    _leaveAllEntered();
+    onPanEnd?.call(_position);
   }
 
-  void _updateDrag(Offset globalPosition) {
+  void _updateDrag() {
     final HitTestResult result = HitTestResult();
-    WidgetsBinding.instance.hitTestInView(result, globalPosition, viewId);
+    WidgetsBinding.instance.hitTestInView(result, _position, viewId);
     // Look for the RenderBoxes that corresponds to the hit target (the hit target
     // widgets build RenderMetaData boxes for us for this purpose).
     final List<T> targets = <T>[];
@@ -1374,16 +1377,11 @@ class _PanHandler<T extends PanTarget<StatefulWidget>> extends Drag {
     }
   }
 
-  void _leaveAllEntered() {
+  void _leaveAllEntered({bool complete = false}) {
     for (int i = 0; i < _enteredTargets.length; i += 1) {
-      _enteredTargets[i].didPanLeave();
+      _enteredTargets[i].didPanLeave(complete: complete);
     }
     _enteredTargets.clear();
-  }
-
-  void _finishDrag() {
-    _leaveAllEntered();
-    onPanEnd?.call(_position);
   }
 }
 
