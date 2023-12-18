@@ -17,20 +17,7 @@ import 'package:flutter/cupertino.dart'
         CupertinoTheme,
         CupertinoThemeData;
 import 'package:flutter/material.dart'
-    show
-        ButtonStyle,
-        Colors,
-        InkResponse,
-        InkWell,
-        MaterialStateProperty,
-        MenuAnchor,
-        MenuController,
-        MenuItemButton,
-        MenuStyle,
-        SubmenuButton,
-        TextButton,
-        Theme,
-        showAboutDialog;
+    show ButtonStyle, CheckboxListTile, Colors, InkResponse, InkWell, ListTile, MaterialStateProperty, MenuAnchor, MenuController, MenuItemButton, MenuStyle, Slider, SubmenuButton, TextButton, Theme, showAboutDialog;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -127,111 +114,114 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
           textScaler: TextScaler.linear(_textSizeSliderValue),
           platformBrightness: _darkMode ? Brightness.dark : Brightness.light,
         ),
-        child: CupertinoTheme(
-          data:  CupertinoThemeData(
-            brightness:_darkMode ? Brightness.dark : Brightness.light,
-          ),
-          child: Stack(
-            children: <Widget>[
-              // if(_lightImage != null)
-              //   Positioned(
-              //     left: 0,
-              //     top: -200,
-              //     bottom: 0,
-              //     child: RawImage(
-              //       width: 250,
-              //       image: _lightImage, fit: BoxFit.contain,)),
-              // if(_darkImage != null)
-              //   Positioned(
-              //     left: 0,
-              //     top: 200,
-              //     bottom: 0,
-              //     child: RawImage(
-              //       width: 250,
-              //       image: _darkImage, fit: BoxFit.contain,)),
+        child: SafeArea(
+          child: CupertinoTheme(
+            data:  CupertinoThemeData(
+              brightness:_darkMode ? Brightness.dark : Brightness.light,
+            ),
+            child: Stack(
+              children: <Widget>[
+                // if(_lightImage != null)
+                //   Positioned(
+                //     left: 0,
+                //     top: -200,
+                //     bottom: 0,
+                //     child: RawImage(
+                //       width: 250,
+                //       image: _lightImage, fit: BoxFit.contain,)),
+                // if(_darkImage != null)
+                //   Positioned(
+                //     left: 0,
+                //     top: 200,
+                //     bottom: 0,
+                //     child: RawImage(
+                //       width: 250,
+                //       image: _darkImage, fit: BoxFit.contain,)),
 
-              // if (_background)
-              //   Positioned(
-              //       right: -150,
-              //       top: 0,
-              //       bottom: 0,
-              //       child: Image.asset('assets/image.avif',
-              //           fit: BoxFit.fitWidth, width: 600)),
-              // if (_background)
-              //   Positioned(
-              //       top: 0,
-              //       bottom: 0,
-              //       left: 0,
-              //       child: Image.asset(
-              //         'assets/p3.png',
-              //         fit: BoxFit.fitWidth,
-              //       )),
-
-
-              ExcludeFocus(
-                child: Settings(
-                    textSizeSliderValue: _textSizeSliderValue,
-                    directionality: _directionality,
-                    darkMode: _darkMode,
-                    background: _background,
-                    onTextSizeSliderChanged: (double size) {
-                      setState(() {
-                        _textSizeSliderValue = size;
-                      });
-                    },
-                    onDirectionalityChanged: (bool? isLTR) {
-                      setState(() {
-                        _directionality =
-                            isLTR! ? TextDirection.ltr : TextDirection.rtl;
-                      });
-                    },
-                    onDarkModeChanged: (bool? isDark) {
-                      setState(() {
-                        _darkMode = isDark!;
-                      });
-                      widget.onDarkModeChanged?.call();
-                    },
-                    onBackgroundChanged: (bool? isBackground) {
-                      setState(() {
-                        _background = isBackground!;
-                      });
-                    }),
-              ),
-              const MyMenuBar(),
+                // if (_background)
+                //   Positioned(
+                //       right: -150,
+                //       top: 0,
+                //       bottom: 0,
+                //       child: Image.asset('assets/image.avif',
+                //           fit: BoxFit.fitWidth, width: 600)),
+                // if (_background)
+                //   Positioned(
+                //       top: 0,
+                //       bottom: 0,
+                //       left: 0,
+                //       child: Image.asset(
+                //         'assets/p3.png',
+                //         fit: BoxFit.fitWidth,
+                //       )),
 
 
-              Positioned(
-                top: 100,
-                child: Directionality(
-                    textDirection: _directionality,
-                    child: MediaQuery(
-                        data: MediaQuery.of(context).copyWith(
-                          textScaler: TextScaler.linear(_textSizeSliderValue),
-                          platformBrightness:
-                              _darkMode ? Brightness.dark : Brightness.light,
-                        ),
-                        child: SafeArea(
-                              child: Stack(children: <Widget>[
-                            Dropdown(
-                              containerKey: lightKey,
-                            ),
 
-                            // CupertinoTheme(
-                            //   data: const CupertinoThemeData(
-                            //     brightness: Brightness.dark,
-                            //   ),
-                            //   child: Dropdown(
-                            //     containerKey: darkKey,
-                            //   ),
-                            // ),
-                          ])),
-                        ))),
+                const MyMenuBar(),
 
-               const Positioned(left: 100,
-                  top: 150,
-                  bottom: 0,
-                  right: 0, child: MyCascadingMenu(message: 'test')),
-            ],
+
+                Positioned(
+                  top: 100,
+                  child: Directionality(
+                      textDirection: _directionality,
+                      child: MediaQuery(
+                          data: MediaQuery.of(context).copyWith(
+                            textScaler: TextScaler.linear(_textSizeSliderValue),
+                            platformBrightness:
+                                _darkMode ? Brightness.dark : Brightness.light,
+                          ),
+                          child: SafeArea(
+                                child: Stack(children: <Widget>[
+                              Dropdown(
+                                containerKey: lightKey,
+                              ),
+
+                              // CupertinoTheme(
+                              //   data: const CupertinoThemeData(
+                              //     brightness: Brightness.dark,
+                              //   ),
+                              //   child: Dropdown(
+                              //     containerKey: darkKey,
+                              //   ),
+                              // ),
+                            ])),
+                          ))),
+
+                 const Positioned(left: 100,
+                    top: 150,
+                    bottom: 0,
+                    right: 0, child: MyCascadingMenu(message: 'test')),
+                ExcludeFocus(
+                  child: Settings(
+                      textSizeSliderValue: _textSizeSliderValue,
+                      directionality: _directionality,
+                      darkMode: _darkMode,
+                      background: _background,
+                      onTextSizeSliderChanged: (double size) {
+                        setState(() {
+                          _textSizeSliderValue = size;
+                        });
+                      },
+                      onDirectionalityChanged: (bool? isLTR) {
+                        setState(() {
+                          _directionality =
+                              isLTR! ? TextDirection.ltr : TextDirection.rtl;
+                        });
+                      },
+                      onDarkModeChanged: (bool? isDark) {
+                        setState(() {
+                          _darkMode = isDark!;
+                        });
+                        widget.onDarkModeChanged?.call();
+                      },
+                      onBackgroundChanged: (bool? isBackground) {
+                        setState(() {
+                          _background = isBackground!;
+                        });
+                      }),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -273,58 +263,50 @@ class _SettingsState extends State<Settings> {
     return ResizebleWidget(
         id: 'settings',
         child: Draggable(
+          rootOverlay: true,
           onDragUpdate: (DragUpdateDetails location) {
             setState(() {
               _offset = _offset + location.delta;
             });
           },
           feedback: const SizedBox(),
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
+          child:  ListView(
               children: <Widget>[
-                SizedBox(
-                  height: 50,
-                  width: 100,
-                  child: CupertinoSlider(
-                      value: widget.textSizeSliderValue,
-                      min: 0.9,
-                      max: 2,
-                      onChanged: widget.onTextSizeSliderChanged),
+
+
+                Padding(
+                  padding: const EdgeInsets.only(left: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children:
+                   <Widget>[ Text(widget.textSizeSliderValue.toStringAsPrecision(2)),
+                     Slider.adaptive(
+                        value: widget.textSizeSliderValue,
+                        min: 0.9,
+                        max: 2,
+                        onChanged: widget.onTextSizeSliderChanged),]
+                  ),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    Flexible(child: Text('Direction ${widget.directionality}')),
-                    CupertinoCheckbox(
-                      value: widget.directionality == TextDirection.ltr,
+
+                    CheckboxListTile.adaptive(
                       onChanged: widget.onDirectionalityChanged,
-                    ),
-                  ],
+                      value: widget.directionality == TextDirection.ltr,
+                  title:  Text('Direction ${widget.directionality}'),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    const Flexible(child: Text('Background')),
-                    CupertinoCheckbox(
-                      value: widget.background,
+
+                 CheckboxListTile.adaptive(
+                       value: widget.background,
                       onChanged: widget.onBackgroundChanged,
-                    ),
-                  ],
+                  title:  const Text('Background'),
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    const Flexible(child: Text('Dark mode')),
-                    CupertinoCheckbox(
-                      value: widget.darkMode,
+                 CheckboxListTile.adaptive(
+                       value: widget.darkMode,
                       onChanged: widget.onDarkModeChanged,
-                    ),
-                  ],
+                  title:  const Text('Dark mode'),
                 ),
+
               ],
             ),
-          ),
         ));
   }
 }

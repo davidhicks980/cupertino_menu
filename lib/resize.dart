@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/services/mouse_cursor.dart';
+import 'package:path_provider/path_provider.dart';
 
 class ResizebleWidget extends StatefulWidget {
   const ResizebleWidget({super.key, required this.child, required this.id});
@@ -17,13 +18,13 @@ class ResizebleWidget extends StatefulWidget {
   _ResizebleWidgetState createState() => _ResizebleWidgetState();
 }
 
-const double ballDiameter = 10.0;
+const double ballDiameter = 45.0;
 
 class _ResizebleWidgetState extends State<ResizebleWidget> {
-  double? _height = 400;
+  double? _height = 300;
   double? _width = 300;
   double? _top = 0;
-  double? _left = 500;
+  double? _left = 0;
 
   SystemMouseCursor _middleCursor = SystemMouseCursors.grab;
 
@@ -48,8 +49,6 @@ class _ResizebleWidgetState extends State<ResizebleWidget> {
 
   @override
   Widget build(BuildContext context) {
-    print('rebuild');
-
     final double startX = _left! - ballDiameter / 2;
     final double startY = _top! - ballDiameter / 2;
     final double midX = _left! + _width! / 2 - ballDiameter / 2;
@@ -58,24 +57,20 @@ class _ResizebleWidgetState extends State<ResizebleWidget> {
     final double endY = _top! + _height! - ballDiameter / 2;
     return Stack(
       fit: StackFit.expand,
-      clipBehavior: Clip.none,
       children: <Widget>[
         Positioned(
-          top: 50,
-          right: _left,
+          top: _top,
+          left: _left,
           height: _height,
           width: _width,
-          child: SizedOverflowBox(
-            size: Size(_width!, _height!),
-            child: PhysicalModel(
-              elevation: 8,
-              borderRadius: BorderRadius.circular(16),
-              color: CupertinoColors.systemBackground.resolveFrom(context),
+          child: CupertinoPopupSurface(
+            child: SizedOverflowBox(
+              size: Size(_width!, _height!),
               child: Transform.scale(
-                alignment: Alignment.topLeft,
-                scale: min(1, min(_width! / 200, _height! / 200)),
-                child: widget.child,
-              ),
+                  alignment: Alignment.topLeft,
+                  scale: min(1, min(_width! / 200, _height! / 200)),
+                  child: widget.child,
+                ),
             ),
           ),
         ),
@@ -213,8 +208,8 @@ class _ResizebleWidgetState extends State<ResizebleWidget> {
           ),
           // center center
           Positioned(
-            top: midY,
-            left: midX,
+            top:  endY - 30,
+            left: endX - 30,
             child: ManipulatingBall(
               cursor: _middleCursor,
               onDrag: (double dx, double dy) {
@@ -227,6 +222,10 @@ class _ResizebleWidgetState extends State<ResizebleWidget> {
                 _middleCursor = SystemMouseCursors.grab;
                 storePosition(event);
               },
+              child:  Icon(
+                CupertinoIcons.move,
+                color: Colors.grey.withOpacity(0.2)
+              ),
             ),
           ),
         ]
@@ -242,7 +241,7 @@ class ManipulatingBall extends StatefulWidget {
       {super.key,
       required this.onDrag,
       required this.handleDragEnd,
-      required this.cursor});
+      required this.cursor,  this.child});
 
   final void Function(
     double dx,
@@ -250,6 +249,7 @@ class ManipulatingBall extends StatefulWidget {
   ) onDrag;
   final PointerUpEventListener handleDragEnd;
   final MouseCursor cursor;
+  final Widget? child;
 
   @override
   _ManipulatingBallState createState() => _ManipulatingBallState();
@@ -257,7 +257,7 @@ class ManipulatingBall extends StatefulWidget {
 
 class _ManipulatingBallState extends State<ManipulatingBall> {
   Offset position = Offset.zero;
-  Color color = Colors.grey.withOpacity(0.2);
+  Color color = Colors.grey.withOpacity(0.1);
   Border border = Border.all(color: Colors.transparent);
   double ballScale = 1;
   bool _hovered = false;
@@ -288,35 +288,11 @@ class _ManipulatingBallState extends State<ManipulatingBall> {
     }
   }
 
-  Widget? _buildCursor() {
-    return switch (widget.cursor) {
-      SystemMouseCursors.resizeUpRight => Transform.rotate(
-          angle: pi / 2,
-          child: const Icon(CupertinoIcons.arrow_up_left_arrow_down_right,
-              size: 10, color: Colors.blue)),
-      SystemMouseCursors.resizeUpLeft => const Icon(
-          CupertinoIcons.arrow_up_left_arrow_down_right,
-          size: 10,
-          color: Colors.blue),
-      SystemMouseCursors.resizeDownRight => const Icon(
-          CupertinoIcons.arrow_up_left_arrow_down_right,
-          size: 10,
-          color: Colors.blue),
-      SystemMouseCursors.resizeDownLeft => Transform.rotate(
-          angle: pi / 2,
-          child: const Icon(CupertinoIcons.arrow_up_left_arrow_down_right,
-              size: 10, color: Colors.blue)),
-      _ => null
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
-    final Widget? cursor = _buildCursor();
     _updateColors();
-    final bool hideCursor = (_dragging || _hovered) && cursor != null;
     return MouseRegion(
-      cursor: hideCursor ? SystemMouseCursors.none : widget.cursor,
+      cursor: widget.cursor,
       onEnter: (PointerEnterEvent event) {
         setState(() {
           _hovered = true;
@@ -340,31 +316,40 @@ class _ManipulatingBallState extends State<ManipulatingBall> {
           });
           widget.handleDragEnd(event);
         },
-        onPointerMove: _handleUpdate,
+        onPointerMove: _dragging? _handleUpdate : null,
         child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 400),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          child: hideCursor
-              ? Transform.scale(scale: 2, child: cursor)
-              : AnimatedContainer(
-                  width: ballDiameter,
-                  height: ballDiameter,
-                  duration: const Duration(milliseconds: 300),
-                  transform: Matrix4.identity()..scale(ballScale),
-                  transformAlignment: Alignment.center,
-                  curve: Curves.decelerate,
-                  decoration: _dragging && cursor != null
-                      ? null
-                      : BoxDecoration(
-                          color: color,
-                          border: border,
-                          shape: BoxShape.circle,
-                        ),
+            duration: const Duration(milliseconds: 400),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            child: Container(
+              width: ballDiameter,
+              height: ballDiameter,
+              transformAlignment: Alignment.center,
+              color: Colors.transparent,
+              child: Center(
+                child: AnimatedScale(
+                  scale: ballScale,
+                  duration: const Duration(milliseconds: 100),
+                  child: IconTheme(
+                    data:  IconThemeData(size: ballDiameter, color: _dragging ? CupertinoColors.activeBlue.withOpacity(0.2):null),
+                    child: widget.child ?? AnimatedContainer(
+                      width: ballDiameter / 4,
+                      height: ballDiameter / 4,
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.decelerate,
+                      decoration: widget.child != null ? null : BoxDecoration(
+                        color: color,
+                        border: border,
+                        shape: BoxShape.circle,
+                      ),
+                      child: widget.child,
+                    ),
+                  ),
                 ),
-        ),
-      ),
-    );
+              ),
+            ),
+          ),
+    ),);
   }
 }
 
@@ -374,14 +359,15 @@ class CounterStorage {
   );
   final String _key;
   Future<File> get _localFile async {
-    return File('${Directory.current.path}/position_$_key.json');
+    final Directory appDocumentsDir = await getApplicationSupportDirectory();
+    return File('${appDocumentsDir.path}/$_key.json');
   }
 
   Future<Rect> readPosition() async {
     try {
-      if(kIsWeb){
-      return const Rect.fromLTWH(0, 0, 300, 400);
-    }
+      if (kIsWeb) {
+        return const Rect.fromLTWH(0, 0, 300, 300);
+      }
       final File file = await _localFile;
 
       // Read the file
@@ -400,7 +386,7 @@ class CounterStorage {
   }
 
   Future<void> writePosition(Rect position) async {
-    if(kIsWeb){
+    if (kIsWeb) {
       return;
     }
     final File file = await _localFile;

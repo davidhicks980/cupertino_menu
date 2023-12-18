@@ -1,5 +1,5 @@
 {
-  "dart.flutterSdkPath": "../../../../../../../bin/flutter",
+  "dart.flutterSdkPath": "/Users/davidhicks/fvm/versions/master",
   "[dart]": {
     "editor.formatOnSave": false,
     "editor.formatOnType": false,

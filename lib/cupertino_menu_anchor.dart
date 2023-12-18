@@ -9,7 +9,6 @@ import 'package:flutter/cupertino.dart' show CupertinoDynamicColor, CupertinoScr
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show MenuStyle;
 import 'package:flutter/physics.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
@@ -231,26 +230,6 @@ class CupertinoMenuAnchor extends StatefulWidget {
   State<CupertinoMenuAnchor> createState() => _CupertinoMenuAnchorState();
 }
 
-// Used by the down/up arrow shortcuts to open the menu anchor if it is closed.
-//
-// This behavior was observed on Chrome.
-class _MenuOpenAction extends ContextAction<_MenuOpenIntent> {
-
-  @override
-  void invoke(_MenuOpenIntent intent, [BuildContext? context]) {
-    print('activate');
-    CupertinoMenuAnchor._maybeOf(context!)!._menuController._openOverlay();
-  }
-
-  @override
-  bool isEnabled(_MenuOpenIntent intent, [BuildContext? context]) {
-    return context!.mounted && !(CupertinoMenuAnchor._maybeOf(context)?._isOpen ?? true);
-  }
-}
-
-class _MenuOpenIntent extends ActivateIntent {
-  const _MenuOpenIntent();
-}
 
 class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
       with SingleTickerProviderStateMixin {
@@ -267,13 +246,9 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     const SingleActivator(LogicalKeyboardKey.tab, shift: true): const PrioritizedIntents(
       orderedIntents: <Intent>[DismissIntent(), PreviousFocusIntent()],
     ),
-    const SingleActivator(LogicalKeyboardKey.arrowUp):  const PrioritizedIntents(orderedIntents: <Intent>[
-    DirectionalFocusIntent(TraversalDirection.up)
-    ]),
+    const SingleActivator(LogicalKeyboardKey.arrowUp): const DirectionalFocusIntent(TraversalDirection.up),
     const SingleActivator(LogicalKeyboardKey.arrowDown):
-    const PrioritizedIntents(orderedIntents: <Intent>[
-    DirectionalFocusIntent(TraversalDirection.down)
-    ]),
+    const DirectionalFocusIntent(TraversalDirection.down),
       const SingleActivator(LogicalKeyboardKey.arrowLeft): const DirectionalFocusIntent(TraversalDirection.left),
   const SingleActivator(LogicalKeyboardKey.arrowRight): const DirectionalFocusIntent(TraversalDirection.right),
 
@@ -298,9 +273,6 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
   AnimationStatus _animationStatus = AnimationStatus.dismissed;
   CupertinoMenuController get _menuController => widget.controller
                                                  ?? _internalMenuController!;
-
-  bool get _isOpen => _animationStatus == AnimationStatus.completed ||
-                     _animationStatus == AnimationStatus.forward;
 
   @override
   void initState() {
@@ -371,11 +343,7 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     _controller.stop();
     _controller.value = 0;
     _animationStatus = AnimationStatus.dismissed;
-    SchedulerBinding.instance.addPostFrameCallback((Duration _) {
-      FocusManager.instance.applyFocusChangesIfNeeded();
-      widget.onClose?.call();
-    }, debugLabel: 'MenuAnchor.onPressed');
-
+    widget.onClose?.call();
   }
 
   void _open() {
@@ -412,9 +380,6 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
             Widget? child
           ) {
             return FocusableActionDetector(
-              actions: <Type, Action<Intent>>{
-                _MenuOpenIntent: _MenuOpenAction(),
-              },
               shortcuts: shortcuts,
               child: TapRegion(
                 groupId: controller,

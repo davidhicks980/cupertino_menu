@@ -38,7 +38,7 @@ dependencies:
   vector_math: ^2.1.4
   flutter_localizations:
     sdk: flutter
-  syncfusion_flutter_charts: ^23.2.7
+  path_provider: ^2.1.1
 
 dev_dependencies:
   flutter_test:
