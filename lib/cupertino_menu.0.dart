@@ -109,118 +109,111 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
     return SizedBox(
       width: MediaQuery.of(context).size.width,
       height: MediaQuery.of(context).size.height,
-      child: MediaQuery(
-        data: MediaQuery.of(context).copyWith(
-          textScaler: TextScaler.linear(_textSizeSliderValue),
-          platformBrightness: _darkMode ? Brightness.dark : Brightness.light,
-        ),
-        child: SafeArea(
-          child: CupertinoTheme(
-            data:  CupertinoThemeData(
-              brightness:_darkMode ? Brightness.dark : Brightness.light,
-            ),
-            child: Stack(
-              children: <Widget>[
-                // if(_lightImage != null)
-                //   Positioned(
-                //     left: 0,
-                //     top: -200,
-                //     bottom: 0,
-                //     child: RawImage(
-                //       width: 250,
-                //       image: _lightImage, fit: BoxFit.contain,)),
-                // if(_darkImage != null)
-                //   Positioned(
-                //     left: 0,
-                //     top: 200,
-                //     bottom: 0,
-                //     child: RawImage(
-                //       width: 250,
-                //       image: _darkImage, fit: BoxFit.contain,)),
+      child: Directionality(
+        textDirection: _directionality,
+        child: MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(_textSizeSliderValue),
+            platformBrightness: _darkMode ? Brightness.dark : Brightness.light,
+          ),
+          child: SafeArea(
+            child: CupertinoTheme(
+              data: CupertinoThemeData(
+                brightness: _darkMode ? Brightness.dark : Brightness.light,
+              ),
+              child: Stack(
+                children: <Widget>[
+                  // if(_lightImage != null)
+                  //   Positioned(
+                  //     left: 0,
+                  //     top: -200,
+                  //     bottom: 0,
+                  //     child: RawImage(
+                  //       width: 250,
+                  //       image: _lightImage, fit: BoxFit.contain,)),
+                  // if(_darkImage != null)
+                  //   Positioned(
+                  //     left: 0,
+                  //     top: 200,
+                  //     bottom: 0,
+                  //     child: RawImage(
+                  //       width: 250,
+                  //       image: _darkImage, fit: BoxFit.contain,)),
 
-                // if (_background)
-                //   Positioned(
-                //       right: -150,
-                //       top: 0,
-                //       bottom: 0,
-                //       child: Image.asset('assets/image.avif',
-                //           fit: BoxFit.fitWidth, width: 600)),
-                // if (_background)
-                //   Positioned(
-                //       top: 0,
-                //       bottom: 0,
-                //       left: 0,
-                //       child: Image.asset(
-                //         'assets/p3.png',
-                //         fit: BoxFit.fitWidth,
-                //       )),
+                  // if (_background)
+                  //   Positioned(
+                  //       right: -150,
+                  //       top: 0,
+                  //       bottom: 0,
+                  //       child: Image.asset('assets/image.avif',
+                  //           fit: BoxFit.fitWidth, width: 600)),
+                  if (_background)
+                    Positioned(
+                        top: 0,
+                        left: 0,
+                        width: MediaQuery.of(context).size.width,
+                        height: MediaQuery.of(context).size.height,
+                        child: Image.asset(
+                          'assets/p3.png',
+                          fit: BoxFit.cover,
+                        )),
+                  const MyMenuBar(),
+                  const Positioned(
+                      left: 300,
+                      top: 150,
+                      bottom: 0,
+                      right: 0,
+                      child: MyCascadingMenu(message: 'test'),),
 
+                  Dropdown(
+                    containerKey: lightKey,
+                  ),
 
-
-                const MyMenuBar(),
-
-
-                Positioned(
-                  top: 100,
-                  child: Directionality(
-                      textDirection: _directionality,
-                      child: MediaQuery(
-                          data: MediaQuery.of(context).copyWith(
-                            textScaler: TextScaler.linear(_textSizeSliderValue),
-                            platformBrightness:
-                                _darkMode ? Brightness.dark : Brightness.light,
-                          ),
-                          child: SafeArea(
-                                child: Stack(children: <Widget>[
-                              Dropdown(
-                                containerKey: lightKey,
-                              ),
-
-                              // CupertinoTheme(
-                              //   data: const CupertinoThemeData(
-                              //     brightness: Brightness.dark,
-                              //   ),
-                              //   child: Dropdown(
-                              //     containerKey: darkKey,
-                              //   ),
-                              // ),
-                            ])),
-                          ))),
-
-                 const Positioned(left: 100,
-                    top: 150,
-                    bottom: 0,
-                    right: 0, child: MyCascadingMenu(message: 'test')),
-                ExcludeFocus(
-                  child: Settings(
-                      textSizeSliderValue: _textSizeSliderValue,
-                      directionality: _directionality,
-                      darkMode: _darkMode,
-                      background: _background,
-                      onTextSizeSliderChanged: (double size) {
-                        setState(() {
-                          _textSizeSliderValue = size;
-                        });
-                      },
-                      onDirectionalityChanged: (bool? isLTR) {
-                        setState(() {
-                          _directionality =
-                              isLTR! ? TextDirection.ltr : TextDirection.rtl;
-                        });
-                      },
-                      onDarkModeChanged: (bool? isDark) {
-                        setState(() {
-                          _darkMode = isDark!;
-                        });
-                        widget.onDarkModeChanged?.call();
-                      },
-                      onBackgroundChanged: (bool? isBackground) {
-                        setState(() {
-                          _background = isBackground!;
-                        });
-                      }),
-                ),
-              ],
+                  // CupertinoTheme(
+                  //   data: const CupertinoThemeData(
+                  //     brightness: Brightness.dark,
+                  //   ),
+                  //   child: Dropdown(
+                  //     containerKey: darkKey,
+                  //   ),
+                  // ),
+                  // DropdownMenuExample(),
+                  ExcludeSemantics(
+                    child: ExcludeFocusTraversal(
+                      child: ExcludeFocus(
+                        child: Settings(
+                            textSizeSliderValue: _textSizeSliderValue,
+                            directionality: _directionality,
+                            darkMode: _darkMode,
+                            background: _background,
+                            onTextSizeSliderChanged: (double size) {
+                              setState(() {
+                                _textSizeSliderValue = size;
+                              });
+                            },
+                            onDirectionalityChanged: (bool? isLTR) {
+                              setState(() {
+                                _directionality = isLTR!
+                                    ? TextDirection.ltr
+                                    : TextDirection.rtl;
+                              });
+                            },
+                            onDarkModeChanged: (bool? isDark) {
+                              setState(() {
+                                _darkMode = isDark!;
+                              });
+                              widget.onDarkModeChanged?.call();
+                            },
+                            onBackgroundChanged: (bool? isBackground) {
+                              setState(() {
+                                _background = isBackground!;
+                              });
+                            }),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -271,21 +264,26 @@ class _SettingsState extends State<Settings> {
           },
           feedback: const SizedBox(),
           child:  ListView(
+            shrinkWrap: true,
               children: <Widget>[
 
 
                 Padding(
                   padding: const EdgeInsets.only(left: 16),
-                  child: Row(
+                  child: ConstrainedBox(
+
+                        constraints: const BoxConstraints.tightFor(width: 200, height: 30),
+                       child:  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children:
                    <Widget>[ Text(widget.textSizeSliderValue.toStringAsPrecision(2)),
-                     Slider.adaptive(
-                        value: widget.textSizeSliderValue,
-                        min: 0.9,
-                        max: 2,
-                        onChanged: widget.onTextSizeSliderChanged),]
-                  ),
+                    Slider(
+                          value: widget.textSizeSliderValue,
+                          min: 0.9,
+                          max: 2,
+                          onChanged: widget.onTextSizeSliderChanged),
+                     ]
+                  )),
                 ),
 
                     CheckboxListTile.adaptive(
@@ -322,84 +320,99 @@ class Dropdown extends StatefulWidget {
 class _DropdownState extends State<Dropdown> {
   bool _textVariant = false;
   final FocusNode _buttonFocusNode = FocusNode();
-  // late final CupertinoMenuController controller = CupertinoMenuController();
+  late final CupertinoMenuController controller = CupertinoMenuController();
+
+  Offset _offset = const Offset(200, 200);
 
   @override
   Widget build(BuildContext context) {
-    return
-        // Draggable(
-        //   feedback: const SizedBox.shrink(),
-        //   onDragUpdate: (DragUpdateDetails location) {
-        //     setState(() {
-        //       _offset = _offset.shift(location.delta);
-        //     });
-        //   },
-        //   child:
-      CupertinoMenuAnchor(
-      childFocusNode: _buttonFocusNode,
-      menuChildren: <Widget>[
-        CupertinoMenuItem(
-          panActivationDelay: const Duration(milliseconds: 300),
-          trailing: const Icon(CupertinoIcons.check_mark_circled),
-          child: const Text('Favorite Animal'),
-          onPressed: () {
-            print('activated');
-          },
-        ),
-        CupertinoMenuItem(
-          trailing: const Icon(CupertinoIcons.folder_badge_plus),
-          child: const Text('New Folder'),
-          onPressed: () {
-            setState(() {
-              _textVariant = !_textVariant;
-            });
-          },
-        ),
-        const CupertinoMenuLargeDivider(),
-        CupertinoMenuItem(
-          trailing: const Icon(CupertinoIcons.square_grid_2x2),
-          subtitle: _textVariant
-              ? const Text('Small text')
-              : const Text(
-                  'An unusually long string of text to demonstrate how the menu will wrap.'),
-          onPressed: () {},
-          child: _textVariant
-              ? const Text('Small text')
-              : const Text(
-                  'An unusually long string of text to demonstrate how the menu will wrap.'),
-        ),
-        const CupertinoMenuLargeDivider(),
-        CupertinoMenuItem(
-          trailing: const Icon(CupertinoIcons.square_grid_2x2),
-          child: const Text('Icons'),
-          onPressed: () {},
-        ),
-        CupertinoMenuItem(
-          trailing: const Icon(CupertinoIcons.square_grid_2x2),
-          child: const Text('Icons'),
-          onPressed: () {},
-        ),
-      ],
-      builder: (
-        BuildContext context,
-        CupertinoMenuController controller,
-        Widget? child,
-      ) {
-        return TextButton(
-          focusNode: _buttonFocusNode,
-          onPressed: () {
-            if (controller.animationStatus case AnimationStatus.forward || AnimationStatus.completed) {
-              controller.close();
-            } else {
-              controller.open();
-            }
-          },
-          child: const Text(
-            'OPEN MENU',
+    return Positioned(
+      left: _offset.dx,
+      top: _offset.dy,
+      child: Draggable(
+            feedback: const SizedBox.shrink(),
+            feedbackOffset: _offset,
+            onDragUpdate: (DragUpdateDetails location) {
+              setState(() {
+                _offset = _offset.translate(location.delta.dx, location.delta.dy);
+              });
+            },
+            child:
+        CupertinoMenuAnchor(
+        childFocusNode: _buttonFocusNode,
+        menuChildren: <Widget>[
+          CupertinoMenuItem(
+            panActivationDelay: const Duration(milliseconds: 300),
+            trailing: const Icon(CupertinoIcons.check_mark_circled),
+            closeOnActivate: false,
+            onPressed: () {
+              print('activated');
+            },
+            child: const Text('Favorite Animal'),
           ),
-        );
-      },
-      // ),
+          CupertinoMenuItem(
+            trailing: const Icon(CupertinoIcons.folder_badge_plus),
+            closeOnActivate: false,
+
+            onPressed: () {
+              setState(() {
+                _textVariant = !_textVariant;
+              });
+            },
+            child: const Text('New Folder'),
+          ),
+          const CupertinoMenuLargeDivider(),
+          CupertinoMenuItem(
+            trailing: const Icon(CupertinoIcons.square_grid_2x2),
+            closeOnActivate: false,
+
+            subtitle: _textVariant
+                ? const Text('Small text')
+                : const Text(
+                    'An unusually long string of text to demonstrate how the menu will wrap.'),
+            onPressed: () {},
+            child: _textVariant
+                ? const Text('Small text')
+                : const Text(
+                    'An unusually long string of text to demonstrate how the menu will wrap.'),
+          ),
+          const CupertinoMenuLargeDivider(),
+          CupertinoMenuItem(
+            closeOnActivate: false,
+
+            trailing: const Icon(CupertinoIcons.square_grid_2x2),
+            child: const Text('Icons'),
+            onPressed: () {},
+          ),
+          CupertinoMenuItem(
+            closeOnActivate: false,
+
+            trailing: const Icon(CupertinoIcons.square_grid_2x2),
+            child: const Text('Icons'),
+            onPressed: () {},
+          ),
+        ],
+        builder: (
+          BuildContext context,
+          CupertinoMenuController controller,
+          Widget? child,
+        ) {
+          return TextButton(
+            focusNode: _buttonFocusNode,
+            onPressed: () {
+              if (controller.animationStatus case AnimationStatus.forward || AnimationStatus.completed) {
+                controller.close();
+              } else {
+                controller.open();
+              }
+            },
+            child: const Text(
+              'OPEN MENU',
+            ),
+          );
+        },
+        ),
+      ),
     );
   }
 }

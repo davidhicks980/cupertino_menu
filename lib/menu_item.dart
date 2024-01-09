@@ -349,14 +349,13 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
     ],
     height: 1.25,
     fontSize: 17,
-    letterSpacing: -0.21,
-    fontWeight: FontWeight.w300,
+    letterSpacing: -0.41,
+    fontWeight: FontWeight.normal,
     color: CupertinoDynamicColor.withBrightness(
           color: Color.fromRGBO(0, 0, 0, 0.96),
           darkColor: Color.fromRGBO(255, 255, 255, 0.96),
-        )
-      ,
-      textBaseline: TextBaseline.alphabetic,
+        ),
+    textBaseline: TextBaseline.alphabetic,
   );
 
   /// Provides text styles in response to changes in [CupertinoThemeData.brightness],
@@ -391,24 +390,30 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
     return _defaultTextStyle.copyWith(color: color);
   }
 
+  static const Color _lightSubtitleColor =  Color.fromRGBO(0, 0, 0, 0.55);
+  static const Color _darkSubtitleColor =  Color.fromRGBO(255, 255, 255, 0.4);
+
+
   /// The default text style for a [CupertinoStickyMenuHeader] subtitle.
-  static final TextStyle _subtitleStyle = TextStyle(
+  static const TextStyle _subtitleStyle = TextStyle(
         height: 1.25,
         fontFamily: 'SF Pro Text',
-        fontFamilyFallback: const <String>['.AppleSystemUIFont'],
+        fontFamilyFallback: <String>['.AppleSystemUIFont'],
         fontSize: 15,
-        letterSpacing: -0.12,
-        fontWeight: FontWeight.w300,
-        textBaseline: TextBaseline.alphabetic,
-        foreground: Paint()
-          ..color = const Color.fromRGBO(255, 255, 255, 0.4)
-          ..blendMode = BlendMode.plus,
+        letterSpacing: -0.21,
+        fontWeight: FontWeight.w400,
+        textBaseline: TextBaseline.ideographic,
       );
 
   @override
   Widget build(BuildContext context) {
     final TextStyle titleTextStyle = _getTitleTextStyle(context);
     final TextScaler textScale = MediaQuery.textScalerOf(context);
+    final bool darkMode = CupertinoTheme.brightnessOf(context) == Brightness.dark;
+    final Paint subtitlePainter = Paint()
+      ..blendMode = darkMode ? BlendMode.plus : BlendMode.hardLight
+      ..color = CupertinoDynamicColor
+        .resolve(darkMode ? _darkSubtitleColor : _lightSubtitleColor, context);
     return CupertinoInteractiveMenuItem(
       focusNode: focusNode,
       onFocusChange: onFocusChange,
@@ -444,7 +449,10 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
               ? DefaultTextStyle.merge(
                   maxLines: textScale.scale(1) > 1.25 ? null : 2,
                   overflow: TextOverflow.ellipsis,
-                  style: _subtitleStyle,
+                  style: _subtitleStyle.copyWith(
+                    foreground: subtitlePainter,
+
+                  ),
                   child: _TitleSwitcher(child: child),
                 )
               : null,
@@ -676,11 +684,13 @@ class CupertinoMenuLargeDivider extends StatelessWidget
 /// The default width of the divider is 1 physical pixel,
 @immutable
 class CupertinoMenuDivider extends StatelessWidget {
+
   /// A [CupertinoMenuEntryMixin] that adds a top border to it's child
   const CupertinoMenuDivider({
     super.key,
     this.color = dividerColor,
     this.thickness = 0.0,
+    this.blendMode = BlendMode.overlay,
   });
   /// Default transparent color for [CupertinoMenuDivider] and
   /// [CupertinoVerticalMenuDivider].
@@ -712,25 +722,34 @@ class CupertinoMenuDivider extends StatelessWidget {
   /// Defaults to 0.0, which is equivalent to 1 physical pixel.
   final double thickness;
 
+  /// The blend mode applied to the divider.
+  ///
+  /// Using a blend mode that emphasizes the underlying menu surface (the
+  /// destination image) can better represent the SwiftUI divider.
+  /// However, some blend modes, such as BlendMode.overlay, are not respected as
+  /// children of [FadeTransition], Defaults to [BlendMode.overlay].
+  final BlendMode blendMode;
+
   @override
   Widget build(BuildContext context) {
-    final double physicalThickness = thickness / (MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0);
-    return CustomPaint(
-        size: Size(double.infinity, physicalThickness.ceilToDouble()),
-        foregroundPainter: _AliasedBorderPainter(
-          // Antialiasing is disabled to match the iOS native menu divider, but
-          // is enabled on devices with a device pixel ratio < 1.0 to ensure the
-          // divider is visible on low resolution devices.
-          isAntiAlias: physicalThickness < 1.0,
-          tint: tintColor.resolveFrom(context),
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          cutoutPainter: BorderSide(
-            color: color.resolveFrom(context),
-            width: physicalThickness,
-            strokeAlign:  BorderSide.strokeAlignCenter,
+    final double physicalThickness = (thickness == 0.0 ? 1.0 : thickness) / (MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0);
+    return  CustomPaint(
+        isComplex: true,
+        willChange: true,
+          painter: _AliasedBorderPainter(
+            isAntiAlias: physicalThickness > 1.0,
+            tint: tintColor.resolveFrom(context),
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            brightness: CupertinoTheme.brightnessOf(context),
+            cutoutPainter: BorderSide(
+              color: color.resolveFrom(context),
+              width: thickness,
+              strokeAlign:  BorderSide.strokeAlignCenter,
+            ),
+            blendMode: blendMode,
           ),
-        ),
+
     );
   }
 }
@@ -745,6 +764,8 @@ class _AliasedBorderPainter extends CustomPainter {
     required this.tint,
     required this.begin,
     required this.end,
+    required this.brightness,
+    required this.blendMode,
     this.isAntiAlias = false,
   });
 
@@ -753,20 +774,21 @@ class _AliasedBorderPainter extends CustomPainter {
   final Alignment begin;
   final Alignment end;
   final bool isAntiAlias;
+  final Brightness brightness;
+  final BlendMode blendMode;
 
   @override
   void paint(Canvas canvas, Size size) {
     final Paint cutout = cutoutPainter.toPaint()
-                          ..blendMode = BlendMode.overlay
-                          ..isAntiAlias = isAntiAlias;
+                          ..isAntiAlias = isAntiAlias
+                          ..blendMode = brightness == Brightness.dark
+                                        ? BlendMode.overlay
+                                        : BlendMode.overlay;
     final Offset p1 = begin.alongSize(size);
     final Offset p2 = end.alongSize(size);
     canvas.drawLine(p1, p2, cutout);
-    canvas.drawLine(
-      p1, p2, Paint()
-              ..color = tint
-              ..isAntiAlias = isAntiAlias,
-    );
+
+
   }
 
   @override
@@ -775,11 +797,10 @@ class _AliasedBorderPainter extends CustomPainter {
         || end != oldDelegate.end
         || begin != oldDelegate.begin
         || cutoutPainter != oldDelegate.cutoutPainter
-        || isAntiAlias != oldDelegate.isAntiAlias;
+        || isAntiAlias != oldDelegate.isAntiAlias
+        || brightness != oldDelegate.brightness;
   }
 }
-
-
 
 
 /// A menu item wrapper that handles gestures, including taps, pans, and long

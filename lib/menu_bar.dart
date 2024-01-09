@@ -89,11 +89,11 @@ class _MyMenuBarState extends State<MyMenuBar> {
             ),
           ],
         ),
-        Expanded(
-          child: FlutterLogo(
-            size: MediaQuery.of(context).size.shortestSide * 0.5,
-          ),
-        ),
+        // Expanded(
+        //   child: FlutterLogo(
+        //     size: MediaQuery.of(context).size.shortestSide * 0.5,
+        //   ),
+        // ),
       ],
     );
   }
