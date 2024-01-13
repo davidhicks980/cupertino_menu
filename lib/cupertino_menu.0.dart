@@ -17,7 +17,23 @@ import 'package:flutter/cupertino.dart'
         CupertinoTheme,
         CupertinoThemeData;
 import 'package:flutter/material.dart'
-    show ButtonStyle, CheckboxListTile, Colors, InkResponse, InkWell, ListTile, MaterialStateProperty, MenuAnchor, MenuController, MenuItemButton, MenuStyle, Slider, SubmenuButton, TextButton, Theme, showAboutDialog;
+    show
+        ButtonStyle,
+        CheckboxListTile,
+        Colors,
+        InkResponse,
+        InkWell,
+        ListTile,
+        MaterialStateProperty,
+        MenuAnchor,
+        MenuController,
+        MenuItemButton,
+        MenuStyle,
+        Slider,
+        SubmenuButton,
+        TextButton,
+        Theme,
+        showAboutDialog;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -69,16 +85,16 @@ class CupertinoMenuExample extends StatefulWidget {
 }
 
 class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
-   TextDirection _directionality = TextDirection.ltr;
-   double _textSizeSliderValue = 1.0;
-   bool _darkMode = true;
-   bool _background = true;
+  TextDirection _directionality = TextDirection.ltr;
+  double _textSizeSliderValue = 1.0;
+  bool _darkMode = true;
+  bool _background = true;
   Rect anchorPosition = const Rect.fromLTWH(0, 0, 50, 40);
   Rect settingsPosition = const Rect.fromLTWH(0, 0, 50, 40);
   ui.Image? _lightImage;
   ui.Image? _darkImage;
-   GlobalKey lightKey = GlobalKey();
-   GlobalKey darkKey = GlobalKey();
+  GlobalKey lightKey = GlobalKey();
+  GlobalKey darkKey = GlobalKey();
 
   void visitAllChildren(RenderObject? renderObject,
       void Function(RenderRepaintBoundary) onBoundary) {
@@ -159,11 +175,12 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
                         )),
                   const MyMenuBar(),
                   const Positioned(
-                      left: 300,
-                      top: 150,
-                      bottom: 0,
-                      right: 0,
-                      child: MyCascadingMenu(message: 'test'),),
+                    left: 300,
+                    top: 150,
+                    bottom: 0,
+                    right: 0,
+                    child: MyCascadingMenu(message: 'test'),
+                  ),
 
                   Dropdown(
                     containerKey: lightKey,
@@ -263,48 +280,49 @@ class _SettingsState extends State<Settings> {
             });
           },
           feedback: const SizedBox(),
-          child:  ListView(
-            shrinkWrap: true,
+          child: OverflowBox(
+            child: ListView(
               children: <Widget>[
-
-
                 Padding(
                   padding: const EdgeInsets.only(left: 16),
                   child: ConstrainedBox(
-
-                        constraints: const BoxConstraints.tightFor(width: 200, height: 30),
-                       child:  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children:
-                   <Widget>[ Text(widget.textSizeSliderValue.toStringAsPrecision(2)),
-                    Slider(
-                          value: widget.textSizeSliderValue,
-                          min: 0.9,
-                          max: 2,
-                          onChanged: widget.onTextSizeSliderChanged),
-                     ]
-                  )),
+                      constraints:
+                          const BoxConstraints(maxWidth: 200, maxHeight: 30),
+                      child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: <Widget>[
+                            Text(widget.textSizeSliderValue
+                                .toStringAsPrecision(2)),
+                            Flexible(
+                              child: Slider(
+                                  value: widget.textSizeSliderValue,
+                                  min: 0.9,
+                                  max: 2,
+                                  onChanged: widget.onTextSizeSliderChanged),
+                            ),
+                          ])),
                 ),
-
-                    CheckboxListTile.adaptive(
-                      onChanged: widget.onDirectionalityChanged,
-                      value: widget.directionality == TextDirection.ltr,
-                  title:  Text('Direction ${widget.directionality}'),
+                CheckboxListTile.adaptive(
+                  onChanged: widget.onDirectionalityChanged,
+                  value: widget.directionality == TextDirection.ltr,
+                  dense: true,
+                  title: Text('Direction ${widget.directionality}'),
                 ),
-
-                 CheckboxListTile.adaptive(
-                       value: widget.background,
-                      onChanged: widget.onBackgroundChanged,
-                  title:  const Text('Background'),
+                CheckboxListTile.adaptive(
+                  value: widget.background,
+                  onChanged: widget.onBackgroundChanged,
+                  dense: true,
+                  title: const Text('Background'),
                 ),
-                 CheckboxListTile.adaptive(
-                       value: widget.darkMode,
-                      onChanged: widget.onDarkModeChanged,
-                  title:  const Text('Dark mode'),
+                CheckboxListTile.adaptive(
+                  value: widget.darkMode,
+                  onChanged: widget.onDarkModeChanged,
+                  dense: true,
+                  title: const Text('Dark mode'),
                 ),
-
               ],
             ),
+          ),
         ));
   }
 }
@@ -330,87 +348,83 @@ class _DropdownState extends State<Dropdown> {
       left: _offset.dx,
       top: _offset.dy,
       child: Draggable(
-            feedback: const SizedBox.shrink(),
-            feedbackOffset: _offset,
-            onDragUpdate: (DragUpdateDetails location) {
-              setState(() {
-                _offset = _offset.translate(location.delta.dx, location.delta.dy);
-              });
-            },
-            child:
-        CupertinoMenuAnchor(
-        childFocusNode: _buttonFocusNode,
-        menuChildren: <Widget>[
-          CupertinoMenuItem(
-            panActivationDelay: const Duration(milliseconds: 300),
-            trailing: const Icon(CupertinoIcons.check_mark_circled),
-            closeOnActivate: false,
-            onPressed: () {
-              print('activated');
-            },
-            child: const Text('Favorite Animal'),
-          ),
-          CupertinoMenuItem(
-            trailing: const Icon(CupertinoIcons.folder_badge_plus),
-            closeOnActivate: false,
-
-            onPressed: () {
-              setState(() {
-                _textVariant = !_textVariant;
-              });
-            },
-            child: const Text('New Folder'),
-          ),
-          const CupertinoMenuLargeDivider(),
-          CupertinoMenuItem(
-            trailing: const Icon(CupertinoIcons.square_grid_2x2),
-            closeOnActivate: false,
-
-            subtitle: _textVariant
-                ? const Text('Small text')
-                : const Text(
-                    'An unusually long string of text to demonstrate how the menu will wrap.'),
-            onPressed: () {},
-            child: _textVariant
-                ? const Text('Small text')
-                : const Text(
-                    'An unusually long string of text to demonstrate how the menu will wrap.'),
-          ),
-          const CupertinoMenuLargeDivider(),
-          CupertinoMenuItem(
-            closeOnActivate: false,
-
-            trailing: const Icon(CupertinoIcons.square_grid_2x2),
-            child: const Text('Icons'),
-            onPressed: () {},
-          ),
-          CupertinoMenuItem(
-            closeOnActivate: false,
-
-            trailing: const Icon(CupertinoIcons.square_grid_2x2),
-            child: const Text('Icons'),
-            onPressed: () {},
-          ),
-        ],
-        builder: (
-          BuildContext context,
-          CupertinoMenuController controller,
-          Widget? child,
-        ) {
-          return TextButton(
-            focusNode: _buttonFocusNode,
-            onPressed: () {
-              if (controller.animationStatus case AnimationStatus.forward || AnimationStatus.completed) {
-                controller.close();
-              } else {
-                controller.open();
-              }
-            },
-            child: const Text(
-              'OPEN MENU',
-            ),
-          );
+        feedback: const SizedBox.shrink(),
+        feedbackOffset: _offset,
+        onDragUpdate: (DragUpdateDetails location) {
+          setState(() {
+            _offset = _offset.translate(location.delta.dx, location.delta.dy);
+          });
         },
+        child: CupertinoMenuAnchor(
+          childFocusNode: _buttonFocusNode,
+          menuChildren: <Widget>[
+            CupertinoMenuItem(
+              panActivationDelay: const Duration(milliseconds: 300),
+              trailing: const Icon(CupertinoIcons.check_mark_circled),
+              closeOnActivate: false,
+              onPressed: () {
+                print('activated');
+              },
+              child: const Text('Favorite Animal'),
+            ),
+            CupertinoMenuItem(
+              trailing: const Icon(CupertinoIcons.folder_badge_plus),
+              closeOnActivate: false,
+              onPressed: () {
+                setState(() {
+                  _textVariant = !_textVariant;
+                });
+              },
+              child: const Text('New Folder'),
+            ),
+            const CupertinoMenuLargeDivider(),
+            CupertinoMenuItem(
+              trailing: const Icon(CupertinoIcons.square_grid_2x2),
+              closeOnActivate: false,
+              subtitle: _textVariant
+                  ? const Text('Small text')
+                  : const Text(
+                      'An unusually long string of text to demonstrate how the menu will wrap.'),
+              onPressed: () {},
+              child: _textVariant
+                  ? const Text('Small text')
+                  : const Text(
+                      'An unusually long string of text to demonstrate how the menu will wrap.'),
+            ),
+            const CupertinoMenuLargeDivider(),
+            CupertinoMenuItem(
+              closeOnActivate: false,
+              trailing: const Icon(CupertinoIcons.square_grid_2x2),
+              child: const Text('Icons'),
+              onPressed: () {},
+            ),
+            CupertinoMenuItem(
+              closeOnActivate: false,
+              trailing: const Icon(CupertinoIcons.square_grid_2x2),
+              child: const Text('Icons'),
+              onPressed: () {},
+            ),
+          ],
+          builder: (
+            BuildContext context,
+            CupertinoMenuController controller,
+            Widget? child,
+          ) {
+            return TextButton(
+              focusNode: _buttonFocusNode,
+              onPressed: () {
+                if (controller.animationStatus
+                    case AnimationStatus.forward || AnimationStatus.completed) {
+                  controller.close();
+                } else {
+                  controller.open();
+                }
+              },
+              child: const Text(
+                'OPEN MENU',
+              ),
+            );
+          },
         ),
       ),
     );

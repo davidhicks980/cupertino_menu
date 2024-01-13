@@ -684,72 +684,76 @@ class CupertinoMenuLargeDivider extends StatelessWidget
 /// The default width of the divider is 1 physical pixel,
 @immutable
 class CupertinoMenuDivider extends StatelessWidget {
-
   /// A [CupertinoMenuEntryMixin] that adds a top border to it's child
   const CupertinoMenuDivider({
     super.key,
-    this.color = dividerColor,
+    this.baseColor = color,
+    this.tint = tintColor,
     this.thickness = 0.0,
-    this.blendMode = BlendMode.overlay,
-  });
+  }): _child = null;
+
+  /// A [CupertinoMenuEntryMixin] that adds a top border to it's child
+  const CupertinoMenuDivider.wrap({
+    super.key,
+    this.baseColor = color,
+    this.tint = tintColor,
+    this.thickness = 0.0,
+    required Widget child,
+  }): _child = child;
+
   /// Default transparent color for [CupertinoMenuDivider] and
   /// [CupertinoVerticalMenuDivider].
   ///
   // The following colors were measured from the iOS simulator, and opacity was
   // extrapolated:
-  // Dark mode on white       Color.fromRGBO(97, 97, 97)
-  // Dark mode on black       Color.fromRGBO(51, 51, 51)
+  // Dark mode on black       Color.fromRGBO(97, 97, 97)
+  // Dark mode on white       Color.fromRGBO(132, 132, 132)
   // Light mode on black      Color.fromRGBO(147, 147, 147)
   // Light mode on white      Color.fromRGBO(187, 187, 187)
-  static const CupertinoDynamicColor dividerColor =
+  static const CupertinoDynamicColor color =
       CupertinoDynamicColor.withBrightness(
-        color: Color.fromRGBO(0, 0, 0, 1),
-        darkColor: Color.fromRGBO(255, 255, 255, 0.6),
+        color: Color.fromRGBO(140, 140, 140, 0.5),
+        darkColor: Color.fromRGBO(255, 255, 255, 0.25),
       );
   static const CupertinoDynamicColor tintColor =
       CupertinoDynamicColor.withBrightness(
-        color: Color.fromRGBO(0, 0, 0, 0.1),
-        darkColor: Color.fromRGBO(0, 0, 0, 0.1),
+        color: Color.fromRGBO(0, 0, 0, 0.24),
+        darkColor: Color.fromRGBO(255, 255, 255, 0.23),
       );
 
   /// The color of divider.
   ///
-  /// If this property is null, [CupertinoMenuDivider.dividerColor] is used.
-  final CupertinoDynamicColor color;
+  /// If this property is null, [CupertinoMenuDivider.color] is used.
+  final CupertinoDynamicColor baseColor;
+  /// The color of divider.
+  ///
+  /// If this property is null, [CupertinoMenuDivider.color] is used.
+  final CupertinoDynamicColor tint;
 
   /// The thickness of the divider.
   ///
   /// Defaults to 0.0, which is equivalent to 1 physical pixel.
   final double thickness;
 
-  /// The blend mode applied to the divider.
-  ///
-  /// Using a blend mode that emphasizes the underlying menu surface (the
-  /// destination image) can better represent the SwiftUI divider.
-  /// However, some blend modes, such as BlendMode.overlay, are not respected as
-  /// children of [FadeTransition], Defaults to [BlendMode.overlay].
-  final BlendMode blendMode;
+  /// The widget below this widget in the tree.
+  final Widget? _child;
 
   @override
   Widget build(BuildContext context) {
     final double physicalThickness = (thickness == 0.0 ? 1.0 : thickness) / (MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0);
     return  CustomPaint(
-        isComplex: true,
-        willChange: true,
-          painter: _AliasedBorderPainter(
-            isAntiAlias: physicalThickness > 1.0,
-            tint: tintColor.resolveFrom(context),
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            brightness: CupertinoTheme.brightnessOf(context),
-            cutoutPainter: BorderSide(
-              color: color.resolveFrom(context),
-              width: thickness,
-              strokeAlign:  BorderSide.strokeAlignCenter,
-            ),
-            blendMode: blendMode,
-          ),
-
+      painter: _AliasedBorderPainter(
+        tint: CupertinoDynamicColor.maybeResolve(tintColor, context) ?? tintColor,
+        color: CupertinoDynamicColor.maybeResolve(baseColor, context) ?? baseColor,
+        isAntiAlias: physicalThickness > 1.0,
+        begin: Alignment.bottomLeft,
+        end: Alignment.bottomRight,
+        border: BorderSide(
+          width: thickness,
+          strokeAlign: BorderSide.strokeAlignCenter,
+        ),
+      ),
+      child: _child,
     );
   }
 }
@@ -760,45 +764,47 @@ class CupertinoMenuDivider extends StatelessWidget {
 // thicker compared to iOS native menus.
 class _AliasedBorderPainter extends CustomPainter {
   const _AliasedBorderPainter({
-    required this.cutoutPainter,
+    required this.border,
     required this.tint,
+    required this.color,
     required this.begin,
     required this.end,
-    required this.brightness,
-    required this.blendMode,
     this.isAntiAlias = false,
   });
 
-  final BorderSide cutoutPainter;
+  final BorderSide border;
   final Color tint;
+  final Color color;
   final Alignment begin;
   final Alignment end;
   final bool isAntiAlias;
-  final Brightness brightness;
-  final BlendMode blendMode;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint cutout = cutoutPainter.toPaint()
-                          ..isAntiAlias = isAntiAlias
-                          ..blendMode = brightness == Brightness.dark
-                                        ? BlendMode.overlay
-                                        : BlendMode.overlay;
     final Offset p1 = begin.alongSize(size);
     final Offset p2 = end.alongSize(size);
-    canvas.drawLine(p1, p2, cutout);
+    if (!kIsWeb) {
+      final Paint basePainter = border.toPaint()
+        ..color = color
+        ..isAntiAlias = isAntiAlias
+        ..blendMode = BlendMode.overlay;
+      canvas.drawLine(p1, p2, basePainter);
+    }
 
-
+    final Paint tintPainter = border.toPaint()
+                              ..color = tint
+                              ..isAntiAlias = isAntiAlias;
+    canvas.drawLine(p1, p2, tintPainter);
   }
 
   @override
   bool shouldRepaint(_AliasedBorderPainter oldDelegate) {
-    return tint != oldDelegate.tint
-        || end != oldDelegate.end
-        || begin != oldDelegate.begin
-        || cutoutPainter != oldDelegate.cutoutPainter
-        || isAntiAlias != oldDelegate.isAntiAlias
-        || brightness != oldDelegate.brightness;
+    return tint != oldDelegate.tint ||
+        color != oldDelegate.color ||
+        end != oldDelegate.end ||
+        begin != oldDelegate.begin ||
+        border != oldDelegate.border ||
+        isAntiAlias != oldDelegate.isAntiAlias;
   }
 }
 
@@ -1106,7 +1112,6 @@ class _CupertinoMenuItemGestureHandlerState
         onEnter: widget.enabled ? _handleHover : null,
         onExit: (_isHovered || widget.enabled) ? _handleHover  : null,
         hitTestBehavior: HitTestBehavior.deferToChild,
-        // TODO(davidhicks980): Determine which mouse cursor to use.
         cursor: widget.enabled
                 ? widget.mouseCursor ?? SystemMouseCursors.click
                 : MouseCursor.defer,
@@ -1130,7 +1135,7 @@ class _CupertinoMenuItemGestureHandlerState
                             : null,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  backgroundBlendMode: BlendMode.plus,
+                  backgroundBlendMode: CupertinoTheme.maybeBrightnessOf(context) == Brightness.light ? BlendMode.multiply : BlendMode.plus,
                   color: backgroundColor
                 ),
                 child: widget.child,
@@ -1143,155 +1148,7 @@ class _CupertinoMenuItemGestureHandlerState
   }
 }
 
-/// Called when a [PanTarget] is entered or exited.
-///
-/// The [position] describes the global position of the pointer.
-///
-/// The [onTarget] parameter is true when the pointer is on a [PanTarget].
-typedef CupertinoPanUpdateCallback = void Function(Offset position);
 
-/// Called when the user stops panning.
-///
-/// This can occur when the user lifts their
-/// finger or if the user drags the pointer outside of the
-/// [CupertinoPanListener].
-///
-/// The [position] describes the global position of the pointer.
-typedef CupertinoPanEndCallback = void Function(Offset position);
-
-/// Called when the user starts panning.
-///
-/// The [position] describes the global position of the pointer.
-typedef CupertinoPanStartCallback = Drag? Function(Offset position);
-
-/// This widget is used by [CupertinoInteractiveMenuItem]s to determine whether
-/// the menu item should be highlighted. On items with a defined
-/// [CupertinoInteractiveMenuItem.panActivationDelay], menu items will be
-/// selected after the user's finger has made contact with the menu item for the
-/// specified duration
-class CupertinoPanListener<T extends PanTarget<StatefulWidget>>
-      extends StatefulWidget {
-  /// Creates [CupertinoPanListener] that wraps a Cupertino menu and notifies the layer's children during user swiping.
-  const CupertinoPanListener({
-    super.key,
-    required this.child,
-     this.onPanUpdate,
-     this.onPanEnd,
-     this.onPanStart,
-     this.id,
-  });
-
-  final Object? id;
-  /// Called when a [PanTarget] is entered or exited.
-  ///
-  /// The [position] describes the global position of the pointer.
-  ///
-  /// The [onTarget] parameter is true when the pointer is on a [PanTarget].
-  final CupertinoPanUpdateCallback? onPanUpdate;
-
-  /// Called when the user stops panning.
-  ///
-  /// This can occur when the user lifts their
-  /// finger or if the user drags the pointer outside of the
-  /// [CupertinoPanListener].
-  ///
-  /// The [position] describes the global position of the pointer.
-  final CupertinoPanEndCallback? onPanEnd;
-
-  /// Called when the user starts panning.
-  ///
-  /// The [position] describes the global position of the pointer.
-  final CupertinoPanEndCallback? onPanStart;
-
-  /// The menu layer to wrap.
-  final Widget child;
-
-  /// Creates a [ImmediateMultiDragGestureRecognizer] to recognize the start of
-  /// a pan gesture.
-  ImmediateMultiDragGestureRecognizer createRecognizer(
-    CupertinoPanStartCallback onStart,
-  ) {
-    return ImmediateMultiDragGestureRecognizer()..onStart = onStart;
-  }
-
-  @override
-  State<CupertinoPanListener<T>> createState() {
-    return _CupertinoPanListenerState<T>();
-  }
-}
-
-class _CupertinoPanListenerState<T extends PanTarget<StatefulWidget>>
-      extends State<CupertinoPanListener<T>> {
-  ImmediateMultiDragGestureRecognizer? _recognizer;
-  bool _isDragging = false;
-  final ValueNotifier<Offset?> _positionNotifier = ValueNotifier<Offset?>(null);
-
-  @override
-  void initState() {
-    super.initState();
-    _recognizer = widget.createRecognizer(_beginDragging);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _recognizer!.gestureSettings = MediaQuery.maybeGestureSettingsOf(context);
-  }
-
-  @override
-  void dispose() {
-    _disposeRecognizerIfInactive();
-    super.dispose();
-  }
-
-  void _disposeRecognizerIfInactive() {
-    if (!_isDragging && _recognizer != null) {
-      _recognizer!.dispose();
-      _recognizer = null;
-    }
-  }
-
-  void _routePointer(PointerDownEvent event) {
-    _recognizer?.addPointer(event);
-  }
-
-  Drag? _beginDragging(Offset position) {
-    if (_isDragging) {
-      return null;
-    }
-
-    _isDragging = true;
-    widget.onPanStart?.call(position);
-    return _PanHandler<T>(
-      initialPosition: position,
-      viewId: View.of(context).viewId,
-      onPanUpdate: (Offset position){
-        _positionNotifier.value = position;
-        widget.onPanUpdate?.call(position);
-      },
-      onPanEnd: (Offset position) {
-        if (mounted) {
-          setState(() {
-            _isDragging = false;
-          });
-        } else {
-          _isDragging = false;
-          _disposeRecognizerIfInactive();
-        }
-        widget.onPanEnd?.call(position);
-        _positionNotifier.value = null;
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Listener(
-      onPointerDown: _routePointer,
-      child: widget.child,
-    );
-  }
-}
 
 /// Can be mixed into a [State] to receive callbacks when a pointer enters or
 /// leaves a [PanTarget]. The [PanTarget] is should be an ancestor of a
@@ -1305,105 +1162,12 @@ mixin PanTarget<T extends StatefulWidget> on State<T> {
   /// Called when the pointer leaves the [PanTarget]. If [pointerUp] is true,
   /// then the pointer left the screen while over this menu item.
   void didPanLeave({required bool complete});
-}
 
-// Handles panning events for a [CupertinoPanListener]
-//
-// Calls [onPanUpdate] when the user's finger moves over a [PanTarget] and
-// [onPanEnd] when the user's finger leaves the [PanTarget].
-//
-// This class was adapted from [_DragAvatar].
-class _PanHandler<T extends PanTarget<StatefulWidget>> extends Drag {
-  _PanHandler({
-    required Offset initialPosition,
-    required this.viewId,
-    this.onPanEnd,
-    this.onPanUpdate,
-  }) : _position = initialPosition {
-    _updateDrag();
-  }
-
-  final int viewId;
-  final List<T> _enteredTargets = <T>[];
-  final CupertinoPanEndCallback? onPanEnd;
-  final CupertinoPanUpdateCallback? onPanUpdate;
-  Offset _position;
-
-  @override
-  void update(DragUpdateDetails details) {
-    final Offset oldPosition = _position;
-    _position += details.delta;
-    _updateDrag();
-    if (_position != oldPosition) {
-      onPanUpdate?.call(_position);
-    }
-  }
-
-  @override
-  void end(DragEndDetails details) {
-    _leaveAllEntered(complete: true);
-    onPanEnd?.call(_position);
-  }
-
-  @override
-  void cancel() {
-    _leaveAllEntered();
-    onPanEnd?.call(_position);
-  }
-
-  void _updateDrag() {
-    final HitTestResult result = HitTestResult();
-    WidgetsBinding.instance.hitTestInView(result, _position, viewId);
-    // Look for the RenderBoxes that corresponds to the hit target (the hit target
-    // widgets build RenderMetaData boxes for us for this purpose).
-    final List<T> targets = <T>[];
-    for (final HitTestEntry entry in result.path) {
-      final HitTestTarget target = entry.target;
-      if (target is RenderMetaData && target.metaData is T) {
-        targets.add(target.metaData as T);
-      }
-    }
-
-    bool listsMatch = false;
-    if (
-      targets.length >= _enteredTargets.length &&
-      _enteredTargets.isNotEmpty
-    ) {
-      listsMatch = true;
-      for (int i = 0; i < _enteredTargets.length; i++) {
-        if (targets[i] != _enteredTargets[i]) {
-          listsMatch = false;
-          break;
-        }
-      }
-    }
-
-    // If everything is the same, bail early.
-    if (listsMatch) {
-      return;
-    }
-
-    // Leave old targets.
-    _leaveAllEntered();
-
-    // Enter new targets.
-    for (final T? target in targets) {
-      if (target != null) {
-        _enteredTargets.add(target);
-        if (target.didPanEnter()) {
-          HapticFeedback.selectionClick();
-          return;
-        }
-      }
-    }
-  }
-
-  void _leaveAllEntered({bool complete = false}) {
-    for (int i = 0; i < _enteredTargets.length; i += 1) {
-      _enteredTargets[i].didPanLeave(complete: complete);
-    }
-    _enteredTargets.clear();
-  }
+  /// The group that this [PanTarget] belongs to.
+  ///
+  /// If a PanRegion is given a group, only PanTargets with the same group will
+  /// be notified when a pointer enters or leaves the PanRegion.
+  Object? get group => null;
 }
 
 /// A debug print function, which should only be called within an assert, like

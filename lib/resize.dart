@@ -47,14 +47,18 @@ class _ResizebleWidgetState extends State<ResizebleWidget> {
     setState(() {});
   }
 
+
   @override
   Widget build(BuildContext context) {
-    final double startX = _left! - ballDiameter / 2;
-    final double startY = _top! - ballDiameter / 2;
-    final double midX = _left! + _width! / 2 - ballDiameter / 2;
-    final double midY = _top! + _height! / 2 - ballDiameter / 2;
-    final double endX = _left! + _width! - ballDiameter / 2;
-    final double endY = _top! + _height! - ballDiameter / 2;
+    final Size size = MediaQuery.sizeOf(context);
+    double clampX(double value) => value.clamp(8, size.width - 8);
+    double clampY(double value) => value.clamp(100, size.height - 100);
+    final double startX = clampX(_left! - ballDiameter / 2);
+    final double startY = clampY(_top! - ballDiameter / 2);
+    final double midX   = clampX(_left! + _width! / 2 - ballDiameter / 2);
+    final double midY   = clampY(_top! + _height! / 2 - ballDiameter / 2);
+    final double endX   = clampX(_left! + _width! - ballDiameter / 2);
+    final double endY   = clampY(_top! + _height! - ballDiameter / 2);
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
@@ -66,11 +70,7 @@ class _ResizebleWidgetState extends State<ResizebleWidget> {
           child: CupertinoPopupSurface(
             child: SizedOverflowBox(
               size: Size(_width!, _height!),
-              child: Transform.scale(
-                  alignment: Alignment.topLeft,
-                  scale: min(1, min(_width! / 200, _height! / 200)),
-                  child: widget.child,
-                ),
+              child: widget.child,
             ),
           ),
         ),
@@ -209,7 +209,7 @@ class _ResizebleWidgetState extends State<ResizebleWidget> {
           // center center
           Positioned(
             top:  endY - 30,
-            left: endX - 30,
+            left: max(endX - 30,8),
             child: ManipulatingBall(
               cursor: _middleCursor,
               onDrag: (double dx, double dy) {

@@ -18,8 +18,11 @@ class _MenuAppState extends State<MenuApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: ThemeData(useMaterial3: true,  brightness: _darkMode ? Brightness.dark : Brightness.light),
-      home:  Scaffold(body:  CupertinoMenuExample(
+
+      theme: ThemeData(useMaterial3: false,  brightness: _darkMode ? Brightness.dark : Brightness.light,),
+      home:  Scaffold(
+        backgroundColor: _darkMode ? Colors.black : Colors.white,
+        body:  CupertinoMenuExample(
         onDarkModeChanged: (){
           setState(() {
             _darkMode = !_darkMode;
