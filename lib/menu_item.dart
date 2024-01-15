@@ -159,9 +159,6 @@ class CupertinoInteractiveMenuItem extends StatefulWidget {
 class _CupertinoInteractiveMenuItemState
       extends State<CupertinoInteractiveMenuItem> with CupertinoMenuEntryMixin {
   /// The handler for when the user selects the menu item.
-  ///
-  /// Along with calling [CupertinoInteractiveMenuItem.widget.onTap], it uses [Navigator.pop]
-  /// to return a [CupertinoMenuValue] from the menu route.
   @protected
   void _handleSelect() {
     assert(_debugMenuInfo('Selected ${widget.child} menu'));
@@ -390,7 +387,7 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
     return _defaultTextStyle.copyWith(color: color);
   }
 
-  static const Color _lightSubtitleColor =  Color.fromRGBO(0, 0, 0, 0.55);
+  static const Color _lightSubtitleColor =  Color.fromRGBO(0, 0, 0, 0.4);
   static const Color _darkSubtitleColor =  Color.fromRGBO(255, 255, 255, 0.4);
 
 
@@ -1070,7 +1067,8 @@ class _CupertinoMenuItemGestureHandlerState
       }
       setState(() {
         _isHovered = hovered;
-      });}
+      });
+    }
   }
 
   void _createInternalFocusNodeIfNeeded() {

@@ -342,14 +342,17 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
       _parent = newParent;
       _parent?._addChild(this);
     }
-    _scrollPosition?.isScrollingNotifier.removeListener(handleScroll);
+    _scrollPosition?.isScrollingNotifier.removeListener(didScroll);
     _scrollPosition = Scrollable.maybeOf(context)?.position;
-    _scrollPosition?.isScrollingNotifier.addListener(handleScroll);
+    _scrollPosition?.isScrollingNotifier.addListener(didScroll);
+
     final Size newSize = MediaQuery.sizeOf(context);
-    if (_viewSize != null && newSize != _viewSize) {
-      handleScreenSizeChanged();
+    if (newSize != _viewSize) {
+      if(_viewSize != null) {
+        didViewResize();
+      }
+      _viewSize = newSize;
     }
-    _viewSize = newSize;
   }
 
   @override
@@ -374,15 +377,15 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
     Widget child = OverlayPortal(
       controller: _overlayController,
       overlayChildBuilder: (BuildContext context) {
-        return buildOverlayChild(context, _menuScopeNode);
+        return buildOverlayChild(context, _menuScopeNode, _menuPosition);
       },
       child: _buildContents(context),
     );
 
     if (!widget.anchorTapClosesMenu) {
       child = TapRegion(
-        groupId: _root,
-        consumeOutsideTaps: _root._isOpen && widget.consumeOutsideTap,
+        groupId: root,
+        consumeOutsideTaps: root._isOpen && widget.consumeOutsideTap,
         onTapOutside: (PointerDownEvent event) {
           assert(_debugMenuInfo('Tapped Outside ${widget.controller}'));
           _closeChildren();
@@ -400,18 +403,24 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
   }
 
   @protected
-  void handleScreenSizeChanged() {
+  void didViewResize() {
     // Close the menus if the view changes size.
-    _root._close();
+    if(_isRoot) {
+       root._close();
+    }
   }
 
   @protected
-  Widget buildOverlayChild(BuildContext context, FocusScopeNode menuFocusScopeNode) {
+  Widget buildOverlayChild(
+    BuildContext context,
+    FocusScopeNode menuFocusScopeNode,
+    Offset? menuPosition
+  ) {
     return _Submenu(
       anchor: this,
       menuStyle: widget.style,
       alignmentOffset: widget.alignmentOffset ?? Offset.zero,
-      menuPosition: _menuPosition,
+      menuPosition: menuPosition,
       clipBehavior: widget.clipBehavior,
       menuChildren: widget.menuChildren,
       crossAxisUnconstrained: widget.crossAxisUnconstrained,
@@ -488,7 +497,8 @@ MenuAnchorState? get _previousFocusableSibling {
   return focusable[(focusable.indexOf(this) - 1 + focusable.length) % focusable.length];
 }
 
-  MenuAnchorState get _root {
+  @protected
+  MenuAnchorState get root {
     MenuAnchorState anchor = this;
     while (anchor._parent != null) {
       anchor = anchor._parent!;
@@ -518,7 +528,6 @@ MenuAnchorState? get _previousFocusableSibling {
         });
       });
     }
-
   }
 
   void _focusButton() {
@@ -530,12 +539,14 @@ MenuAnchorState? get _previousFocusableSibling {
   }
 
   @protected
-  void handleScroll() {
+  void didScroll() {
     // If an ancestor scrolls, and we're a root anchor, then close the menus.
     // Don't just close it on *any* scroll, since we want to be able to scroll
     // menus themselves if they're too big for the view.
     if (_isRoot) {
-      _close();
+       SchedulerBinding.instance.addPostFrameCallback((Duration timestamp) {
+        _close();
+       });
     }
   }
 
@@ -1156,7 +1167,7 @@ class _MenuItemButtonState extends State<MenuItemButton> {
   void _handleSelect() {
     assert(_debugMenuInfo('Selected ${widget.child} menu'));
     if (widget.closeOnActivate) {
-      MenuAnchorState._maybeOf(context)?._root._close();
+      MenuAnchorState._maybeOf(context)?.root._close();
     }
     // Delay the call to onPressed until post-frame so that the focus is
     // restored to what it was before the menu was opened before the action is
@@ -1950,7 +1961,7 @@ class _SubmenuButtonState extends State<SubmenuButton> {
           // is already open. This means that the user has to first click to
           // open a menu on the menu bar before hovering allows them to traverse
           // it.
-          if (controller._anchor!._root._orientation == Axis.horizontal && !controller._anchor!._root._isOpen) {
+          if (controller._anchor!.root._orientation == Axis.horizontal && !controller._anchor!.root._isOpen) {
             return;
           }
 
@@ -2033,7 +2044,7 @@ class DismissMenuAction extends DismissAction {
   @override
   void invoke(DismissIntent intent) {
     assert(_debugMenuInfo('$runtimeType: Dismissing all open menus.'));
-    controller._anchor!._root._close();
+    controller._anchor!.root._close();
   }
 
   @override
@@ -2394,7 +2405,7 @@ class _MenuPreviousFocusAction extends PreviousFocusAction {
       return super.invoke(intent);
     }
     final MenuAnchorState? anchor = MenuAnchorState._maybeOf(context);
-    if (anchor == null || !anchor._root._isOpen) {
+    if (anchor == null || !anchor.root._isOpen) {
       return super.invoke(intent);
     }
 
@@ -2417,7 +2428,7 @@ class _MenuNextFocusAction extends NextFocusAction {
       return super.invoke(intent);
     }
     final MenuAnchorState? anchor = MenuAnchorState._maybeOf(context);
-    if (anchor == null || !anchor._root._isOpen) {
+    if (anchor == null || !anchor.root._isOpen) {
       return super.invoke(intent);
     }
 
@@ -2445,7 +2456,7 @@ class MenuDirectionalFocusAction extends DirectionalFocusAction {
       return;
     }
     final MenuAnchorState? anchor = MenuAnchorState._maybeOf(context);
-    if (anchor == null || !anchor._root._isOpen) {
+    if (anchor == null || !anchor.root._isOpen) {
       super.invoke(intent);
       return;
     }
@@ -3596,8 +3607,8 @@ class _Submenu extends StatelessWidget {
             parentOrientation: anchor._parent?._orientation ?? Axis.horizontal,
           ),
           child: TapRegion(
-            groupId: anchor._root,
-            consumeOutsideTaps: anchor._root._isOpen && anchor.widget.consumeOutsideTap,
+            groupId: anchor.root,
+            consumeOutsideTaps: anchor.root._isOpen && anchor.widget.consumeOutsideTap,
             onTapOutside: (PointerDownEvent event) {
               anchor._close();
             },

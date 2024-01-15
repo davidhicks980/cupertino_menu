@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:cupertino_menu/menu.dart';
-import 'package:cupertino_menu/menu_item.dart';
+// import 'package:cupertino_menu/menu.dart';
+// import 'package:cupertino_menu/menu_item.dart';
 import 'package:flutter/cupertino.dart'
     show
         CupertinoApp,
@@ -136,9 +136,9 @@ class PointerHighlightTester<T> {
 
   Future<void> testMoveOverItem({
     required Color highlightColor,
-    required CupertinoMenuEntry<T> item,
+    required Widget item,
     bool pointerDown = false,
-    List<CupertinoMenuEntry<T>>? siblings,
+    List<Widget>? siblings,
     Color emptyColor = const Color(0x00000000),
   }) async {
     if (_gesture == null) {
@@ -155,10 +155,10 @@ class PointerHighlightTester<T> {
     final SampleNestedMenu<T> nestedMenu = menu;
     await tester.pumpWidget(
       nestedMenu.buildListApp(
-        <CupertinoMenuEntry<T>>[
+        <Widget>[
           CupertinoMenuItem<T>(key: startKey, child: const Text('Start')),
           item,
-          ...siblings ?? <CupertinoMenuEntry<T>>[],
+          ...siblings ?? <Widget>[],
           CupertinoMenuItem<T>(key: endKey, child: const Text('End')),
         ],
       ),
@@ -254,12 +254,12 @@ void main() {
   Future<void> measureTest<T>(
     WidgetTester tester,
     MenuItemDimensionSet dimensionSet,
-    SampleMenu<T> menu, {
+    SampleMenu menu, {
     required Finder titleFinder,
     Finder? leadingFinder,
     Finder? subtitleFinder,
     Finder? trailingFinder,
-    List<CupertinoMenuEntry<T>>? siblings,
+    List<Widget>? siblings,
   }) async {
     MenuItemDimensions? regular;
     MenuItemDimensions? truncatedText;
@@ -280,7 +280,7 @@ void main() {
         final CupertinoMenuEntry<T> child = dimensionSet.builder(
           variant,
           truncated: entry.key == MenuItemDisplaySet.truncated,
-        ) as CupertinoMenuEntry<T>;
+        ) as CupertinoMenuEntry;
         await tester.pumpWidget(buildApp((BuildContext context) {
           return MediaQuery(
             data: MediaQuery.of(context).copyWith(
@@ -289,11 +289,11 @@ void main() {
               ),
             ),
             child: menu.buildList(
-              <CupertinoMenuEntry<T>>[child, ...?siblings],
-            )(context),
+<Widget>[child, ...?siblings],
+            ),
           );
         }));
-        menu.control.open();
+        menu.overlay.open();
         await tester.pumpAndSettle();
 
         menuRect = tester

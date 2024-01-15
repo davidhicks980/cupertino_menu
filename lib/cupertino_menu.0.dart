@@ -38,8 +38,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import 'context_menu.dart';
 import 'cupertino_menu_anchor.dart';
-import 'menu_bar.dart';
 import 'menu_item.dart';
 import 'resize.dart';
 
@@ -137,7 +137,7 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
               data: CupertinoThemeData(
                 brightness: _darkMode ? Brightness.dark : Brightness.light,
               ),
-              child: Stack(
+              child:MyContextMenu(child:  Stack(
                 children: <Widget>[
                   // if(_lightImage != null)
                   //   Positioned(
@@ -173,14 +173,14 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
                           'assets/p3.png',
                           fit: BoxFit.cover,
                         )),
-                  const MyMenuBar(),
-                  const Positioned(
-                    left: 300,
-                    top: 150,
-                    bottom: 0,
-                    right: 0,
-                    child: MyCascadingMenu(message: 'test'),
-                  ),
+
+                  // const Positioned(
+                  //   left: 300,
+                  //   top: 150,
+                  //   bottom: 0,
+                  //   right: 0,
+                  //   child: MyCascadingMenu(message: 'test'),
+                  // ),
 
                   Dropdown(
                     containerKey: lightKey,
@@ -230,7 +230,7 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
                     ),
                   ),
                 ],
-              ),
+              )),
             ),
           ),
         ),
