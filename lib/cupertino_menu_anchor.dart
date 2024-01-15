@@ -18,6 +18,9 @@ import 'package:flutter/widgets.dart';
 import 'menu_item.dart';
 import 'test_anchor.dart';
 
+// TODO(davidhicks980): A menu button inside of a context menu prevents closure
+// of the inner menu
+
 const Duration _kMenuPanReboundDuration = Duration(milliseconds: 600);
 const  bool _kDebugMenus = false;
 
@@ -125,8 +128,8 @@ class CupertinoMenuAnchor extends StatefulWidget {
     super.key,
     this.controller,
     this.childFocusNode,
-    this.clipBehavior = Clip.hardEdge,
-    this.consumeOutsideTap = true,
+    Clip clipBehavior = Clip.hardEdge,
+    this.consumeOutsideTap = false,
     this.onOpen,
     this.onClose,
     this.builder,
@@ -137,9 +140,13 @@ class CupertinoMenuAnchor extends StatefulWidget {
     this.forwardSpring = forwardSpringDescription,
     this.reverseSpring = reverseSpringDescription,
     this.alignment,
-    this.alignmentOffset = Offset.zero,
+    this.alignmentOffset,
     this.menuAlignment,
-  });
+  }) :
+  assert(clipBehavior == Clip.antiAlias ||
+         clipBehavior == Clip.hardEdge,
+         'clipBehavior must be antiAlias or hardEdge.'),
+  _clipBehavior = clipBehavior;
 
   /// An optional controller that allows opening and closing of the menu from
   /// other widgets.
@@ -176,12 +183,12 @@ class CupertinoMenuAnchor extends StatefulWidget {
   /// [alignmentOffset] move the menu position to the left.
   ///
   /// Defaults to [Offset.zero].
-  final Offset alignmentOffset;
+  final Offset? alignmentOffset;
 
   /// {@macro flutter.material.Material.clipBehavior}
   ///
-  /// Defaults to [Clip.hardEdge].
-  final Clip clipBehavior;
+  /// Must not be [Clip.antiAliasWithSaveLayer]. Defaults to [Clip.hardEdge].
+  final Clip _clipBehavior;
 
   /// Whether or not a tap event that closes the menu will be permitted to
   /// continue on to the gesture arena.
@@ -249,7 +256,9 @@ class CupertinoMenuAnchor extends StatefulWidget {
 
   /// The alignment of the point from which the menu should grow.
   ///
-  /// Defaults to [Alignment.topCenter].
+  /// Defaults to [Alignment.topCenter] when the anchor is above the center of
+  /// the screen, and [Alignment.bottomCenter] when the anchor is below the
+  /// center of the screen.
   final AlignmentGeometry? menuAlignment;
 
   /// The [SpringDescription] used for the opening animation of a menu layer.
@@ -293,6 +302,30 @@ class CupertinoMenuAnchor extends StatefulWidget {
 
   @override
   State<CupertinoMenuAnchor> createState() => _CupertinoMenuAnchorState();
+
+   @override
+  List<DiagnosticsNode> debugDescribeChildren() {
+    return menuChildren.map<DiagnosticsNode>((Widget child) => child.toDiagnosticsNode()).toList();
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(FlagProperty('consumeOutsideTap', value: consumeOutsideTap, ifTrue: 'AUTO-CLOSE'));
+    properties.add(DiagnosticsProperty<FocusNode?>('focusNode', childFocusNode));
+    properties.add(EnumProperty<Clip>('clipBehavior', _clipBehavior));
+    if (alignmentOffset != null) {
+      properties.add(DiagnosticsProperty<Offset?>('alignmentOffset', alignmentOffset));
+    }
+
+    if (constraints != null) {
+      properties.add(DiagnosticsProperty<BoxConstraints?>('constraints',  constraints));
+    }
+
+    if (child != null) {
+      properties.add(DiagnosticsProperty<String?>('child', child.toString()));
+    }
+  }
 }
 
 
@@ -372,12 +405,12 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     super.dispose();
   }
 
-
   void _beginClose() {
     if(_menuAnimationStatus case AnimationStatus.dismissed ||
-                                AnimationStatus.reverse) {
+                                 AnimationStatus.reverse) {
       return;
     }
+
   _animationController
     ..stop()
     ..animateWith(
@@ -435,13 +468,6 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     setState(() {
       _menuAnimationStatus = AnimationStatus.forward;
     });
-    // SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
-    //   if(mounted && (_panelKey.currentContext?.mounted ?? false)) {
-    //     FocusScope.of(context).setFirstFocus(
-    //       FocusScope.of(_panelKey.currentContext!)
-    //     );
-    //   }
-    // });
   }
 
   void _handlePanUpdate(DragUpdateDetails details) {
@@ -518,12 +544,12 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
         constraints: widget.constraints,
         consumeOutsideTaps: widget.consumeOutsideTap,
         panelActions: _panelActions,
-        clipBehavior: widget.clipBehavior,
+        clipBehavior: widget._clipBehavior,
         scrollPhysics: widget.scrollPhysics,
         menuScopeNode: menuScopeNode,
         anchorAlignment: widget.alignment,
         menuAlignment: widget.menuAlignment,
-        alignmentOffset: widget.alignmentOffset,
+        alignmentOffset: widget.alignmentOffset ?? Offset.zero,
         panAnimation: _panAnimation,
         tapRegionId: _tapRegionId,
         children: widget.menuChildren,
@@ -537,16 +563,16 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     Widget? child,
   ) {
     return widget.builder?.call(context, _menuController, widget.child)
-              ?? widget.child
-              ?? CupertinoButton(
-                  onPressed: () {
-                    if (!_isOpenOrOpening) {
-                      _menuController.open();
-                    } else {
-                      _menuController.close();
-                    }
-                  },
-                  child: const Icon(CupertinoIcons.ellipsis_circle),
+            ?? widget.child
+            ?? CupertinoButton(
+                onPressed: () {
+                  if (!_isOpenOrOpening) {
+                    _menuController.open();
+                  } else {
+                    _menuController.close();
+                  }
+                },
+                child: const Icon(CupertinoIcons.ellipsis_circle),
     );
   }
 
@@ -587,7 +613,6 @@ class _CupertinoMenuAnchorBase extends MenuAnchor {
     super.onClose,
     super.onOpen,
     super.child,
-
   });
 
   final Widget Function(
@@ -603,6 +628,7 @@ class _CupertinoMenuAnchorBase extends MenuAnchor {
 class _CupertinoMenuAnchorProxyState extends MenuAnchorState<_CupertinoMenuAnchorBase>
       with TickerProviderStateMixin {
   CupertinoMenuController get _controller => widget.controller! as CupertinoMenuController;
+
   @override
   MenuAnchorState get root => super.root;
 
@@ -679,50 +705,19 @@ class _MenuPanel extends StatelessWidget {
   final Object? tapRegionId;
   final AlignmentGeometry? _menuAlignment;
 
-  Offset _resolveOffset(TextDirection direction) {
-    if (direction == TextDirection.rtl &&
-        _anchorAlignment is AlignmentDirectional) {
-      return Offset(-_alignmentOffset.dx, _alignmentOffset.dy);
-    }
-
-    return _alignmentOffset;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final ui.TextDirection direction = Directionality.of(context);
-    final Offset anchorOffset = _resolveOffset(direction);
-    final Rect anchorRect = _anchorRect.shift(anchorOffset);
-    final Alignment anchorAlignment = _anchorAlignment?.resolve(direction)
-                                        ?? Alignment.center;
-    final Alignment? resolvedMenuAlignment = _menuAlignment?.resolve(direction);
-    final ui.Offset growthPoint = anchorRect.topLeft
-                                    + anchorAlignment.alongSize(anchorRect.size);
-
-    // The alignment of the menu growth point relative to the screen.
-    final Alignment growthPointAlignment = Alignment(
-      (growthPoint.dx / overlaySize.width) * 2 - 1,
-      (growthPoint.dy / overlaySize.height) * 2 - 1,
-    );
-    final VerticalDirection growthDirection = growthPointAlignment.y > 0
-                            ? VerticalDirection.up
-                            : VerticalDirection.down;
-
     return ConstrainedBox(
       constraints: BoxConstraints.loose(overlaySize),
-      child:  _MenuPanelLayout(
+      child: _MenuPanelLayout(
           constraints: constraints,
-          growthDirection: growthDirection,
-          anchorAlignment: _anchorAlignment != null ? anchorAlignment : null,
-          anchorPosition: RelativeRect.fromSize(anchorRect, overlaySize),
-          menuAlignment: resolvedMenuAlignment,
-          child:ScaleTransition(
-        scale: panAnimation,
-        alignment: growthPointAlignment,
-        child: TapRegion(
-            groupId: tapRegionId,
-            consumeOutsideTaps: consumeOutsideTaps,
-            child: _PanRegion<PanTarget<StatefulWidget>>(
+          anchorRect: _anchorRect,
+          overlaySize: overlaySize,
+          menuAlignment: _menuAlignment,
+          alignment: _anchorAlignment,
+          anchorOffset: _alignmentOffset,
+          panAnimation: panAnimation,
+          child: _PanRegion<PanTarget<StatefulWidget>>(
               onPanUpdate: onPanUpdate,
               onPanEnd: onPanEnd,
               onPanCancel: onPanEnd,
@@ -730,7 +725,13 @@ class _MenuPanel extends StatelessWidget {
                 depth: 0,
                 animation: animation,
                 clipBehavior: clipBehavior,
-                child: Actions(
+                child: TapRegion(
+            groupId: tapRegionId,
+            consumeOutsideTaps: consumeOutsideTaps,
+            onTapOutside: (PointerDownEvent event) {
+                controller._anchor!._beginClose();
+            },
+            child: Actions(
                   actions: panelActions,
                   child: FocusScope(
                     debugLabel: 'CupertinoMenuAnchor Overlay FocusScope',
@@ -748,7 +749,7 @@ class _MenuPanel extends StatelessWidget {
               ),
             ),
           ),
-        ),
+
       ),
     );
   }
@@ -816,25 +817,31 @@ class _MenuPanelLayout extends StatelessWidget {
   /// Creates a [_MenuPanelLayout] that displays a list of [Widget]s
   const _MenuPanelLayout({
     required this.child,
-    required this.growthDirection,
     required this.constraints,
-    required this.anchorPosition,
     required this.menuAlignment,
-    this.anchorAlignment,
+    required this.overlaySize,
+    required this.anchorRect,
+    required this.panAnimation,
+    this.alignment,
+    this.anchorOffset,
     EdgeInsets? edgeInsets,
   }) : _edgeInsets = edgeInsets ?? const EdgeInsets.all(defaultEdgeInsets);
 
   /// The menu items to display.
   final Widget child;
 
-  /// The insets of the menu anchor relative to the screen.
-  final RelativeRect anchorPosition;
+  /// The anchor rect relative to the menu overlay.
+  final Rect anchorRect;
 
-  /// The alignment of the menu attachment point to the screen.
-  final VerticalDirection growthDirection;
+  /// The animation that drives the pan scale animation.
+  final Animation<double> panAnimation;
 
   /// The alignment of the menu attachment point relative to the anchor button.
-  final Alignment? anchorAlignment;
+  final Offset? anchorOffset;
+
+  /// The point on the anchor surface that should attach to
+  /// the [menuAnchor]
+  final AlignmentGeometry? alignment;
 
   /// The constraints to apply to the root menu layer.
   final BoxConstraints? constraints;
@@ -842,43 +849,79 @@ class _MenuPanelLayout extends StatelessWidget {
   /// The insets to avoid when positioning the menu.
   final EdgeInsets _edgeInsets;
 
-  final Alignment? menuAlignment;
+  /// The insets to avoid when positioning the menu.
+  final Size overlaySize;
+
+  /// The point on the menu surface that should attach to
+  /// the anchor point.
+  final AlignmentGeometry? menuAlignment;
 
   /// The amount of padding between the menu and the screen edge.
   static const double defaultEdgeInsets = 8;
 
+  Offset _resolveOffset(TextDirection direction) {
+    if (direction == TextDirection.rtl &&
+        alignment is AlignmentDirectional) {
+      return Offset(-anchorOffset!.dx, anchorOffset!.dy);
+    }
+
+    return anchorOffset!;
+  }
   @override
   Widget build(BuildContext context) {
-    final MediaQueryData mediaQuery = MediaQuery.of(context);
-    final ui.Size size = mediaQuery.size;
-    final double textScale = mediaQuery.textScaler.scale(1);
-    final double width = textScale > 1.25 ? 350.0 : 250.0;
-    final BoxConstraints resolvedConstraints = BoxConstraints(
-      minWidth: constraints?.minWidth ?? width,
-      maxWidth: constraints?.maxWidth ?? width,
-      minHeight: constraints?.minHeight ?? 0.0,
-      maxHeight: constraints?.maxHeight ?? size.height,
+    final ui.TextDirection direction = Directionality.of(context);
+    final Offset anchorOffset = _resolveOffset(direction);
+    final Rect anchRect = anchorRect.shift(anchorOffset);
+    final Alignment? resolveAlignment = alignment?.resolve(direction);
+    final Alignment? resolvedMenuAlignment = menuAlignment?.resolve(direction);
+    final ui.Offset growthPoint = anchRect.topLeft
+                                    + (resolveAlignment ?? Alignment.center).alongSize(anchRect.size);
+
+    // The alignment of the menu growth point relative to the screen.
+    final Alignment menuToScreenAlignment = Alignment(
+      (growthPoint.dx / overlaySize.width) * 2 - 1,
+      (growthPoint.dy / overlaySize.height) * 2 - 1,
     );
 
-    return CustomSingleChildLayout(
-      delegate: _MenuLayout(
-        anchorAlignment: anchorAlignment
-                          ?? (growthDirection == VerticalDirection.up
-                                ? Alignment.topCenter
-                                : Alignment.bottomCenter),
-        menuAlignment: menuAlignment
-                          ?? (growthDirection == VerticalDirection.up
-                                ? const Alignment(0, -1.01)
-                                : const Alignment(0, 1.01)),
-        anchorPosition: anchorPosition,
-        growthDirection: growthDirection,
-        textDirection: Directionality.of(context),
-        edgeInsets: _edgeInsets,
-        avoidBounds: DisplayFeatureSubScreen.avoidBounds(mediaQuery).toSet(),
-      ),
-      child: ConstrainedBox(
-        constraints: resolvedConstraints,
-        child: child,
+    final VerticalDirection growthDirection = menuToScreenAlignment.y > 0
+                                              ? VerticalDirection.up
+                                              : VerticalDirection.down;
+    return ScaleTransition(
+      scale: panAnimation,
+      alignment: menuToScreenAlignment,
+      child: Builder(
+        builder: (BuildContext context) {
+          final MediaQueryData mediaQuery = MediaQuery.of(context);
+          final double textScale = mediaQuery.textScaler.scale(1);
+          final double width = textScale > 1.25 ? 350.0 : 250.0;
+          final BoxConstraints resolvedConstraints = BoxConstraints(
+            minWidth: constraints?.minWidth ?? width,
+            maxWidth: constraints?.maxWidth ?? width,
+            minHeight: constraints?.minHeight ?? 0.0,
+            maxHeight: constraints?.maxHeight ?? mediaQuery.size.height,
+          );
+          return CustomSingleChildLayout(
+            delegate: _MenuLayout(
+              anchorAlignment: resolveAlignment ??
+                  (growthDirection == VerticalDirection.up
+                      ? Alignment.topCenter
+                      : Alignment.bottomCenter),
+              menuAlignment: resolvedMenuAlignment ??
+                  (growthDirection == VerticalDirection.up
+                      ? const Alignment(0, 1.025)
+                      : const Alignment(0, -1.025)),
+              anchorPosition: RelativeRect.fromSize(anchRect, overlaySize),
+              growthDirection: growthDirection,
+              textDirection: Directionality.of(context),
+              edgeInsets: _edgeInsets,
+              avoidBounds: DisplayFeatureSubScreen.avoidBounds(mediaQuery).toSet(),
+            ),
+            child: ConstrainedBox(
+              constraints: resolvedConstraints,
+              child: child,
+            ),
+          );
+        }
       ),
     );
   }

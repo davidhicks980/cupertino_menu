@@ -17,10 +17,8 @@ import './cupertino_menu_anchor.dart';
 
 const bool _kDebugMenus = false;
 
-
 bool get _isApple => defaultTargetPlatform == TargetPlatform.iOS ||
                      defaultTargetPlatform == TargetPlatform.macOS;
-
 
 bool get _platformSupportsAccelerators {
   // On iOS and macOS, pressing the Option key (a.k.a. the Alt key) causes a
@@ -31,13 +29,13 @@ bool get _platformSupportsAccelerators {
 }
 
 
-/// The color of a [CupertinoInteractiveMenuItem] when pressed.
+/// The color of a [_CupertinoInteractiveMenuItem] when pressed.
 // Pressed colors were sampled from the iOS simulator and are based on the
 // following:
 //
 // Dark mode on white background     rgb(111, 111, 111)
 // Dark mode on black                rgb(61, 61, 61)
-// Light mode on black background    rgb(177, 177, 177)
+// Light mode on black               rgb(177, 177, 177)
 // Light mode on white               rgb(225, 225, 225)
 const CupertinoDynamicColor _kMenuBackgroundOnPress =
     CupertinoDynamicColor.withBrightness(
@@ -47,12 +45,11 @@ const CupertinoDynamicColor _kMenuBackgroundOnPress =
 
 /// A widget that provides the default styling, semantics, and interactivity
 /// for menu items in a [_CupertinoMenuPanel] or [CupertinoNestedMenu].
-class CupertinoInteractiveMenuItem extends StatefulWidget {
-  /// Creates a [CupertinoInteractiveMenuItem], a widget that provides the
+class _CupertinoInteractiveMenuItem extends StatefulWidget {
+  /// Creates a [_CupertinoInteractiveMenuItem], a widget that provides the
   /// default styling, semantics, and interactivity for menu items in a
   /// [_CupertinoMenuPanel] or [CupertinoNestedMenu].
-  const CupertinoInteractiveMenuItem({
-    super.key,
+  const _CupertinoInteractiveMenuItem({
     required this.child,
     this.requestFocusOnHover = false,
     this.focusNode,
@@ -152,12 +149,14 @@ class CupertinoInteractiveMenuItem extends StatefulWidget {
   bool get enabled => onPressed != null;
 
   @override
-  State<CupertinoInteractiveMenuItem> createState() =>
+  State<_CupertinoInteractiveMenuItem> createState() =>
       _CupertinoInteractiveMenuItemState();
 }
 
 class _CupertinoInteractiveMenuItemState
-      extends State<CupertinoInteractiveMenuItem> with CupertinoMenuEntryMixin {
+      extends State<_CupertinoInteractiveMenuItem>
+      with CupertinoMenuEntryMixin {
+
   /// The handler for when the user selects the menu item.
   @protected
   void _handleSelect() {
@@ -174,7 +173,6 @@ class _CupertinoInteractiveMenuItemState
     }, debugLabel: 'MenuAnchor.onPressed');
   }
 
-
   @override
   Widget build(BuildContext context) {
     return MergeSemantics(
@@ -189,8 +187,8 @@ class _CupertinoInteractiveMenuItemState
           onHover: widget.onHover,
           onFocusChange: widget.onFocusChange,
           focusNode: widget.focusNode,
-          pressedColor: CupertinoDynamicColor.resolve(
-            widget.pressedColor ?? _kMenuBackgroundOnPress,
+          pressedColor: CupertinoDynamicColor.maybeResolve(
+            widget.pressedColor,
             context,
           ),
           focusedColor: CupertinoDynamicColor.maybeResolve(
@@ -204,7 +202,6 @@ class _CupertinoInteractiveMenuItemState
           child: _platformSupportsAccelerators && widget.enabled
                    ? MenuAcceleratorCallbackBinding(child: widget.child)
                    : widget.child,
-
         ),
       ),
     );
@@ -212,13 +209,11 @@ class _CupertinoInteractiveMenuItemState
 }
 
 /// A widget that provides the default structure, semantics, and interactivity
-/// for menu items in a [_CupertinoMenuPanel] or [CupertinoNestedMenu].
+/// for menu items in a [CupertinoMenuAnchor].
 ///
 /// See also:
-/// * [CupertinoInteractiveMenuItem], a widget that provides the default
+/// * [_CupertinoInteractiveMenuItem], a widget that provides the default
 ///   typography, semantics, and interactivity for menu items in a
-///   [_CupertinoMenuPanel], while allowing for customization of the menu item's
-///   structure.
 class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
   /// Creates a [CupertinoMenuItem]
   const CupertinoMenuItem({
@@ -233,7 +228,7 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
     this.onFocusChange,
     this.onPressed,
     this.onHover,
-    this.pressedColor,
+    this.pressedColor = _kMenuBackgroundOnPress,
     this.focusedColor,
     this.hoveredColor,
     this.mouseCursor,
@@ -337,8 +332,42 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
 
   bool get enabled => onPressed != null;
 
-  /// The default text style for labels in a [CupertinoInteractiveMenuItem].
-  static const TextStyle _defaultTextStyle = TextStyle(
+  /// Provides text styles in response to changes in [CupertinoThemeData.brightness],
+  /// [widget.isDefaultAction], [widget.isDestructiveAction], and [widget.enable].
+  //
+  // Eyeballed from the iOS simulator.
+  TextStyle _getTitleTextStyle(BuildContext context) {
+    if (!enabled) {
+      return _defaultTitleStyle.copyWith(
+        color: CupertinoColors.systemGrey.resolveFrom(context),
+      );
+    }
+
+    if (isDestructiveAction) {
+      return _defaultTitleStyle.copyWith(
+        color: CupertinoColors.destructiveRed,
+      );
+    }
+
+    final Color? color = CupertinoDynamicColor.maybeResolve(
+      _defaultTitleStyle.color,
+      context,
+    );
+
+    if (isDefaultAction) {
+      return _defaultTitleStyle.copyWith(
+        fontWeight: FontWeight.w600,
+        color: color,
+      );
+    }
+
+    return _defaultTitleStyle.copyWith(color: color);
+  }
+
+  static const Color _lightSubtitleColor =  Color.fromRGBO(0, 0, 0, 0.4);
+  static const Color _darkSubtitleColor =  Color.fromRGBO(255, 255, 255, 0.4);
+  /// The default text style for labels in a [_CupertinoInteractiveMenuItem].
+  static const TextStyle _defaultTitleStyle = TextStyle(
     inherit: false,
     fontFamily: 'SF Pro Text',
     fontFamilyFallback: <String>[
@@ -354,53 +383,16 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
         ),
     textBaseline: TextBaseline.alphabetic,
   );
-
-  /// Provides text styles in response to changes in [CupertinoThemeData.brightness],
-  /// [widget.isDefaultAction], [widget.isDestructiveAction], and [widget.enable].
-  //
-  // Eyeballed from the iOS simulator.
-  TextStyle _getTitleTextStyle(BuildContext context) {
-    if (!enabled) {
-      return _defaultTextStyle.copyWith(
-        color: CupertinoColors.systemGrey.resolveFrom(context),
-      );
-    }
-
-    if (isDestructiveAction) {
-      return _defaultTextStyle.copyWith(
-        color: CupertinoColors.destructiveRed,
-      );
-    }
-
-    final Color? color = CupertinoDynamicColor.maybeResolve(
-      _defaultTextStyle.color,
-      context,
-    );
-
-    if (isDefaultAction) {
-      return _defaultTextStyle.copyWith(
-        fontWeight: FontWeight.w600,
-        color: color,
-      );
-    }
-
-    return _defaultTextStyle.copyWith(color: color);
-  }
-
-  static const Color _lightSubtitleColor =  Color.fromRGBO(0, 0, 0, 0.4);
-  static const Color _darkSubtitleColor =  Color.fromRGBO(255, 255, 255, 0.4);
-
-
   /// The default text style for a [CupertinoStickyMenuHeader] subtitle.
   static const TextStyle _subtitleStyle = TextStyle(
-        height: 1.25,
-        fontFamily: 'SF Pro Text',
-        fontFamilyFallback: <String>['.AppleSystemUIFont'],
-        fontSize: 15,
-        letterSpacing: -0.21,
-        fontWeight: FontWeight.w400,
-        textBaseline: TextBaseline.ideographic,
-      );
+    height: 1.25,
+    fontFamily: 'SF Pro Text',
+    fontFamilyFallback: <String>['.AppleSystemUIFont'],
+    fontSize: 15,
+    letterSpacing: -0.21,
+    fontWeight: FontWeight.w400,
+    textBaseline: TextBaseline.ideographic,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -411,7 +403,7 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
       ..blendMode = darkMode ? BlendMode.plus : BlendMode.hardLight
       ..color = CupertinoDynamicColor
         .resolve(darkMode ? _darkSubtitleColor : _lightSubtitleColor, context);
-    return CupertinoInteractiveMenuItem(
+    return _CupertinoInteractiveMenuItem(
       focusNode: focusNode,
       onFocusChange: onFocusChange,
       onPressed: onPressed,
@@ -448,7 +440,6 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
                   overflow: TextOverflow.ellipsis,
                   style: _subtitleStyle.copyWith(
                     foreground: subtitlePainter,
-
                   ),
                   child: _TitleSwitcher(child: child),
                 )
@@ -457,14 +448,40 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
       ),
     );
   }
+
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+      properties.add(DiagnosticsProperty<Color?>('pressedColor', pressedColor));
+      properties.add(DiagnosticsProperty<Color?>('hoveredColor', hoveredColor,
+         defaultValue: pressedColor?.withOpacity(0.075)) );
+      properties.add(DiagnosticsProperty<Color?>('focusedColor', focusedColor,
+         defaultValue: pressedColor?.withOpacity(0.05)));
+      properties.add(EnumProperty<HitTestBehavior>('hitTestBehavior', behavior));
+      properties.add(DiagnosticsProperty<Duration>(
+         'panActivationDelay', panActivationDelay,
+         defaultValue: Duration.zero));
+      properties.add(DiagnosticsProperty<FocusNode?>('focusNode', focusNode,
+         defaultValue: null));
+      properties.add(FlagProperty('enabled',
+         value: onPressed != null, ifFalse: 'DISABLED'));
+      properties.add(DiagnosticsProperty<MenuSerializableShortcut?>('shortcut', shortcut,
+         defaultValue: null));
+      properties.add(DiagnosticsProperty<Widget?>('title', child));
+      properties.add(DiagnosticsProperty<Widget?>('subtitle', subtitle));
+      properties.add(
+         DiagnosticsProperty<Widget?>('leading', leading, defaultValue: null));
+      properties.add(DiagnosticsProperty<Widget?>('trailing', trailing,
+         defaultValue: null));
+      properties.add(DiagnosticsProperty<FocusNode?>('focusNode', focusNode,
+          defaultValue: null));
+  }
 }
 
 class _TitleSwitcher extends StatelessWidget {
-  const _TitleSwitcher({
-    required this.child,
-    this.layoutBuilder = _layoutBuilder,
-  });
-  final AnimatedSwitcherLayoutBuilder layoutBuilder;
+  const _TitleSwitcher({ required this.child });
+
   final Widget child;
   static Widget _layoutBuilder(
     Widget? currentChild,
@@ -904,7 +921,7 @@ class CupertinoMenuItemGestureHandler extends StatefulWidget {
   final Color? hoveredColor;
 
   /// The color of menu item while the menu item is swiped or pressed down.
-  final Color pressedColor;
+  final Color? pressedColor;
 
   /// The mouse cursor to display on hover.
   final MouseCursor? mouseCursor;
@@ -913,20 +930,6 @@ class CupertinoMenuItemGestureHandler extends StatefulWidget {
   final HitTestBehavior? behavior;
 
   bool get enabled => onPressed != null;
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties
-    ..add(DiagnosticsProperty<String>('child', child.toString()))
-    ..add(DiagnosticsProperty<Color?>('pressedColor', pressedColor))
-    ..add(DiagnosticsProperty<Color?>('hoveredColor', hoveredColor, defaultValue: pressedColor.withOpacity(0.075)))
-    ..add(DiagnosticsProperty<Color?>('focusedColor', focusedColor, defaultValue: pressedColor.withOpacity(0.05)))
-    ..add(DiagnosticsProperty<MouseCursor?>('mouseCursor', mouseCursor, defaultValue: null))
-    ..add(EnumProperty<HitTestBehavior>('hitTestBehavior', behavior))
-    ..add(DiagnosticsProperty<Duration>('panPressActivationDelay', panPressActivationDelay, defaultValue: Duration.zero))
-    ..add(DiagnosticsProperty<FocusNode?>('focusNode', focusNode, defaultValue: null));
-  }
 
   @override
   State<CupertinoMenuItemGestureHandler> createState() =>
@@ -1076,34 +1079,48 @@ class _CupertinoMenuItemGestureHandlerState
       _internalFocusNode = FocusNode();
       assert(() {
         if (_internalFocusNode != null) {
-          _internalFocusNode!.debugLabel = '$CupertinoMenuItemGestureHandler(${widget.child})';
+          _internalFocusNode!.debugLabel = 'CupertinoMenuItem(${widget.child})';
         }
         return true;
       }());
     }
   }
 
-  Color get backgroundColor {
+  Color? get backgroundColor {
     if (widget.enabled) {
       if (_isPressed || _isSwiped) {
         return widget.pressedColor;
       }
 
       if (_isFocused) {
-        return widget.focusedColor ?? widget.pressedColor.withOpacity(0.075);
+        return widget.focusedColor ?? widget.pressedColor?.withOpacity(0.075);
       }
 
       if (_isHovered) {
-        return widget.hoveredColor ?? widget.pressedColor.withOpacity(0.05);
+        return widget.hoveredColor ?? widget.pressedColor?.withOpacity(0.05);
       }
     }
 
-    return const Color(0x00000000);
+    return null;
   }
 
 
   @override
   Widget build(BuildContext context) {
+    Widget? child = widget.child;
+    final Color? backgroundColor = this.backgroundColor;
+    if (backgroundColor != null) {
+      child = DecoratedBox(
+        decoration: BoxDecoration(
+          backgroundBlendMode:
+              CupertinoTheme.maybeBrightnessOf(context) == Brightness.light
+                  ? BlendMode.multiply
+                  : BlendMode.plus,
+          color: backgroundColor,
+        ),
+        child: child,
+      );
+    }
     return MetaData(
       metaData: this,
       child: MouseRegion(
@@ -1131,13 +1148,7 @@ class _CupertinoMenuItemGestureHandlerState
               onTapCancel: _isPressed || _isSwiped
                             ? _handleTapCancel
                             : null,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  backgroundBlendMode: CupertinoTheme.maybeBrightnessOf(context) == Brightness.light ? BlendMode.multiply : BlendMode.plus,
-                  color: backgroundColor
-                ),
-                child: widget.child,
-              ),
+              child: child
             ),
           ),
         ),
