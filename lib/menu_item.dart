@@ -5,17 +5,19 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/cupertino.dart' show CupertinoColors, CupertinoDynamicColor, CupertinoLocalizations, CupertinoTheme, kMinInteractiveDimensionCupertino;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show MaterialLocalizations;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
-import './cupertino_menu_anchor.dart';
+import './menu.dart';
+import 'test_anchor.dart';
 
-const bool _kDebugMenus = false;
+const bool _kDebugMenus = true;
 
 bool get _isApple => defaultTargetPlatform == TargetPlatform.iOS ||
                      defaultTargetPlatform == TargetPlatform.macOS;
@@ -56,7 +58,7 @@ class _CupertinoInteractiveMenuItem extends StatefulWidget {
     this.onFocusChange,
     this.onPressed,
     this.onHover,
-    this.pressedColor,
+    this.pressedColor = _kMenuBackgroundOnPress,
     this.focusedColor,
     this.hoveredColor,
     this.mouseCursor,
@@ -66,6 +68,7 @@ class _CupertinoInteractiveMenuItem extends StatefulWidget {
     this.isDestructiveAction = false,
     this.panActivationDelay = Duration.zero,
     this.shortcut,
+    this.debugChildLabel,
   });
 
   /// The widget displayed in the center of this button.
@@ -146,6 +149,9 @@ class _CupertinoInteractiveMenuItem extends StatefulWidget {
   /// applied to this item's label.
   final bool isDefaultAction;
 
+  /// The debug ID of this menu item.
+  final String? debugChildLabel;
+
   bool get enabled => onPressed != null;
 
   @override
@@ -178,15 +184,15 @@ class _CupertinoInteractiveMenuItemState
     return MergeSemantics(
       child: Semantics(
         enabled: widget.onPressed != null,
-        button: true,
         child: CupertinoMenuItemGestureHandler(
           mouseCursor: widget.mouseCursor,
           panPressActivationDelay: widget.panActivationDelay,
           requestFocusOnHover: widget.requestFocusOnHover,
-          onPressed: _handleSelect,
+          onPressed: widget.onPressed != null ? _handleSelect : null,
           onHover: widget.onHover,
           onFocusChange: widget.onFocusChange,
           focusNode: widget.focusNode,
+          debugChildLabel: widget.debugChildLabel,
           pressedColor: CupertinoDynamicColor.maybeResolve(
             widget.pressedColor,
             context,
@@ -199,9 +205,8 @@ class _CupertinoInteractiveMenuItemState
             widget.hoveredColor,
             context,
           ),
-          child: _platformSupportsAccelerators && widget.enabled
-                   ? MenuAcceleratorCallbackBinding(child: widget.child)
-                   : widget.child,
+          child: widget.child,
+
         ),
       ),
     );
@@ -228,7 +233,7 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
     this.onFocusChange,
     this.onPressed,
     this.onHover,
-    this.pressedColor = _kMenuBackgroundOnPress,
+    this.pressedColor,
     this.focusedColor,
     this.hoveredColor,
     this.mouseCursor,
@@ -403,12 +408,18 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
       ..blendMode = darkMode ? BlendMode.plus : BlendMode.hardLight
       ..color = CupertinoDynamicColor
         .resolve(darkMode ? _darkSubtitleColor : _lightSubtitleColor, context);
+  if(shortcut != null) {
+    print(LocalizedShortcutLabeler.instance.getShortcutLabel(
+                        shortcut!,
+                        MaterialLocalizations.of(context),
+                      ),);
+  }
     return _CupertinoInteractiveMenuItem(
       focusNode: focusNode,
       onFocusChange: onFocusChange,
       onPressed: onPressed,
       onHover: onHover,
-      pressedColor: pressedColor,
+      pressedColor: pressedColor ?? _kMenuBackgroundOnPress,
       focusedColor: focusedColor,
       hoveredColor: hoveredColor,
       mouseCursor: mouseCursor,
@@ -419,6 +430,7 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
       panActivationDelay: panActivationDelay,
       shortcut: shortcut,
       requestFocusOnHover: requestFocusOnHover,
+      debugChildLabel: child.toString(),
       child: IconTheme.merge(
         data: IconThemeData(
           color: titleTextStyle.color,
@@ -474,8 +486,7 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
          DiagnosticsProperty<Widget?>('leading', leading, defaultValue: null));
       properties.add(DiagnosticsProperty<Widget?>('trailing', trailing,
          defaultValue: null));
-      properties.add(DiagnosticsProperty<FocusNode?>('focusNode', focusNode,
-          defaultValue: null));
+
   }
 }
 
@@ -864,6 +875,7 @@ class CupertinoMenuItemGestureHandler extends StatefulWidget {
     this.onHover,
     this.onFocusChange,
     this.shortcut,
+    this.debugChildLabel,
   });
 
   /// The widget displayed in the center of this button.
@@ -871,7 +883,7 @@ class CupertinoMenuItemGestureHandler extends StatefulWidget {
   /// Typically this is the button's label, using a [Text] widget.
   ///
   /// {@macro flutter.widgets.ProxyWidget.child}
-  final Widget? child;
+  final Widget child;
 
   /// Called when the button is tapped or otherwise activated.
   ///
@@ -928,6 +940,8 @@ class CupertinoMenuItemGestureHandler extends StatefulWidget {
 
   /// How the menu item should respond to hit tests.
   final HitTestBehavior? behavior;
+
+  final String? debugChildLabel;
 
   bool get enabled => onPressed != null;
 
@@ -1041,6 +1055,7 @@ class _CupertinoMenuItemGestureHandlerState
 
   @override
   void didUpdateWidget(CupertinoMenuItemGestureHandler oldWidget) {
+    super.didUpdateWidget(oldWidget);
     if (widget.focusNode != oldWidget.focusNode) {
       _focusNode.removeListener(_handleFocusChange);
       if (widget.focusNode != null) {
@@ -1050,13 +1065,13 @@ class _CupertinoMenuItemGestureHandlerState
       _createInternalFocusNodeIfNeeded();
       _focusNode.addListener(_handleFocusChange);
     }
-    super.didUpdateWidget(oldWidget);
   }
 
   void _handleFocusChange([bool? focused]) {
     setState(() {
       _isFocused = focused ?? _focusNode.hasFocus;
     });
+
     widget.onFocusChange?.call(_focusNode.hasFocus);
   }
 
@@ -1079,7 +1094,7 @@ class _CupertinoMenuItemGestureHandlerState
       _internalFocusNode = FocusNode();
       assert(() {
         if (_internalFocusNode != null) {
-          _internalFocusNode!.debugLabel = 'CupertinoMenuItem(${widget.child})';
+          _internalFocusNode!.debugLabel = '$CupertinoMenuItem(${widget.debugChildLabel})';
         }
         return true;
       }());
@@ -1148,7 +1163,7 @@ class _CupertinoMenuItemGestureHandlerState
               onTapCancel: _isPressed || _isSwiped
                             ? _handleTapCancel
                             : null,
-              child: child
+              child: child,
             ),
           ),
         ),
@@ -1203,3 +1218,5 @@ bool _debugMenuInfo(String message, [Iterable<String>? details]) {
   // Return true so that it can be easily used inside of an assert.
   return true;
 }
+
+

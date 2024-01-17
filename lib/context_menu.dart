@@ -2,10 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide MenuItemButton, SubmenuButton;
 import 'package:flutter/services.dart';
 
-import 'cupertino_menu_anchor.dart';
+import 'menu.dart';
 import 'test_anchor.dart';
-
-
 
 
 /// An enhanced enum to define the available menus and their shortcuts.

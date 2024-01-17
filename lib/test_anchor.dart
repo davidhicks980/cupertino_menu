@@ -452,7 +452,11 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
       return null;
     }
     final FocusTraversalPolicy policy =
-        FocusTraversalGroup.maybeOf(_menuScopeNode.context!) ?? ReadingOrderTraversalPolicy();
+     // Fixes "Looking up a deactivated widget's ancestor is unsafe." error.
+      _menuScopeNode.context?.mounted ?? false
+          ? FocusTraversalGroup.maybeOf(_menuScopeNode.context!)
+              ?? ReadingOrderTraversalPolicy()
+          : ReadingOrderTraversalPolicy();
     return policy.findFirstFocus(_menuScopeNode, ignoreCurrentFocus: true);
   }
 
@@ -2066,10 +2070,10 @@ class DismissMenuAction extends DismissAction {
 /// For instance, calling [getShortcutLabel] with `SingleActivator(trigger:
 /// LogicalKeyboardKey.keyA, control: true)` would return "⌃ A" on macOS, "Ctrl
 /// A" in an US English locale, and "Strg A" in a German locale.
-class _LocalizedShortcutLabeler {
-  _LocalizedShortcutLabeler._();
+class LocalizedShortcutLabeler {
+  LocalizedShortcutLabeler._();
 
-  static _LocalizedShortcutLabeler? _instance;
+  static LocalizedShortcutLabeler? _instance;
 
   static final Map<LogicalKeyboardKey, String> _shortcutGraphicEquivalents = <LogicalKeyboardKey, String>{
     LogicalKeyboardKey.arrowLeft: '←',
@@ -2095,8 +2099,8 @@ class _LocalizedShortcutLabeler {
   };
 
   /// Return the instance for this singleton.
-  static _LocalizedShortcutLabeler get instance {
-    return _instance ??= _LocalizedShortcutLabeler._();
+  static LocalizedShortcutLabeler get instance {
+    return _instance ??= LocalizedShortcutLabeler._();
   }
 
   // Caches the created shortcut key maps so that creating one of these isn't
@@ -3142,7 +3146,7 @@ class _MenuItemLabel extends StatelessWidget {
           Padding(
             padding: EdgeInsetsDirectional.only(start: horizontalPadding),
             child: Text(
-              _LocalizedShortcutLabeler.instance.getShortcutLabel(
+              LocalizedShortcutLabeler.instance.getShortcutLabel(
                 shortcut!,
                 MaterialLocalizations.of(context),
               ),

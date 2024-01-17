@@ -3,43 +3,23 @@ import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart'
     show
         Brightness,
-        CupertinoApp,
-        CupertinoButton,
-        CupertinoCheckbox,
-        CupertinoColors,
-        CupertinoContextMenu,
-        CupertinoContextMenuAction,
+
         CupertinoIcons,
-        CupertinoNavigationBar,
-        CupertinoPageScaffold,
-        CupertinoSlider,
-        CupertinoSwitch,
         CupertinoTheme,
         CupertinoThemeData;
 import 'package:flutter/material.dart'
     show
-        ButtonStyle,
         CheckboxListTile,
-        Colors,
-        InkResponse,
-        InkWell,
-        ListTile,
-        MaterialStateProperty,
-        MenuAnchor,
-        MenuController,
-        MenuItemButton,
-        MenuStyle,
+
         Slider,
-        SubmenuButton,
         TextButton,
-        Theme,
         showAboutDialog;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'context_menu.dart';
-import 'cupertino_menu_anchor.dart';
+import './test_anchor.dart';
+import 'menu.dart';
 import 'menu_item.dart';
 import 'resize.dart';
 
@@ -137,7 +117,7 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
               data: CupertinoThemeData(
                 brightness: _darkMode ? Brightness.dark : Brightness.light,
               ),
-              child: MyContextMenu(child: Stack(
+              child: Stack(
                 children: <Widget>[
                   // if(_lightImage != null)
                   //   Positioned(
@@ -224,7 +204,7 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
                     ),
                   ),
                 ],
-              )),
+              )
             ),
           ),
         ),
@@ -368,6 +348,8 @@ class Menu extends StatelessWidget {
             childFocusNode: buttonFocusNode,
             menuChildren: <Widget>[
               CupertinoMenuItem(
+                requestFocusOnHover: true,
+
                 panActivationDelay: const Duration(milliseconds: 300),
                 trailing: const Icon(CupertinoIcons.check_mark_circled),
                 closeOnActivate: false,
@@ -376,7 +358,12 @@ class Menu extends StatelessWidget {
                 },
                 child: const Text('Favorite Animal'),
               ),
+              MenuItemButton(
+                child: const Text('New Window'), onPressed: () {}),
+
               CupertinoMenuItem(
+                requestFocusOnHover: true,
+
                 trailing: const Icon(CupertinoIcons.folder_badge_plus),
                 closeOnActivate: false,
                 onPressed: () {
@@ -388,6 +375,9 @@ class Menu extends StatelessWidget {
               ),
               const CupertinoMenuLargeDivider(),
               CupertinoMenuItem(
+                requestFocusOnHover: true,
+
+
                 trailing: const Icon(CupertinoIcons.square_grid_2x2),
                 closeOnActivate: false,
                 subtitle: textVariant
@@ -400,14 +390,47 @@ class Menu extends StatelessWidget {
                     : const Text(
                         'An unusually long string of text to demonstrate how the menu will wrap.'),
               ),
-              const CupertinoMenuLargeDivider(),
+              SubmenuButton(
+                onClose: () {
+                  print('closed');
+                },
+      menuChildren:
+      <Widget>[
+        MenuItemButton(child: const Text('New Window'), onPressed: () {}),
+        MenuItemButton(child: const Text('New Tab'), onPressed: () {}),
+        MenuItemButton(child: const Text('Close Window'), onPressed: () {}),
+      ],
+      child: const Text('test')
+    ),
+    SubmenuButton(
+      menuChildren:
+      <Widget>[
+        MenuItemButton(child: const Text('New Window'), onPressed: () {}),
+        MenuItemButton(child: const Text('New Tab'), onPressed: () {}),
+        MenuItemButton(child: const Text('Close Window'), onPressed: () {}),
+      ],
+      child: const Text('test')
+    ),
               CupertinoMenuItem(
+                requestFocusOnHover: true,
+                closeOnActivate: false,
+                trailing: const Icon(CupertinoIcons.square_grid_2x2),
+                child: const Text('Icons'),
+                onPressed: () {},
+              ),
+              const CupertinoMenuLargeDivider(),
+              MenuItemButton(child: const Text('New Window'), onPressed: () {}),
+              CupertinoMenuItem(
+                requestFocusOnHover: true,
+
                 closeOnActivate: false,
                 trailing: const Icon(CupertinoIcons.square_grid_2x2),
                 child: const Text('Icons'),
                 onPressed: () {},
               ),
               CupertinoMenuItem(
+                requestFocusOnHover: true,
+
                 closeOnActivate: false,
                 trailing: const Icon(CupertinoIcons.square_grid_2x2),
                 child: const Text('Icons'),

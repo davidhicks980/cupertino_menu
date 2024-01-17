@@ -21,6 +21,8 @@ import 'test_anchor.dart';
 // TODO(davidhicks980): A menu button inside of a context menu prevents closure
 // of the inner menu
 
+// TODO(davidhicks980): Focus traversal is broken when encountering a submenu
+
 const Duration _kMenuPanReboundDuration = Duration(milliseconds: 600);
 const  bool _kDebugMenus = false;
 
@@ -29,8 +31,8 @@ const Map<ShortcutActivator, Intent> _kMenuTraversalShortcuts = <ShortcutActivat
   SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
   SingleActivator(LogicalKeyboardKey.tab): NextFocusIntent(),
   SingleActivator(LogicalKeyboardKey.tab, shift: true): PreviousFocusIntent(),
-  SingleActivator(LogicalKeyboardKey.arrowDown): DirectionalFocusIntent(TraversalDirection.down),
   SingleActivator(LogicalKeyboardKey.arrowUp): DirectionalFocusIntent(TraversalDirection.up),
+  SingleActivator(LogicalKeyboardKey.arrowDown): DirectionalFocusIntent(TraversalDirection.down),
   SingleActivator(LogicalKeyboardKey.arrowLeft): DirectionalFocusIntent(TraversalDirection.left),
   SingleActivator(LogicalKeyboardKey.arrowRight): DirectionalFocusIntent(TraversalDirection.right),
 };
@@ -340,13 +342,12 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
   late final Animation<double> _panAnimation;
   late final AnimationController _panAnimationController;
   late final AnimationController _animationController;
-       final GlobalKey _panelKey = GlobalKey(debugLabel: 'Menu Panel');
-
+       final GlobalKey _panelKey = GlobalKey(debugLabel: 'CupertinoMenuPanel');
+       final GlobalKey<_CupertinoMenuAnchorProxyState> _internalAnchorKey =
+            GlobalKey<_CupertinoMenuAnchorProxyState>(debugLabel: 'CupertinoMenuAnchor');
   CupertinoMenuController? _internalMenuController;
-  AnimationStatus _menuAnimationStatus = AnimationStatus.dismissed;
+  AnimationStatus          _menuAnimationStatus = AnimationStatus.dismissed;
 
-  final GlobalKey<_CupertinoMenuAnchorProxyState> _internalAnchorKey =
-            GlobalKey<_CupertinoMenuAnchorProxyState>(debugLabel: 'Menu Anchor');
   Object? get _tapRegionId => _internalAnchorKey.currentState?.root;
   /// Whether the menu is open or opening.
   ///
@@ -358,7 +359,6 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
   bool _hasLeadingWidget = false;
   CupertinoMenuController get _menuController => widget.controller
                                                 ?? _internalMenuController!;
-
   @override
   void initState() {
     super.initState();
@@ -468,6 +468,15 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     setState(() {
       _menuAnimationStatus = AnimationStatus.forward;
     });
+
+    SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
+      if(mounted && (_panelKey.currentContext?.mounted ?? false)) {
+        FocusScope.of(context).setFirstFocus(
+          FocusScope.of(_panelKey.currentContext!)
+        );
+      }
+    });
+
   }
 
   void _handlePanUpdate(DragUpdateDetails details) {
@@ -530,6 +539,7 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     if (menuPosition != null) {
       _anchorRect = (menuPosition + _anchorRect.topLeft) & Size.zero ;
     }
+
     return ExcludeFocus(
       excluding: !_isOpenOrOpening,
       child: _MenuPanel(
@@ -710,47 +720,51 @@ class _MenuPanel extends StatelessWidget {
     return ConstrainedBox(
       constraints: BoxConstraints.loose(overlaySize),
       child: _MenuPanelLayout(
-          constraints: constraints,
-          anchorRect: _anchorRect,
-          overlaySize: overlaySize,
-          menuAlignment: _menuAlignment,
-          alignment: _anchorAlignment,
-          anchorOffset: _alignmentOffset,
-          panAnimation: panAnimation,
-          child: _PanRegion<PanTarget<StatefulWidget>>(
-              onPanUpdate: onPanUpdate,
-              onPanEnd: onPanEnd,
-              onPanCancel: onPanEnd,
-              child: _MenuPanelSurface(
-                depth: 0,
-                animation: animation,
-                clipBehavior: clipBehavior,
-                child: TapRegion(
-            groupId: tapRegionId,
-            consumeOutsideTaps: consumeOutsideTaps,
-            onTapOutside: (PointerDownEvent event) {
-                controller._anchor!._beginClose();
-            },
-            child: Actions(
-                  actions: panelActions,
-                  child: FocusScope(
-                    debugLabel: 'CupertinoMenuAnchor Overlay FocusScope',
-                    node: menuScopeNode,
-                    child: Shortcuts(
-                      shortcuts: _kMenuTraversalShortcuts,
-                      child: _MenuPanelScrollable(
-                        key: panelKey,
-                        physics: scrollPhysics,
-                        children: children,
-                      ),
+        constraints: constraints,
+        anchorRect: _anchorRect,
+        overlaySize: overlaySize,
+        menuAlignment: _menuAlignment,
+        alignment: _anchorAlignment,
+        anchorOffset: _alignmentOffset,
+        panAnimation: panAnimation,
+        child: _PanRegion<PanTarget<StatefulWidget>>(
+            onPanUpdate: onPanUpdate,
+            onPanEnd: onPanEnd,
+            onPanCancel: onPanEnd,
+            child: _MenuPanelSurface(
+              depth: 0,
+              animation: animation,
+              clipBehavior: clipBehavior,
+              child: TapRegion(
+                groupId: tapRegionId,
+                consumeOutsideTaps: consumeOutsideTaps,
+                onTapOutside: (PointerDownEvent event) {
+                  controller._anchor!._beginClose();
+                },
+                child: MouseRegion(
+              hitTestBehavior: HitTestBehavior.deferToChild,
+              child: FocusScope(
+                node: menuScopeNode,
+                skipTraversal: true,
+                child: Actions(
+                  actions: <Type, Action<Intent>>{
+                    DirectionalFocusIntent: MenuDirectionalFocusAction(),
+                    DismissIntent: DismissMenuAction(controller: controller),
+                  },
+                  child: Shortcuts(
+                    shortcuts: _kMenuTraversalShortcuts,
+                    child: _MenuPanelScrollable(
+                      key: panelKey,
+                      physics: scrollPhysics,
+                      children: children,
                     ),
                   ),
                 ),
-              ),
+              )
             ),
           ),
-
-      ),
+        ),
+      ))
     );
   }
 }
@@ -898,8 +912,9 @@ class _MenuPanelLayout extends StatelessWidget {
             minWidth: constraints?.minWidth ?? width,
             maxWidth: constraints?.maxWidth ?? width,
             minHeight: constraints?.minHeight ?? 0.0,
-            maxHeight: constraints?.maxHeight ?? mediaQuery.size.height,
+            maxHeight: constraints?.maxHeight ?? double.infinity,
           );
+
           return CustomSingleChildLayout(
             delegate: _MenuLayout(
               anchorAlignment: resolveAlignment ??
@@ -1422,8 +1437,9 @@ class _MenuLayout extends SingleChildLayoutDelegate {
   // The alignment of the menu attachment point relative to the anchor button.
   final Alignment anchorAlignment;
 
-  // The alignment of the menu attachment point relative to the anchor button.
+  // The alignment of the menu attachment point relative to the menu itself.
   final Alignment menuAlignment;
+
 
   // Finds the closest screen to the anchor position.
   //
