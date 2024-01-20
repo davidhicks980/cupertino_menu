@@ -8,14 +8,12 @@ import 'dart:math' as math;
 import 'package:flutter/cupertino.dart' show CupertinoColors, CupertinoDynamicColor, CupertinoLocalizations, CupertinoTheme, kMinInteractiveDimensionCupertino;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart' show MaterialLocalizations;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import './menu.dart';
-import 'test_anchor.dart';
+import 'menu.dart';
 
 const bool _kDebugMenus = true;
 
@@ -237,6 +235,7 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
     this.focusedColor,
     this.hoveredColor,
     this.mouseCursor,
+    this.constraints,
     this.behavior,
     this.closeOnActivate = true,
     this.isDefaultAction = false,
@@ -337,6 +336,21 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
 
   bool get enabled => onPressed != null;
 
+  @override
+  bool get hasLeading => leading != null;
+
+
+  /// The constraints to apply to the menu item.
+  ///
+  /// Because padding is applied to the menu item prior to constraints, padding
+  /// will only affect the size of the menu item iff the height of the padding
+  /// plus the height of the menu item's children exceeds the
+  /// [BoxConstraints.minHeight].
+  ///
+  /// By default, the only constraint applied to the menu item is a
+  /// [BoxConstraints.minHeight] of [kMinInteractiveDimensionCupertino].
+  final BoxConstraints? constraints;
+
   /// Provides text styles in response to changes in [CupertinoThemeData.brightness],
   /// [widget.isDefaultAction], [widget.isDestructiveAction], and [widget.enable].
   //
@@ -402,18 +416,15 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
   @override
   Widget build(BuildContext context) {
     final TextStyle titleTextStyle = _getTitleTextStyle(context);
-    final TextScaler textScale = MediaQuery.textScalerOf(context);
+    final TextScaler textScale = MediaQuery.maybeTextScalerOf(context) ?? const TextScaler.linear(1);
     final bool darkMode = CupertinoTheme.brightnessOf(context) == Brightness.dark;
     final Paint subtitlePainter = Paint()
       ..blendMode = darkMode ? BlendMode.plus : BlendMode.hardLight
       ..color = CupertinoDynamicColor
         .resolve(darkMode ? _darkSubtitleColor : _lightSubtitleColor, context);
-  if(shortcut != null) {
-    print(LocalizedShortcutLabeler.instance.getShortcutLabel(
-                        shortcut!,
-                        MaterialLocalizations.of(context),
-                      ),);
-  }
+    final TextStyle subtitleStyle = _subtitleStyle.copyWith(
+      foreground: subtitlePainter,
+    );
     return _CupertinoInteractiveMenuItem(
       focusNode: focusNode,
       onFocusChange: onFocusChange,
@@ -432,30 +443,29 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
       requestFocusOnHover: requestFocusOnHover,
       debugChildLabel: child.toString(),
       child: IconTheme.merge(
-        data: IconThemeData(
-          color: titleTextStyle.color,
-          size: textScale.scale(21),
-        ),
-        child: _CupertinoMenuItemStructure(
-          padding: padding,
-          trailing: trailing,
-          leading: leading,
-          title: DefaultTextStyle.merge(
+          data: IconThemeData(
+            color: titleTextStyle.color,
+            size: textScale.scale(21),
+          ),
+          child: DefaultTextStyle.merge(
             maxLines: textScale.scale(1) > 1.25 ? null : 2,
             overflow: TextOverflow.ellipsis,
-            style: titleTextStyle,
-            child: _TitleSwitcher(child: child),
-          ),
-          subtitle: subtitle != null
-              ? DefaultTextStyle.merge(
-                  maxLines: textScale.scale(1) > 1.25 ? null : 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: _subtitleStyle.copyWith(
-                    foreground: subtitlePainter,
-                  ),
-                  child: _TitleSwitcher(child: child),
-                )
-              : null,
+            child: _CupertinoMenuItemStructure(
+              padding: padding,
+              constraints: constraints,
+              trailing: trailing,
+              leading: leading,
+              title: DefaultTextStyle.merge(
+                style: titleTextStyle,
+                child: _TitleSwitcher(child: child),
+              ),
+              subtitle: subtitle != null
+                  ? DefaultTextStyle.merge(
+                      style: subtitleStyle,
+                      child: _TitleSwitcher(child: subtitle!),
+                    )
+                  : null,
+            ),
         ),
       ),
     );
@@ -540,7 +550,7 @@ class _CupertinoMenuItemStructure extends StatelessWidget with CupertinoMenuEntr
   // Creates a [_CupertinoMenuItemStructure]
   const _CupertinoMenuItemStructure({
     required this.title,
-    this.minimumHeight = kMinInteractiveDimensionCupertino,
+    BoxConstraints? constraints,
     this.leading,
     this.trailing,
     this.subtitle,
@@ -552,6 +562,7 @@ class _CupertinoMenuItemStructure extends StatelessWidget with CupertinoMenuEntr
     double? trailingWidth,
   })  : _trailingWidth = trailingWidth,
         _leadingWidth = leadingWidth,
+        _constraints = constraints ?? defaultConstraints,
         _padding = padding ?? defaultPadding;
 
   static const EdgeInsetsDirectional defaultPadding =
@@ -561,6 +572,9 @@ class _CupertinoMenuItemStructure extends StatelessWidget with CupertinoMenuEntr
   static const double trailingWidgetWidth = 44.0;
   static const AlignmentDirectional defaultLeadingAlignment = AlignmentDirectional(1/6, 0);
   static const AlignmentDirectional defaultTrailingAlignment = AlignmentDirectional(-3/11, 0);
+  static const BoxConstraints defaultConstraints = BoxConstraints(
+    minHeight: kMinInteractiveDimensionCupertino,
+  );
 
   // The padding for the contents of the menu item.
   final EdgeInsetsDirectional _padding;
@@ -586,7 +600,7 @@ class _CupertinoMenuItemStructure extends StatelessWidget with CupertinoMenuEntr
   final AlignmentDirectional trailingAlignment;
 
   // The height of the menu item.
-  final double minimumHeight;
+  final BoxConstraints? _constraints;
 
   // The center content of the menu item
   final Widget title;
@@ -597,6 +611,8 @@ class _CupertinoMenuItemStructure extends StatelessWidget with CupertinoMenuEntr
   // Whether to scale the padding of the menu item with textScaleFactor
   final bool scalePadding;
 
+  BoxConstraints get constraints => _constraints ?? defaultConstraints;
+
   @override
   Widget build(BuildContext context) {
     final double textScale = MediaQuery.maybeTextScalerOf(context)?.scale(1) ?? 1.0;
@@ -604,21 +620,25 @@ class _CupertinoMenuItemStructure extends StatelessWidget with CupertinoMenuEntr
     final bool showTrailingWidget = textScale < 1.25 && trailing != null;
     // Padding scales with textScale, but at a slower rate than text. Square
     // root is used to estimate the padding scaling factor.
-    final double scaledPadding = scalePadding ? math.sqrt(textScale) : 1.0;
+    final double paddingScaler = scalePadding ? math.sqrt(textScale) : 1.0;
     final double trailingWidth = (_trailingWidth
                                    ?? (showTrailingWidget
                                         ? trailingWidgetWidth
-                                        : defaultHorizontalWidth)) * scaledPadding;
+                                        : defaultHorizontalWidth)) * paddingScaler;
     final double leadingWidth = (_leadingWidth
                                   ?? (showLeadingWidget
                                        ? leadingWidgetWidth
-                                       : defaultHorizontalWidth)) * scaledPadding;
-    // AnimatedSize is used to limit jump when the contents of a menu item
-    // change
+                                       : defaultHorizontalWidth)) * paddingScaler;
+
     return ConstrainedBox(
-        constraints: BoxConstraints(minHeight: minimumHeight * scaledPadding),
+        constraints:  BoxConstraints(
+          minWidth: constraints.minWidth * paddingScaler,
+          maxWidth: constraints.maxWidth * paddingScaler,
+          minHeight: constraints.minHeight * paddingScaler,
+          maxHeight: constraints.maxHeight * paddingScaler,
+        ).normalize(),
         child: Padding(
-          padding: _padding * scaledPadding,
+          padding: _padding * paddingScaler,
           child: Row(
             children: <Widget>[
               // The leading and trailing widgets are wrapped in SizedBoxes and

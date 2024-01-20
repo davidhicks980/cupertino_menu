@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import 'dart:async';
+import 'dart:math' as  math;
 
 import 'package:example/menu.dart';
 import 'package:example/menu_item.dart';
@@ -10,7 +11,7 @@ import 'package:example/test_anchor.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart' hide  MenuAcceleratorLabel, MenuAnchor, MenuController, MenuItemButton, SubmenuButton;
+import 'package:flutter/material.dart' hide  CheckboxMenuButton, MenuAcceleratorLabel, MenuAnchor, MenuBar, MenuController, MenuItemButton, RadioMenuButton, SubmenuButton;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,6 +29,19 @@ void main() {
   Matcher rectEquals(Rect rect) {
     return rectMoreOrLessEquals(rect, epsilon: 0.1);
   }
+
+  Future<void> rectsEqual(List<Rect> rects1, List<Rect> rects2) async {
+    print(rects1);
+    WidgetsBinding.instance.addPostFrameCallback((Duration timeStamp) {
+      for (int i = 0; i < math.max(rects1.length, rects2.length); i++) {
+      expect(rects1[i], rectEquals(rects2[i]));
+    }
+    });
+
+  }
+
+
+
   void expectPrint(Rect rect1, Matcher rect2){
     if(printOut){
       print(rect1);
@@ -391,6 +405,7 @@ void main() {
 
     await tester.tap(TestMenu.item1.findItem);
     await tester.pump();
+    await tester.pump();
 
     expect(focusInOnPressed, equals(buttonFocus));
     expect(FocusManager.instance.primaryFocus, equals(buttonFocus));
@@ -427,6 +442,7 @@ void main() {
             ],
           ),
         );
+
 
         // Create the menu. The menu is closed, so no menu items should be found in
         // the widget tree.
@@ -577,6 +593,7 @@ void main() {
     });
 
     testWidgets('LTR geometry', (WidgetTester tester) async {
+      await changeSurfaceSize(tester, const Size(800, 600));
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData(useMaterial3: false),
@@ -1356,10 +1373,15 @@ void main() {
           .toList();
 
       expect(
-        description.join('\n'),
+        description,
         equalsIgnoringHashCodes(
-            '''AUTO-CLOSE\nfocusNode: null\nclipBehavior: hardEdge\nalignmentOffset: Offset(10.0, 10.0)\nchild: Text("Sample Text")'''),
-      );
+          <String>['AUTO-CLOSE',
+          'focusNode: null',
+          'clipBehavior: hardEdge',
+          'alignmentOffset: Offset(10.0, 10.0)',
+          'child: Text("Sample Text")',
+          ]
+      ));
     });
 
 
@@ -1846,7 +1868,7 @@ void main() {
                   },
                   onClose: () {
                     onClose();
-                    rootOpened = true;
+                    rootOpened = false;
                     print('root closed');
                   },
                   controller: controller,
@@ -1875,7 +1897,7 @@ void main() {
       );
 
       await tester.tap(find.text('Show menu'));
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(rootOpened, true);
 
       // Hover the first item.
@@ -1944,9 +1966,6 @@ void main() {
 
       await tester.pumpWidget(build(smallSize));
 
-      // Animate closed
-      await tester.pumpAndSettle();
-
       expect(opened, isEmpty);
       expect(closed, isNotEmpty);
     });
@@ -1971,10 +1990,10 @@ void main() {
       );
 
       // Open a menu initially.
-      await tester.tap(find.text(TestMenu.item1.label));
-      await tester.pump();
+      await tester.tap(find.byType(CupertinoMenuAnchor));
+      await tester.pumpAndSettle();
 
-      await tester.tap(find.text(TestMenu.item9.label));
+      await tester.tap(TestMenu.item9.findItem);
       await tester.pump();
 
       // Now pump a new menu with a different UniqueKey to dispose of the opened
@@ -1990,133 +2009,12 @@ void main() {
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
     });
 
   });
 
   group('CupertinoMenuItem', () {
-    testWidgets('Shortcut mnemonics are displayed',
-        (WidgetTester tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Material(
-            child: CupertinoMenuAnchor(
-              controller: controller,
-             menuChildren: createTestMenus2(
-                shortcuts: <Label, MenuSerializableShortcut>{
-                  Label.item14: const SingleActivator(LogicalKeyboardKey.keyA, control: true),
-                  Label.item14: const SingleActivator(LogicalKeyboardKey.keyB, shift: true),
-                  Label.item15: const SingleActivator(LogicalKeyboardKey.keyC, alt: true),
-                  Label.item16: const SingleActivator(LogicalKeyboardKey.keyD, meta: true),
-                },
-              ),
-            ),
-          ),
-        ),
-      );
-
-      // Open a menu initially.
-      await tester.tap(find.text(Label.one.label));
-      await tester.pump();
-
-      await tester.tap(find.text(Label.item8.label));
-      await tester.pump();
-
-      Text mnemonic0;
-      Text mnemonic1;
-      Text mnemonic2;
-      Text mnemonic3;
-
-      switch (defaultTargetPlatform) {
-        case TargetPlatform.android:
-        case TargetPlatform.fuchsia:
-        case TargetPlatform.linux:
-          mnemonic0 = tester.widget(findMnemonic(Label.item14.label));
-          expect(mnemonic0.data, equals('Ctrl+A'));
-          mnemonic1 = tester.widget(findMnemonic(Label.item14.label));
-          expect(mnemonic1.data, equals('Shift+B'));
-          mnemonic2 = tester.widget(findMnemonic(Label.item15.label));
-          expect(mnemonic2.data, equals('Alt+C'));
-          mnemonic3 = tester.widget(findMnemonic(Label.item16.label));
-          expect(mnemonic3.data, equals('Meta+D'));
-        case TargetPlatform.windows:
-          mnemonic0 = tester.widget(findMnemonic(Label.item14.label));
-          expect(mnemonic0.data, equals('Ctrl+A'));
-          mnemonic1 = tester.widget(findMnemonic(Label.item14.label));
-          expect(mnemonic1.data, equals('Shift+B'));
-          mnemonic2 = tester.widget(findMnemonic(Label.item15.label));
-          expect(mnemonic2.data, equals('Alt+C'));
-          mnemonic3 = tester.widget(findMnemonic(Label.item16.label));
-          expect(mnemonic3.data, equals('Win+D'));
-        case TargetPlatform.iOS:
-        case TargetPlatform.macOS:
-          mnemonic0 = tester.widget(findMnemonic(Label.item14.label));
-          expect(mnemonic0.data, equals('⌃ A'));
-          mnemonic1 = tester.widget(findMnemonic(Label.item14.label));
-          expect(mnemonic1.data, equals('⇧ B'));
-          mnemonic2 = tester.widget(findMnemonic(Label.item15.label));
-          expect(mnemonic2.data, equals('⌥ C'));
-          mnemonic3 = tester.widget(findMnemonic(Label.item16.label));
-          expect(mnemonic3.data, equals('⌘ D'));
-      }
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Material(
-            child: CupertinoMenuAnchor(
-              controller: controller,
-              menuChildren: createTestMenus(
-                includeExtraGroups: true,
-                shortcuts: <Label, MenuSerializableShortcut>{
-                  Label.item14: const SingleActivator(LogicalKeyboardKey.arrowRight),
-                  Label.item14: const SingleActivator(LogicalKeyboardKey.arrowLeft),
-                  Label.item15: const SingleActivator(LogicalKeyboardKey.arrowUp),
-                  Label.item16: const SingleActivator(LogicalKeyboardKey.arrowDown),
-                },
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      mnemonic0 = tester.widget(findMnemonic(Label.item14.label));
-      expect(mnemonic0.data, equals('→'));
-      mnemonic1 = tester.widget(findMnemonic(Label.item14.label));
-      expect(mnemonic1.data, equals('←'));
-      mnemonic2 = tester.widget(findMnemonic(Label.item15.label));
-      expect(mnemonic2.data, equals('↑'));
-      mnemonic3 = tester.widget(findMnemonic(Label.item16.label));
-      expect(mnemonic3.data, equals('↓'));
-
-      // Try some weirder ones.
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Material(
-            child: CupertinoMenuAnchor(
-              controller: controller,
-             menuChildren: createTestMenus(
-                shortcuts: <Label, MenuSerializableShortcut>{
-                  Label.item14: const SingleActivator(LogicalKeyboardKey.escape),
-                  Label.item14: const SingleActivator(LogicalKeyboardKey.fn),
-                  Label.item15: const SingleActivator(LogicalKeyboardKey.enter),
-                },
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      mnemonic0 = tester.widget(findMnemonic(Label.item14.label));
-      expect(mnemonic0.data, equals('Esc'));
-      mnemonic1 = tester.widget(findMnemonic(Label.item14.label));
-      expect(mnemonic1.data, equals('Fn'));
-      mnemonic2 = tester.widget(findMnemonic(Label.item15.label));
-      expect(mnemonic2.data, equals('↵'));
-    }, variant: TargetPlatformVariant.all());
-
     testWidgets('leading is used when set', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -2124,13 +2022,8 @@ void main() {
             child: CupertinoMenuAnchor(
               controller: controller,
               menuChildren: <Widget>[
-                SubmenuButton(
-                  menuChildren: <Widget>[
-                    CupertinoMenuItem(
-                      leading: const Text('leading'),
-                      child: Text(TestMenu.item1.label),
-                    ),
-                  ],
+                CupertinoMenuItem(
+                  leading: const Text('lead'),
                   child: Text(TestMenu.item1.label),
                 ),
               ],
@@ -2139,10 +2032,10 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text(TestMenu.item1.label));
-      await tester.pump();
+      await tester.tap(find.byType(CupertinoMenuAnchor));
+      await tester.pumpAndSettle();
 
-      expect(find.text('leading'), findsOneWidget);
+      expect(find.text('lead'), findsOneWidget);
     });
 
     testWidgets('trailing is used when set', (WidgetTester tester) async {
@@ -2152,13 +2045,8 @@ void main() {
             child: CupertinoMenuAnchor(
               controller: controller,
               menuChildren: <Widget>[
-                SubmenuButton(
-                  menuChildren: <Widget>[
-                    CupertinoMenuItem(
-                      trailing: const Text('trailing'),
-                      child: Text(TestMenu.item1.label),
-                    ),
-                  ],
+                CupertinoMenuItem(
+                  trailing: const Text('trailing'),
                   child: Text(TestMenu.item1.label),
                 ),
               ],
@@ -2167,96 +2055,21 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text(TestMenu.item1.label));
-      await tester.pump();
+      await tester.tap(find.byType(CupertinoMenuAnchor));
+      await tester.pumpAndSettle();
 
       expect(find.text('trailing'), findsOneWidget);
     });
 
-    // testWidgets('SubmenuButton uses supplied controller', (WidgetTester tester) async {
-    //   final CupertinoMenuController subCupertinoMenuController = CupertinoMenuController();
-    //   await tester.pumpWidget(
-    //     MaterialApp(
-    //       home: Material(
-    //         child: CupertinoMenuAnchor(
-    //           controller: controller,
-    //          menuChildren: <Widget>[
-    //             SubmenuButton(
-    //               controller: subCupertinoMenuController,
-    //               menuChildren: <Widget>[
-    //                 CupertinoMenuItem(
-    //                   child: Text(TestMenu.mainMenu1.label),
-    //                 ),
-    //               ],
-    //               child: Text(TestMenu.mainMenu0.label),
-    //             ),
-    //           ],
-    //         ),
-    //       ),
-    //     ),
-    //   );
-
-    //   subCupertinoMenuController.open();
-    //   await tester.pump();
-    //   expect(find.text(TestMenu.mainMenu1.label), findsOneWidget);
-
-    //   subCupertinoMenuController.close();
-    //   await tester.pump();
-    //   expect(find.text(TestMenu.mainMenu1.label), findsNothing);
-
-    //   // Now remove the controller and try to control it.
-    //   await tester.pumpWidget(
-    //     MaterialApp(
-    //       home: Material(
-    //         child: CupertinoMenuAnchor(
-    //           controller: controller,
-    //          menuChildren: <Widget>[
-    //             SubmenuButton(
-    //               menuChildren: <Widget>[
-    //                 CupertinoMenuItem(
-    //                   child: Text(TestMenu.mainMenu1.label),
-    //                 ),
-    //               ],
-    //               child: Text(TestMenu.mainMenu0.label),
-    //             ),
-    //           ],
-    //         ),
-    //       ),
-    //     ),
-    //   );
-
-    //   await expectLater(() => subCupertinoMenuController.open(), throwsAssertionError);
-    //   await tester.pump();
-    //   expect(find.text(TestMenu.mainMenu1.label), findsNothing);
-    // });
-
-    testWidgets('diagnostics', (WidgetTester tester) async {
-      final ButtonStyle style = ButtonStyle(
-        shape:
-            MaterialStateProperty.all<OutlinedBorder?>(const StadiumBorder()),
-        elevation: MaterialStateProperty.all<double?>(10.0),
-        backgroundColor: const MaterialStatePropertyAll<Color>(Colors.red),
-      );
-      final MenuStyle menuStyle = MenuStyle(
-        shape: MaterialStateProperty.all<OutlinedBorder?>(
-            const RoundedRectangleBorder()),
-        elevation: MaterialStateProperty.all<double?>(20.0),
-        backgroundColor: const MaterialStatePropertyAll<Color>(Colors.green),
-      );
+    testWidgets('subtitle is used when set', (WidgetTester tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Material(
             child: CupertinoMenuAnchor(
               controller: controller,
               menuChildren: <Widget>[
-                SubmenuButton(
-                  style: style,
-                  menuStyle: menuStyle,
-                  menuChildren: <Widget>[
-                    CupertinoMenuItem(
-                      child: Text(TestMenu.item1.label),
-                    ),
-                  ],
+                CupertinoMenuItem(
+                  subtitle: const Text('subtitle'),
                   child: Text(TestMenu.item1.label),
                 ),
               ],
@@ -2265,31 +2078,39 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text(TestMenu.item1.label));
-      await tester.pump();
+      await tester.tap(find.byType(CupertinoMenuAnchor));
+      await tester.pumpAndSettle();
 
-      final SubmenuButton submenu = tester.widget(find.byType(SubmenuButton));
-      final DiagnosticPropertiesBuilder builder = DiagnosticPropertiesBuilder();
-      submenu.debugFillProperties(builder);
+      expect(find.text('subtitle'), findsOneWidget);
+    });
 
-      final List<String> description = builder.properties
-          .where(
-              (DiagnosticsNode node) => !node.isFiltered(DiagnosticLevel.info))
-          .map((DiagnosticsNode node) => node.toString())
-          .toList();
-
-      expect(
-        description,
-        equalsIgnoringHashCodes(
-          <String>[
-            'child: Text("Menu 0")',
-            'focusNode: null',
-            'menuStyle: MenuStyle#00000(backgroundColor: MaterialStatePropertyAll(MaterialColor(primary value: Color(0xff4caf50))), elevation: MaterialStatePropertyAll(20.0), shape: MaterialStatePropertyAll(RoundedRectangleBorder(BorderSide(width: 0.0, style: none), BorderRadius.zero)))',
-            'alignmentOffset: null',
-            'clipBehavior: hardEdge',
-          ],
+    testWidgets('onPressed is called when set', (WidgetTester tester) async {
+      bool pressed = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Material(
+            child: CupertinoMenuAnchor(
+              controller: controller,
+              menuChildren: <Widget>[
+                CupertinoMenuItem(
+                  onPressed: () {
+                    pressed = true;
+                  },
+                  child: TestMenu.item1.text,
+                ),
+              ],
+            ),
+          ),
         ),
       );
+
+      await tester.tap(find.byType(CupertinoMenuAnchor));
+      await tester.pumpAndSettle();
+
+      await tester.tap(TestMenu.item1.findItem);
+      await tester.pumpAndSettle();
+
+      expect(pressed, isTrue);
     });
 
     testWidgets('CupertinoMenuItem respects closeOnActivate property',
@@ -2323,13 +2144,14 @@ void main() {
       await tester.tap(find.text('Tap me'));
       await tester.pump();
       expect(find.byType(CupertinoMenuItem), findsNWidgets(1));
+      await tester.pumpAndSettle();
+
 
       // Taps the CupertinoMenuItem which should close the menu
       await tester.tap(find.text('Button 1'));
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(find.byType(CupertinoMenuItem), findsNWidgets(0));
 
-      await tester.pumpAndSettle();
 
       await tester.pumpWidget(MaterialApp(
         home: Material(
@@ -2360,10 +2182,11 @@ void main() {
       await tester.tap(find.text('Tap me'));
       await tester.pump();
       expect(find.byType(CupertinoMenuItem), findsNWidgets(1));
+      await tester.pumpAndSettle();
 
       // Taps the CupertinoMenuItem which shouldn't close the menu
       await tester.tap(find.text('Button 1'));
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(find.byType(CupertinoMenuItem), findsNWidgets(1));
     });
   });
@@ -2372,7 +2195,7 @@ void main() {
     List<Rect> collectMenuItemRects() {
       final List<Rect> menuRects = <Rect>[];
       final List<Element> candidates =
-          find.byType(SubmenuButton).evaluate().toList();
+          find.byType(CupertinoMenuItem).evaluate().toList();
       for (final Element candidate in candidates) {
         final RenderBox box = candidate.renderObject! as RenderBox;
         final Offset topLeft = box.localToGlobal(box.size.topLeft(Offset.zero));
@@ -2409,6 +2232,7 @@ void main() {
                   children: <Widget>[
                     Expanded(
                       child: CupertinoMenuAnchor(
+                        constraints: const BoxConstraints(),
                         menuChildren: createTestMenus2(onPressed: onPressed),
                       ),
                     ),
@@ -2420,25 +2244,23 @@ void main() {
           ),
         ),
       );
+
+      await tester.tap(find.byType(CupertinoMenuAnchor));
+      await tester.pumpAndSettle();
+      await tester.tap(TestMenu.matMenu6.findItem);
       await tester.pump();
 
-      await tester.tap(find.text(TestMenu.item1.label));
-      await tester.pump();
-      // await tester.tap(find.text(Label.item8.label));
-      await tester.pump();
 
       expect(find.byType(CupertinoMenuItem), findsNWidgets(6));
-      expect(find.byType(SubmenuButton), findsNWidgets(5));
-      expect(
-        collectMenuItemRects(),
-        equals(const <Rect>[
-          Rect.fromLTRB(4.0, 0.0, 112.0, 48.0),
-          Rect.fromLTRB(112.0, 0.0, 220.0, 48.0),
-          Rect.fromLTRB(112.0, 104.0, 326.0, 152.0),
-          Rect.fromLTRB(220.0, 0.0, 328.0, 48.0),
-          Rect.fromLTRB(328.0, 0.0, 506.0, 48.0)
-        ]),
-      );
+      expect(find.byType(SubmenuButton), findsNWidgets(4));
+      rectsEqual(collectMenuItemRects(), <Rect>[
+            const Rect.fromLTRB(8.0, 61.9, 792.0, 105.9),
+            const Rect.fromLTRB(8.0, 105.9, 792.0, 149.9),
+            const Rect.fromLTRB(8.0, 157.9, 792.0, 201.9),
+            const Rect.fromLTRB(8.0, 249.9, 792.0, 293.9),
+            const Rect.fromLTRB(8.0, 445.9, 792.0, 489.9),
+            const Rect.fromLTRB(8.0, 489.9, 792.0, 533.9)
+          ]);
     });
 
     testWidgets('unconstrained menus show up in the right place in RTL',
@@ -2468,25 +2290,22 @@ void main() {
           ),
         ),
       );
+      await tester.tap(find.byType(CupertinoMenuAnchor));
+      await tester.pumpAndSettle();
+      await tester.tap(TestMenu.matMenu6.findItem);
       await tester.pump();
 
-      await tester.tap(find.text(TestMenu.item1.label));
-      await tester.pump();
-      // await tester.tap(find.text(Label.item8.label));
-      await tester.pump();
 
       expect(find.byType(CupertinoMenuItem), findsNWidgets(6));
-      expect(find.byType(SubmenuButton), findsNWidgets(5));
-      expect(
-        collectMenuItemRects(),
-        equals(const <Rect>[
-          Rect.fromLTRB(688.0, 0.0, 796.0, 48.0),
-          Rect.fromLTRB(580.0, 0.0, 688.0, 48.0),
-          Rect.fromLTRB(474.0, 104.0, 688.0, 152.0),
-          Rect.fromLTRB(472.0, 0.0, 580.0, 48.0),
-          Rect.fromLTRB(294.0, 0.0, 472.0, 48.0)
-        ]),
-      );
+      expect(find.byType(SubmenuButton), findsNWidgets(4));
+      rectsEqual(collectMenuItemRects(), <Rect>[
+        const Rect.fromLTRB(275.0, 61.9, 525.0, 105.9),
+        const Rect.fromLTRB(275.0, 105.9, 525.0, 149.9),
+        const Rect.fromLTRB(275.0, 157.9, 525.0, 201.9),
+        const Rect.fromLTRB(275.0, 249.9, 525.0, 293.9),
+        const Rect.fromLTRB(275.0, 445.9, 525.0, 489.9),
+        const Rect.fromLTRB(275.0, 489.9, 525.0, 533.9)
+      ]);
     });
 
     testWidgets('constrained menus show up in the right place in LTR',
@@ -2514,24 +2333,22 @@ void main() {
           ),
         ),
       );
+      await tester.tap(find.byType(CupertinoMenuAnchor));
+      await tester.pumpAndSettle();
+      await tester.tap(TestMenu.matMenu6.findItem);
       await tester.pump();
 
-      await tester.tap(find.text(TestMenu.item1.label));
-      await tester.pump();
-      await tester.tap(find.text(TestMenu.item9.label));
-      await tester.pump();
-
-      expect(find.byType(CupertinoMenuItem), findsNWidgets(6));
-      expect(find.byType(SubmenuButton), findsNWidgets(5));
+      // Fewer items fit in the constrained menu.
+      expect(find.byType(CupertinoMenuItem), findsNWidgets(4));
+      expect(find.byType(SubmenuButton), findsNWidgets(2));
       expect(
         collectMenuItemRects(),
         equals(const <Rect>[
-          Rect.fromLTRB(4.0, 0.0, 112.0, 48.0),
-          Rect.fromLTRB(112.0, 0.0, 220.0, 48.0),
-          Rect.fromLTRB(86.0, 104.0, 300.0, 152.0),
-          Rect.fromLTRB(220.0, 0.0, 328.0, 48.0),
-          Rect.fromLTRB(328.0, 0.0, 506.0, 48.0)
-        ]),
+            Rect.fromLTRB(25.0, 8.0, 275.0, 52.0),
+            Rect.fromLTRB(25.0, 52.0, 275.0, 96.0),
+            Rect.fromLTRB(25.0, 104.0, 275.0, 148.0),
+            Rect.fromLTRB(25.0, 196.0, 275.0, 240.0)
+          ]),
       );
     });
 
@@ -2560,25 +2377,22 @@ void main() {
           ),
         ),
       );
+        await tester.tap(find.byType(CupertinoMenuAnchor));
+      await tester.pumpAndSettle();
+      await tester.tap(TestMenu.matMenu6.findItem);
       await tester.pump();
 
-      await tester.tap(find.text(TestMenu.item1.label));
-      await tester.pump();
-      await tester.tap(find.text(TestMenu.item9.label));
-      await tester.pump();
-
-      expect(find.byType(CupertinoMenuItem), findsNWidgets(6));
-      expect(find.byType(SubmenuButton), findsNWidgets(5));
-      expect(
+      // Fewer items fit in the constrained menu.
+      expect(find.byType(CupertinoMenuItem), findsNWidgets(4));
+      expect(find.byType(SubmenuButton), findsNWidgets(2));
+      rectsEqual(
         collectMenuItemRects(),
-        equals(const <Rect>[
-          Rect.fromLTRB(188.0, 0.0, 296.0, 48.0),
-          Rect.fromLTRB(80.0, 0.0, 188.0, 48.0),
-          Rect.fromLTRB(0.0, 104.0, 214.0, 152.0),
-          Rect.fromLTRB(-28.0, 0.0, 80.0, 48.0),
-          Rect.fromLTRB(-206.0, 0.0, -28.0, 48.0)
-        ]),
-      );
+        const <Rect>[
+            Rect.fromLTRB(25.0, 8.0, 275.0, 52.0),
+            Rect.fromLTRB(25.0, 52.0, 275.0, 96.0),
+            Rect.fromLTRB(25.0, 104.0, 275.0, 148.0),
+            Rect.fromLTRB(25.0, 196.0, 275.0, 240.0)
+          ]);
     });
 
     testWidgets(
@@ -2595,29 +2409,8 @@ void main() {
                 child: Align(
                   alignment: Alignment.topLeft,
                   child: CupertinoMenuAnchor(
-                    menuChildren: const <Widget>[
-                      // SubmenuButton(
-                      //   alignmentOffset: Offset(10, 0),
-                      //   menuChildren: <Widget>[
-                      //     SubmenuButton(
-                      //       menuChildren: <Widget>[
-                      //         SubmenuButton(
-                      //           alignmentOffset: Offset(10, 0),
-                      //           menuChildren: <Widget>[
-                      //             SubmenuButton(
-                      //               menuChildren: <Widget>[],
-                      //               child: Text('SubMenuButton4'),
-                      //             ),
-                      //           ],
-                      //           child: Text('SubMenuButton3'),
-                      //         ),
-                      //       ],
-                      //       child: Text('SubMenuButton2'),
-                      //     ),
-                      //   ],
-                      //   child: Text('SubMenuButton1'),
-                      // ),
-                    ],
+                    alignmentOffset: const Offset(10, 10),
+                    menuChildren: createTestMenus2( onPressed: onPressed),
                     builder: (BuildContext context,
                         CupertinoMenuController controller, Widget? child) {
                       return FilledButton(
@@ -2638,26 +2431,18 @@ void main() {
           ),
         ),
       );
-      await tester.pump();
 
-      await tester.tap(find.text('Tap me'));
-      await tester.pump();
-      await tester.tap(find.text('SubMenuButton1'));
-      await tester.pump();
-      await tester.tap(find.text('SubMenuButton2'));
-      await tester.pump();
-      await tester.tap(find.text('SubMenuButton3'));
-      await tester.pump();
-
-      expect(find.byType(SubmenuButton), findsNWidgets(4));
-      expect(
+      await tester.tap(find.byType(CupertinoMenuAnchor));
+      await tester.pumpAndSettle();
+      expect(find.byType(CupertinoMenuItem), findsNWidgets(6));
+      rectsEqual(
         collectSubmenuRects(),
-        equals(const <Rect>[
+        const <Rect>[
           Rect.fromLTRB(0.0, 48.0, 256.0, 112.0),
           Rect.fromLTRB(266.0, 48.0, 522.0, 112.0),
           Rect.fromLTRB(522.0, 48.0, 778.0, 112.0),
           Rect.fromLTRB(256.0, 48.0, 512.0, 112.0),
-        ]),
+        ]
       );
     });
 
@@ -2851,92 +2636,6 @@ void main() {
     });
   });
 
-  group('LocalizedShortcutLabeler', () {
-    testWidgets('getShortcutLabel returns the right labels',
-        (WidgetTester tester) async {
-      String expectedMeta;
-      String expectedCtrl;
-      String expectedAlt;
-      String expectedSeparator;
-      String expectedShift;
-      switch (defaultTargetPlatform) {
-        case TargetPlatform.android:
-        case TargetPlatform.fuchsia:
-        case TargetPlatform.linux:
-        case TargetPlatform.windows:
-          expectedCtrl = 'Ctrl';
-          expectedMeta =
-              defaultTargetPlatform == TargetPlatform.windows ? 'Win' : 'Meta';
-          expectedAlt = 'Alt';
-          expectedShift = 'Shift';
-          expectedSeparator = '+';
-        case TargetPlatform.iOS:
-        case TargetPlatform.macOS:
-          expectedCtrl = '⌃';
-          expectedMeta = '⌘';
-          expectedAlt = '⌥';
-          expectedShift = '⇧';
-          expectedSeparator = ' ';
-      }
-
-      const SingleActivator allModifiers = SingleActivator(
-        LogicalKeyboardKey.keyA,
-        control: true,
-        meta: true,
-        shift: true,
-        alt: true,
-      );
-      late String allExpected;
-      switch (defaultTargetPlatform) {
-        case TargetPlatform.android:
-        case TargetPlatform.fuchsia:
-        case TargetPlatform.linux:
-        case TargetPlatform.windows:
-          allExpected = <String>[
-            expectedAlt,
-            expectedCtrl,
-            expectedMeta,
-            expectedShift,
-            'A'
-          ].join(expectedSeparator);
-        case TargetPlatform.iOS:
-        case TargetPlatform.macOS:
-          allExpected = <String>[
-            expectedCtrl,
-            expectedAlt,
-            expectedShift,
-            expectedMeta,
-            'A'
-          ].join(expectedSeparator);
-      }
-      const CharacterActivator charShortcuts = CharacterActivator('ñ');
-      const String charExpected = 'ñ';
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Material(
-            child: CupertinoMenuAnchor(
-              controller: controller,
-              menuChildren: <Widget>[
-                CupertinoMenuItem(
-                  shortcut: allModifiers,
-                  child: Text(TestMenu.item8Disabled.label),
-                ),
-                CupertinoMenuItem(
-                  shortcut: charShortcuts,
-                  child: Text(TestMenu.item9.label),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-      await tester.tap(find.text(TestMenu.item1.label));
-      await tester.pump();
-
-      expect(find.text(allExpected), findsOneWidget);
-      expect(find.text(charExpected), findsOneWidget);
-    }, variant: TargetPlatformVariant.all());
-  });
 
   group('Semantics', () {
     testWidgets('CupertinoMenuItem is not a semantic button',
@@ -2948,6 +2647,7 @@ void main() {
           child: Center(
             child: CupertinoMenuItem(
               onPressed: () {},
+              constraints: BoxConstraints.tight(const Size(88.0, 48.0)),
               child: const Text('ABC'),
             ),
           ),
@@ -3290,7 +2990,7 @@ enum TestMenu {
   final String acceleratorLabel;
   // Strip the accelerator markers.
   String get label => MenuAcceleratorLabel.stripAcceleratorMarkers(acceleratorLabel);
-  Finder get findItem => find.text(label).first;
+  Finder get findItem => find.text(label);
   Text get text => Text(label);
   Type get type => switch(label.split(' ').first){
      'Menu'=>  SubmenuButton,

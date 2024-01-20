@@ -21,7 +21,14 @@ import 'test_anchor.dart';
 // TODO(davidhicks980): A menu button inside of a context menu prevents closure
 // of the inner menu
 
-// TODO(davidhicks980): Focus traversal is broken when encountering a submenu
+// TODO(davidhicks980): Tab-based focus traversal is broken when encountering a
+// submenu: it just loops
+
+// TODO(davidhicks980): Arrow key focus traversal breaks when encountering a
+// submenu
+
+
+
 
 const Duration _kMenuPanReboundDuration = Duration(milliseconds: 600);
 const  bool _kDebugMenus = false;
@@ -346,15 +353,14 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
        final GlobalKey<_CupertinoMenuAnchorProxyState> _internalAnchorKey =
             GlobalKey<_CupertinoMenuAnchorProxyState>(debugLabel: 'CupertinoMenuAnchor');
   CupertinoMenuController? _internalMenuController;
-  AnimationStatus          _menuAnimationStatus = AnimationStatus.dismissed;
+  AnimationStatus _menuAnimationStatus = AnimationStatus.dismissed;
 
-  Object? get _tapRegionId => _internalAnchorKey.currentState?.root;
   /// Whether the menu is open or opening.
   ///
   /// Used to determine whether the menu should be included focus. If the menu
   /// is not open or opening, then the menu should not be included in focus.
   bool get _isOpenOrOpening => _menuAnimationStatus == AnimationStatus.completed ||
-                            _menuAnimationStatus == AnimationStatus.forward;
+                               _menuAnimationStatus == AnimationStatus.forward;
   ui.Rect _anchorRect = ui.Rect.zero;
   bool _hasLeadingWidget = false;
   CupertinoMenuController get _menuController => widget.controller
@@ -426,16 +432,28 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     });
 
     _menuAnimationStatus = AnimationStatus.reverse;
-    if (SchedulerBinding.instance.schedulerPhase != SchedulerPhase.persistentCallbacks) {
-      setState(() { /* Mark dirty if not in a build */ });
-    }
   }
 
   void _close() {
-    _animationController.stop();
-    _animationController.value = 0;
-    _menuAnimationStatus = AnimationStatus.dismissed;
     widget.onClose?.call();
+
+    SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
+      if (mounted) {
+        assert(!_menuController.isOpen);
+        _animationController.stop();
+        _menuAnimationStatus = AnimationStatus.dismissed;
+        if (SchedulerBinding.instance.schedulerPhase !=
+            SchedulerPhase.persistentCallbacks) {
+          _animationController.value = 0.0;
+        } else {
+          SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
+            if (mounted) {
+              _animationController.value = 0.0;
+            }
+          });
+        }
+      }
+    });
   }
 
   void _open() {
@@ -465,10 +483,8 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
         });
       });
 
-    setState(() {
-      _menuAnimationStatus = AnimationStatus.forward;
-    });
 
+    _menuAnimationStatus = AnimationStatus.forward;
     SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
       if(mounted && (_panelKey.currentContext?.mounted ?? false)) {
         FocusScope.of(context).setFirstFocus(
@@ -528,11 +544,12 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
       );
   }
 
-  Widget _buildOverlay(
-    BuildContext overlayContext,
-    FocusScopeNode menuScopeNode,
-    ui.Offset? menuPosition,
-  ) {
+  Widget _buildOverlay({
+    required BuildContext overlayContext,
+    required FocusScopeNode menuFocusScopeNode,
+    Object? focusScopeGroupId,
+    Offset? menuPosition
+  }) {
     final RenderBox anchor = context.findRenderObject()! as RenderBox;
     final RenderBox overlay = Overlay.of(overlayContext).context.findRenderObject()! as RenderBox;
     _anchorRect = anchor.localToGlobal(Offset.zero, ancestor: overlay) & anchor.size;
@@ -546,7 +563,7 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
         onPanEnd: _handlePanEnd,
         onPanUpdate: _handlePanUpdate,
         overlaySize: overlay.paintBounds.size,
-        context: context,
+        context: overlayContext,
         panelKey: _panelKey,
         animation: _animationController,
         controller: _menuController,
@@ -556,12 +573,12 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
         panelActions: _panelActions,
         clipBehavior: widget._clipBehavior,
         scrollPhysics: widget.scrollPhysics,
-        menuScopeNode: menuScopeNode,
+        menuScopeNode: menuFocusScopeNode,
         anchorAlignment: widget.alignment,
         menuAlignment: widget.menuAlignment,
         alignmentOffset: widget.alignmentOffset ?? Offset.zero,
         panAnimation: _panAnimation,
-        tapRegionId: _tapRegionId,
+        tapRegionId: focusScopeGroupId,
         children: widget.menuChildren,
       ),
     );
@@ -625,11 +642,12 @@ class _CupertinoMenuAnchorBase extends MenuAnchor {
     super.child,
   });
 
-  final Widget Function(
-    BuildContext overlayContext,
-    FocusScopeNode menuScopeNode,
-    ui.Offset? menuPosition,
-  ) overlayChildBuilder;
+  final Widget Function({
+    required BuildContext overlayContext,
+    required FocusScopeNode menuFocusScopeNode,
+    Object? focusScopeGroupId,
+    Offset? menuPosition
+  }) overlayChildBuilder;
 
   @override
   State<_CupertinoMenuAnchorBase> createState() => _CupertinoMenuAnchorProxyState();
@@ -637,33 +655,20 @@ class _CupertinoMenuAnchorBase extends MenuAnchor {
 
 class _CupertinoMenuAnchorProxyState extends MenuAnchorState<_CupertinoMenuAnchorBase>
       with TickerProviderStateMixin {
-  CupertinoMenuController get _controller => widget.controller! as CupertinoMenuController;
 
   @override
-  MenuAnchorState get root => super.root;
-
-  @override
-  void didScroll() {
-    if (_controller.isOpen) {
-      _controller._anchor!._beginClose();
-    }
-  }
-
-  @override
-  void didViewResize() {
-    if (_controller.isOpen) {
-      _controller._anchor!._beginClose();
-    }
-  }
-
-  @override
-  Widget buildOverlayChild(
-    BuildContext overlayContext,
-    FocusScopeNode menuScopeNode,
-    ui.Offset? menuPosition,
-  ) {
-
-    return widget.overlayChildBuilder(overlayContext, menuScopeNode, menuPosition);
+  Widget buildOverlayChild({
+    required BuildContext overlayContext,
+    required FocusScopeNode menuFocusScopeNode,
+    Object? focusScopeGroupId,
+    Offset? menuPosition
+  }) {
+    return widget.overlayChildBuilder(
+      overlayContext: overlayContext,
+      menuFocusScopeNode: menuFocusScopeNode,
+      focusScopeGroupId: focusScopeGroupId,
+      menuPosition: menuPosition,
+    );
   }
 }
 

@@ -3,7 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart'  hide  MenuAcceleratorLabel, MenuAnchor, MenuController, MenuItemButton, SubmenuButton;
 
-import 'menu.dart';
+import 'cupertino_menu.0.dart';
 import 'menu_item.dart';
 import 'test_anchor.dart';
 
@@ -22,29 +22,32 @@ class _MenuAppState extends State<MenuApp> {
   final bool _darkMode = true;
   @override
   Widget build(BuildContext context) {
-    // return MaterialApp(
+    return MaterialApp(
 
-    //   theme: ThemeData(useMaterial3: false,  brightness: _darkMode ? Brightness.dark : Brightness.light,),
-    //   home:  Scaffold(
-    //     backgroundColor: _darkMode ? Colors.black : Colors.white,
-    //     body:   const CupertinoMenuExample(),
-    //   )
-    // );
-   return  MaterialApp(
-          home: Directionality(
-            textDirection: TextDirection.rtl,
-            child:   CupertinoMenuAnchor(
-                  menuChildren: createTestMenus2(
-                    shortcuts: <TestMenu, MenuSerializableShortcut>{
-                      TestMenu.item0:  const CharacterActivator('m', control: true),
-                      TestMenu.item1:  const CharacterActivator('a', alt: true),
-                      TestMenu.matMenu5:  const CharacterActivator('b', meta: true),
-                    },
-                    onPressed: (TestMenu menu){},
-                ),
-            ),
-          ),
-        );
+      theme: ThemeData(useMaterial3: false,  brightness: _darkMode ? Brightness.dark : Brightness.light,),
+      home:  Scaffold(
+        backgroundColor: _darkMode ? Colors.black : Colors.white,
+        body:   const CupertinoMenuExample(),
+      )
+    );
+  //  return  ConstrainedBox(
+  //         constraints: const BoxConstraints.tightFor(width: 200, height: 200),
+  //    child: MaterialApp(
+  //           home: Directionality(
+  //             textDirection: TextDirection.rtl,
+  //             child:   CupertinoMenuAnchor(
+  //                     menuChildren: createTestMenus2(
+  //                       shortcuts: <TestMenu, MenuSerializableShortcut>{
+  //                         TestMenu.item0:  const CharacterActivator('m', control: true),
+  //                         TestMenu.item1:  const CharacterActivator('a', alt: true),
+  //                         TestMenu.matMenu5:  const CharacterActivator('b', meta: true),
+  //                       },
+  //                       onPressed: (TestMenu menu){},
+  //               ),
+  //             ),
+  //           ),
+  //         ),
+  //  );
   }
 }
 List<Widget> createTestMenus2({
@@ -75,6 +78,7 @@ List<Widget> createTestMenus2({
     bool enabled = true,
     Widget? leadingIcon,
     Widget? trailingIcon,
+    Widget? subtitle,
     Key? key,
   }) {
     return CupertinoMenuItem(
@@ -84,6 +88,7 @@ List<Widget> createTestMenus2({
       shortcut: shortcuts[menu],
       leading: leadingIcon,
       trailing: trailingIcon,
+      subtitle: subtitle,
       child: accelerators ? MenuAcceleratorLabel(menu.acceleratorLabel) : menu.text,
     );
   }
@@ -111,6 +116,14 @@ List<Widget> createTestMenus2({
     cupertinoMenuItemButton(TestMenu.item2),
     menuItemButton(TestMenu.matItem3, leadingIcon: const Icon(Icons.add)),
     cupertinoMenuItemButton(TestMenu.item4),
+    submenuButton(
+      TestMenu.matMenu5,
+      menuChildren: <Widget>[
+    cupertinoMenuItemButton(TestMenu.item4, leadingIcon: const Text('Leading'), trailingIcon: const Text('Trailing'), subtitle: const Text('Subtitle')),
+    cupertinoMenuItemButton(TestMenu.item4),
+
+      ],
+    ),
     submenuButton(
       TestMenu.matMenu5,
       menuChildren: <Widget>[
