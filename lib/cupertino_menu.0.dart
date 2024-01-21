@@ -8,17 +8,11 @@ import 'package:flutter/cupertino.dart'
         CupertinoTheme,
         CupertinoThemeData;
 import 'package:flutter/material.dart'
-    show
-        CheckboxListTile,
-
-        Slider,
-        TextButton,
-        showAboutDialog;
+    show CheckboxListTile, Colors, FilledButton, Slider, TextButton, showAboutDialog;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import './test_anchor.dart';
 import 'menu.dart';
 import 'menu_item.dart';
 import 'resize.dart';
@@ -328,7 +322,10 @@ class _DropdownState extends State<Dropdown> {
             _offset = _offset.translate(location.delta.dx, location.delta.dy);
           });
         },
-        child: Menu( buttonFocusNode: _buttonFocusNode,)
+        child: Menu(
+          buttonFocusNode: _buttonFocusNode,
+
+          )
       ),
     );
   }
@@ -345,12 +342,14 @@ class Menu extends StatelessWidget {
     return StatefulBuilder(
       builder: (BuildContext context, void Function(void Function()) setState) {
       return CupertinoMenuAnchor(
+        alignmentOffset: const Offset(0,50),
             childFocusNode: buttonFocusNode,
             menuChildren: <Widget>[
               CupertinoMenuItem(
-                requestFocusOnHover: true,
-
-                panActivationDelay: const Duration(milliseconds: 300),
+                pressedColor: const Color.fromRGBO(255, 0, 0, 1),
+                hoveredColor: Colors.green,
+                // requestFocusOnHover: true,
+                // panActivationDelay: const Duration(milliseconds: 300),
                 trailing: const Icon(CupertinoIcons.check_mark_circled),
                 closeOnActivate: false,
                 onPressed: () {
@@ -358,12 +357,10 @@ class Menu extends StatelessWidget {
                 },
                 child: const Text('Favorite Animal'),
               ),
-              MenuItemButton(
-                child: const Text('New Window'), onPressed: () {}),
-
               CupertinoMenuItem(
-                requestFocusOnHover: true,
-
+                // requestFocusOnHover: true,
+                hoveredColor: Colors.green,
+                pressedColor: const Color.fromRGBO(255, 0, 0, 1),
                 trailing: const Icon(CupertinoIcons.folder_badge_plus),
                 closeOnActivate: false,
                 onPressed: () {
@@ -375,9 +372,7 @@ class Menu extends StatelessWidget {
               ),
               const CupertinoMenuLargeDivider(),
               CupertinoMenuItem(
-                requestFocusOnHover: true,
-
-
+                // requestFocusOnHover: true,
                 trailing: const Icon(CupertinoIcons.square_grid_2x2),
                 closeOnActivate: false,
                 subtitle: textVariant
@@ -390,38 +385,17 @@ class Menu extends StatelessWidget {
                     : const Text(
                         'An unusually long string of text to demonstrate how the menu will wrap.'),
               ),
-              SubmenuButton(
-                onClose: () {
-                  print('closed');
-                },
-      menuChildren:
-      <Widget>[
-        MenuItemButton(child: const Text('New Window'), onPressed: () {}),
-        MenuItemButton(child: const Text('New Tab'), onPressed: () {}),
-        MenuItemButton(child: const Text('Close Window'), onPressed: () {}),
-      ],
-      child: const Text('test')
-    ),
-    SubmenuButton(
-      menuChildren:
-      <Widget>[
-        MenuItemButton(child: const Text('New Window'), onPressed: () {}),
-        MenuItemButton(child: const Text('New Tab'), onPressed: () {}),
-        MenuItemButton(child: const Text('Close Window'), onPressed: () {}),
-      ],
-      child: const Text('test')
-    ),
+
               CupertinoMenuItem(
-                requestFocusOnHover: true,
+                // requestFocusOnHover: true,
                 closeOnActivate: false,
                 trailing: const Icon(CupertinoIcons.square_grid_2x2),
                 child: const Text('Icons'),
                 onPressed: () {},
               ),
               const CupertinoMenuLargeDivider(),
-              MenuItemButton(child: const Text('New Window'), onPressed: () {}),
               CupertinoMenuItem(
-                requestFocusOnHover: true,
+                // requestFocusOnHover: true,
 
                 closeOnActivate: false,
                 trailing: const Icon(CupertinoIcons.square_grid_2x2),
@@ -429,7 +403,7 @@ class Menu extends StatelessWidget {
                 onPressed: () {},
               ),
               CupertinoMenuItem(
-                requestFocusOnHover: true,
+                // requestFocusOnHover: true,
 
                 closeOnActivate: false,
                 trailing: const Icon(CupertinoIcons.square_grid_2x2),
@@ -442,7 +416,7 @@ class Menu extends StatelessWidget {
               CupertinoMenuController controller,
               Widget? child,
             ) {
-              return TextButton(
+              return FilledButton(
                 focusNode: buttonFocusNode,
                 onPressed: () {
                   if (controller.animationStatus

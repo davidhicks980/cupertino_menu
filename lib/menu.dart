@@ -589,17 +589,23 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     MenuController controller,
     Widget? child,
   ) {
-    return widget.builder?.call(context, _menuController, widget.child)
-            ?? widget.child
-            ?? CupertinoButton(
-                onPressed: () {
-                  if (!_isOpenOrOpening) {
-                    _menuController.open();
-                  } else {
-                    _menuController.close();
-                  }
-                },
-                child: const Icon(CupertinoIcons.ellipsis_circle),
+    return _PanRegion<PanTarget<StatefulWidget>>(
+      // group: 'group',
+      onPanUpdate: (DragUpdateDetails details) {
+        print('pan update');
+      },
+      child: widget.builder?.call(context, _menuController, widget.child)
+              ?? widget.child
+              ?? CupertinoButton(
+                  onPressed: () {
+                    if (!_isOpenOrOpening) {
+                      _menuController.open();
+                    } else {
+                      _menuController.close();
+                    }
+                  },
+                  child: const Icon(CupertinoIcons.ellipsis_circle),
+      ),
     );
   }
 
@@ -694,6 +700,7 @@ class _MenuPanel extends StatelessWidget {
     AlignmentGeometry? anchorAlignment,
     this.constraints,
     this.tapRegionId,
+    this.panRegionId,
   })  : _alignmentOffset = alignmentOffset,
         _anchorAlignment = anchorAlignment,
         _anchorRect = anchorRect,
@@ -719,6 +726,7 @@ class _MenuPanel extends StatelessWidget {
   final Animation<double> panAnimation;
   final Object? tapRegionId;
   final AlignmentGeometry? _menuAlignment;
+  final Object? panRegionId;
 
   @override
   Widget build(BuildContext context) {
@@ -736,6 +744,7 @@ class _MenuPanel extends StatelessWidget {
             onPanUpdate: onPanUpdate,
             onPanEnd: onPanEnd,
             onPanCancel: onPanEnd,
+            // group: 'group',
             child: _MenuPanelSurface(
               depth: 0,
               animation: animation,
@@ -879,8 +888,8 @@ class _MenuPanelLayout extends StatelessWidget {
   static const double defaultEdgeInsets = 8;
 
   Offset _resolveOffset(TextDirection direction) {
-    if (direction == TextDirection.rtl &&
-        alignment is AlignmentDirectional) {
+    if (direction == TextDirection.rtl
+        && alignment is AlignmentDirectional) {
       return Offset(-anchorOffset!.dx, anchorOffset!.dy);
     }
 
@@ -889,60 +898,72 @@ class _MenuPanelLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ui.TextDirection direction = Directionality.of(context);
-    final Offset anchorOffset = _resolveOffset(direction);
-    final Rect anchRect = anchorRect.shift(anchorOffset);
-    final Alignment? resolveAlignment = alignment?.resolve(direction);
+    final Offset resolvedAnchorOffset = _resolveOffset(direction);
+    final Rect resolvedAnchorRect = anchorRect.shift(resolvedAnchorOffset);
+    final Alignment? resolvedAlignment = alignment?.resolve(direction);
     final Alignment? resolvedMenuAlignment = menuAlignment?.resolve(direction);
-    final ui.Offset growthPoint = anchRect.topLeft
-                                    + (resolveAlignment ?? Alignment.center).alongSize(anchRect.size);
 
-    // The alignment of the menu growth point relative to the screen.
+    // The point on the menu surface that should appear to grow from. The growth
+    // point will ignore any offset applied (in other words, anchorRect is used
+    // instead of resolvedAnchorRect), so offset will not determine the
+    // growth direction.
+    final ui.Offset growthPoint = anchorRect.topLeft
+                                    + (resolvedAlignment ?? Alignment.center)
+                                        .alongSize(anchorRect.size);
+
+    // The alignment of the menu growth point relative to the screen. The
+    // alignment has already been resolved for the text direction. This value
+    // is used to determine the growth direction.
     final Alignment menuToScreenAlignment = Alignment(
       (growthPoint.dx / overlaySize.width) * 2 - 1,
       (growthPoint.dy / overlaySize.height) * 2 - 1,
     );
 
+    // The direction that the menu should grow from. If the menu anchor point is
+    // above the center of the screen, the menu will grow downwards. Otherwise,
+    // it will grow upwards
     final VerticalDirection growthDirection = menuToScreenAlignment.y > 0
                                               ? VerticalDirection.up
                                               : VerticalDirection.down;
     return ScaleTransition(
       scale: panAnimation,
       alignment: menuToScreenAlignment,
-      child: Builder(
-        builder: (BuildContext context) {
-          final MediaQueryData mediaQuery = MediaQuery.of(context);
-          final double textScale = mediaQuery.textScaler.scale(1);
-          final double width = textScale > 1.25 ? 350.0 : 250.0;
-          final BoxConstraints resolvedConstraints = BoxConstraints(
-            minWidth: constraints?.minWidth ?? width,
-            maxWidth: constraints?.maxWidth ?? width,
-            minHeight: constraints?.minHeight ?? 0.0,
-            maxHeight: constraints?.maxHeight ?? double.infinity,
-          );
+      child: Builder(builder: (BuildContext context) {
+        final MediaQueryData mediaQuery = MediaQuery.of(context);
+        final double textScale = mediaQuery.textScaler.scale(1);
+        final double width = textScale > 1.25 ? 350.0 : 250.0;
+        final BoxConstraints resolvedConstraints = BoxConstraints(
+          minWidth: constraints?.minWidth ?? width,
+          maxWidth: constraints?.maxWidth ?? width,
+          minHeight: constraints?.minHeight ?? 0.0,
+          maxHeight: constraints?.maxHeight ?? double.infinity,
+        );
 
-          return CustomSingleChildLayout(
-            delegate: _MenuLayout(
-              anchorAlignment: resolveAlignment ??
-                  (growthDirection == VerticalDirection.up
-                      ? Alignment.topCenter
-                      : Alignment.bottomCenter),
-              menuAlignment: resolvedMenuAlignment ??
-                  (growthDirection == VerticalDirection.up
-                      ? const Alignment(0, 1.025)
-                      : const Alignment(0, -1.025)),
-              anchorPosition: RelativeRect.fromSize(anchRect, overlaySize),
-              growthDirection: growthDirection,
-              textDirection: Directionality.of(context),
-              edgeInsets: _edgeInsets,
-              avoidBounds: DisplayFeatureSubScreen.avoidBounds(mediaQuery).toSet(),
+        return CustomSingleChildLayout(
+          delegate: _MenuLayout(
+            anchorAlignment: resolvedAlignment
+                              ?? (growthDirection == VerticalDirection.up
+                                      ? Alignment.topCenter
+                                      : Alignment.bottomCenter),
+            menuAlignment: resolvedMenuAlignment
+                            ?? (growthDirection == VerticalDirection.up
+                                ? const Alignment(0, 1.025)
+                                : const Alignment(0, -1.025)),
+            anchorPosition: RelativeRect.fromSize(
+              resolvedAnchorRect,
+              overlaySize,
             ),
-            child: ConstrainedBox(
-              constraints: resolvedConstraints,
-              child: child,
-            ),
-          );
-        }
-      ),
+            growthDirection: growthDirection,
+            textDirection: Directionality.of(context),
+            edgeInsets: _edgeInsets,
+            avoidBounds: DisplayFeatureSubScreen.avoidBounds(mediaQuery).toSet(),
+          ),
+          child: ConstrainedBox(
+            constraints: resolvedConstraints,
+            child: child,
+          ),
+        );
+      }),
     );
   }
 }
@@ -1406,6 +1427,7 @@ class RenderPanningScale<T extends PanTarget<StatefulWidget>> extends RenderProx
     for (int i = 0; i < _enteredTargets.length; i += 1) {
       _enteredTargets[i].didPanLeave(complete: complete);
     }
+
     _enteredTargets.clear();
   }
 }

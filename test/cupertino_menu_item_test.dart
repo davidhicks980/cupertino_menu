@@ -4,7 +4,6 @@
 
 // import 'package:cupertino_menu/menu.dart';
 // import 'package:cupertino_menu/menu_item.dart';
-import 'package:example/menu_item.dart';
 import 'package:flutter/cupertino.dart'
     show
         CupertinoApp,
@@ -18,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'utils.dart';
 
 class MenuItemDimensions {
   MenuItemDimensions({
@@ -885,6 +885,44 @@ void main() {
       );
     });
 
+    testWidgets('Pan highlight: CupertinoNestedMenuItemAnchor',
+        (WidgetTester tester) async {
+      final SampleNestedMenu<String> menu =
+          SampleNestedMenu<String>(withController: true);
+      final PointerHighlightTester<String> pointerTester =
+          PointerHighlightTester<String>(tester, menu);
 
+      await pointerTester.testMoveOverItem(
+        highlightColor: const Color(0x00000000),
+        item: CupertinoNestedMenu<String>(
+            enabled: false,
+            title: TextSpan(text: menu.root.itemText),
+            itemBuilder: (BuildContext context) {
+              return <CupertinoMenuEntry<String>>[];
+            }),
+        pointerDown: true,
+      );
+
+      await pointerTester.testMoveOverItem(
+        highlightColor: CupertinoMenuEntry.backgroundOnPress,
+        item: CupertinoNestedMenu<String>(
+            title: TextSpan(text: menu.root.itemText),
+            itemBuilder: (BuildContext context) {
+              return <CupertinoMenuEntry<String>>[];
+            }),
+        pointerDown: true,
+      );
+
+      await pointerTester.testMoveOverItem(
+        highlightColor: testColor,
+        item: CupertinoNestedMenu<String>(
+            pressedColor: testColor,
+            title: TextSpan(text: menu.root.itemText),
+            itemBuilder: (BuildContext context) {
+              return <CupertinoMenuEntry<String>>[];
+            }),
+        pointerDown: true,
+      );
+    });
   });
 }
