@@ -17,7 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'utils.dart';
+import 'menu_main.dart';
 
 class MenuItemDimensions {
   MenuItemDimensions({

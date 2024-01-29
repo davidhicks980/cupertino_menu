@@ -59,10 +59,10 @@ class CupertinoMenuExample extends StatefulWidget {
 }
 
 class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
-  TextDirection _directionality = TextDirection.ltr;
-  double _textSizeSliderValue = 1.0;
-  bool _darkMode = true;
-  bool _background = true;
+   TextDirection _directionality = TextDirection.ltr;
+   double _textSizeSliderValue = 1.0;
+   bool _darkMode = true;
+   bool _background = true;
   Rect anchorPosition = const Rect.fromLTWH(0, 0, 50, 40);
   Rect settingsPosition = const Rect.fromLTWH(0, 0, 50, 40);
   ui.Image? _lightImage;
@@ -306,7 +306,6 @@ class Dropdown extends StatefulWidget {
 class _DropdownState extends State<Dropdown> {
   final FocusNode _buttonFocusNode = FocusNode();
   late final CupertinoMenuController controller = CupertinoMenuController();
-
   Offset _offset = const Offset(200, 200);
 
   @override
@@ -331,27 +330,33 @@ class _DropdownState extends State<Dropdown> {
   }
 }
 
-class Menu extends StatelessWidget {
+class Menu extends StatefulWidget {
 
   const Menu({super.key,  this.buttonFocusNode});
   final FocusNode? buttonFocusNode;
 
   @override
-  Widget build(BuildContext context) {
+  State<Menu> createState() => _MenuState();
+}
+
+class _MenuState extends State<Menu> {
     bool textVariant = false;
-    return StatefulBuilder(
-      builder: (BuildContext context, void Function(void Function()) setState) {
-      return CupertinoMenuAnchor(
-        alignmentOffset: const Offset(0,50),
-            childFocusNode: buttonFocusNode,
+
+  @override
+  Widget build(BuildContext context) {
+    final String superLong = 'subtitle ' * 1000;
+    return CupertinoMenuAnchor(
+            childFocusNode: widget.buttonFocusNode,
+            enablePan: false,
             menuChildren: <Widget>[
               CupertinoMenuItem(
-                pressedColor: const Color.fromRGBO(255, 0, 0, 1),
-                hoveredColor: Colors.green,
+                isDefaultAction: true,
                 // requestFocusOnHover: true,
                 // panActivationDelay: const Duration(milliseconds: 300),
+                leading: const Icon(CupertinoIcons.check_mark_circled),
                 trailing: const Icon(CupertinoIcons.check_mark_circled),
                 closeOnActivate: false,
+                subtitle: const Text('Subtitle'),
                 onPressed: () {
                   print('activated');
                 },
@@ -370,20 +375,19 @@ class Menu extends StatelessWidget {
                 },
                 child: const Text('New Folder'),
               ),
-              const CupertinoMenuLargeDivider(),
+              const CupertinoLargeMenuDivider(),
               CupertinoMenuItem(
                 // requestFocusOnHover: true,
-                trailing: const Icon(CupertinoIcons.square_grid_2x2),
+                trailing: Text( superLong),
+                leading: Text( superLong),
                 closeOnActivate: false,
                 subtitle: textVariant
                     ? const Text('Small text')
-                    : const Text(
-                        'An unusually long string of text to demonstrate how the menu will wrap.'),
+                    :  Text(superLong),
                 onPressed: () {},
                 child: textVariant
                     ? const Text('Small text')
-                    : const Text(
-                        'An unusually long string of text to demonstrate how the menu will wrap.'),
+                    :  Text(key:const Key('a'), superLong),
               ),
 
               CupertinoMenuItem(
@@ -393,7 +397,7 @@ class Menu extends StatelessWidget {
                 child: const Text('Icons'),
                 onPressed: () {},
               ),
-              const CupertinoMenuLargeDivider(),
+              const CupertinoLargeMenuDivider(),
               CupertinoMenuItem(
                 // requestFocusOnHover: true,
 
@@ -417,9 +421,9 @@ class Menu extends StatelessWidget {
               Widget? child,
             ) {
               return FilledButton(
-                focusNode: buttonFocusNode,
+                focusNode: widget.buttonFocusNode,
                 onPressed: () {
-                  if (controller.animationStatus
+                  if (controller.menuStatus
                       case AnimationStatus.forward || AnimationStatus.completed) {
                     controller.close();
                   } else {
@@ -432,7 +436,6 @@ class Menu extends StatelessWidget {
               );
             },
           );
-       });
 
   }
 }

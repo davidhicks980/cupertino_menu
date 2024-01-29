@@ -5,11 +5,17 @@
     "editor.formatOnType": false,
     "editor.formatOnPaste": false
   },
-
   "html.format.enable": false,
   "githubPullRequests.ignoredPullRequestBranches": ["master"],
   "files.trimTrailingWhitespace": true,
   "editor.codeActionsOnSave": {
+    "source.organizeImports": "never",
     "source.fixAll": "explicit"
-  }
+  },
+  "dart.analyzeAngularTemplates": false,
+  "dart.analysisServerFolding": false,
+  "dart.documentation": "full",
+  "dart.enableCompletionCommitCharacters": true,
+  "dart.renameFilesWithClasses": "prompt",
+  "dart.allowTestsOutsideTestFolder": true
 }

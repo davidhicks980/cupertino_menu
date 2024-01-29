@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -21,10 +22,10 @@ class ResizebleWidget extends StatefulWidget {
 const double ballDiameter = 45.0;
 
 class _ResizebleWidgetState extends State<ResizebleWidget> {
-  double? _height = 300;
-  double? _width = 300;
-  double? _top = 0;
-  double? _left = 0;
+  double? _height = 300.0;
+  double? _width = 300.0;
+  double? _top = 0.0;
+  double? _left = 0.0;
 
   SystemMouseCursor _middleCursor = SystemMouseCursors.grab;
 
@@ -51,14 +52,14 @@ class _ResizebleWidgetState extends State<ResizebleWidget> {
   @override
   Widget build(BuildContext context) {
     final Size size = MediaQuery.sizeOf(context);
-    double clampX(double value) => value.clamp(8, size.width - 8);
-    double clampY(double value) => value.clamp(100, size.height - 100);
-    final double startX = clampX(_left! - ballDiameter / 2);
-    final double startY = clampY(_top! - ballDiameter / 2);
-    final double midX   = clampX(_left! + _width! / 2 - ballDiameter / 2);
-    final double midY   = clampY(_top! + _height! / 2 - ballDiameter / 2);
-    final double endX   = clampX(_left! + _width! - ballDiameter / 2);
-    final double endY   = clampY(_top! + _height! - ballDiameter / 2);
+    double clampX(double value) => ui.clampDouble(value, 8.0, math.max(size.width - 8.0, 8.0));
+    double clampY(double value) => ui.clampDouble(value, 100.0, math.max(size.height - 100.0, 100.0));
+    final double startX = clampX(_left! - ballDiameter / 2.0);
+    final double startY = clampY(_top! - ballDiameter / 2.0);
+    final double midX   = clampX(_left! + _width! / 2.0 - ballDiameter / 2.0);
+    final double midY   = clampY(_top! + _height! / 2.0 - ballDiameter / 2.0);
+    final double endX   = clampX(_left! + _width! - ballDiameter / 2.0);
+    final double endY   = clampY(_top! + _height! - ballDiameter / 2.0);
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
@@ -82,8 +83,8 @@ class _ResizebleWidgetState extends State<ResizebleWidget> {
             child: ManipulatingBall(
               cursor: SystemMouseCursors.resizeDownRight,
               onDrag: (double dx, double dy) {
-                _height = max(_height! - dy, 0);
-                _width = max(_width! - dx, 0);
+                _height = math.max(_height! - dy, 0);
+                _width = math.max(_width! - dx, 0);
                 if (_width! > 0) {
                   _left = _left! + dx;
                 }
@@ -120,10 +121,10 @@ class _ResizebleWidgetState extends State<ResizebleWidget> {
               cursor: SystemMouseCursors.resizeDownLeft,
               handleDragEnd: storePosition,
               onDrag: (double dx, double dy) {
-                _height = max(_height! - dy, 0);
-                _width = max(_width! + dx, 0);
+                _height = math.max(_height! - dy, 0);
+                _width = math.max(_width! + dx, 0);
                 if (_width! > 0) {
-                  _top = max(_top! + dy, 0);
+                  _top = math.max(_top! + dy, 0);
                 }
                 setState(() {});
               },
@@ -180,8 +181,8 @@ class _ResizebleWidgetState extends State<ResizebleWidget> {
             child: ManipulatingBall(
               cursor: SystemMouseCursors.resizeUpRight,
               onDrag: (double dx, double dy) {
-                _height = max(_height! + dy, 0);
-                _width = max(_width! - dx, 0);
+                _height = math.max(_height! + dy, 0);
+                _width = math.max(_width! - dx, 0);
                 if (_width! > 0) {
                   _left = _left! + dx;
                 }
@@ -197,7 +198,7 @@ class _ResizebleWidgetState extends State<ResizebleWidget> {
             child: ManipulatingBall(
               cursor: SystemMouseCursors.resizeLeftRight,
               onDrag: (double dx, double dy) {
-                _width = max(_width! - dx, 0);
+                _width = math.max(_width! - dx, 0);
                 if (_width! > 0) {
                   _left = _left! + dx;
                 }
@@ -209,7 +210,7 @@ class _ResizebleWidgetState extends State<ResizebleWidget> {
           // center center
           Positioned(
             top:  endY - 30,
-            left: max(endX - 30,8),
+            left: math.max(endX - 30,8),
             child: ManipulatingBall(
               cursor: _middleCursor,
               onDrag: (double dx, double dy) {
