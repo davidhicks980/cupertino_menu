@@ -379,7 +379,7 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
         return buildOverlayChild(
           overlayContext: overlayContext,
           menuFocusScopeNode: _menuScopeNode,
-          focusScopeGroupId: _root._menuScopeNode,
+          tapRegionGroupId: _root._menuScopeNode,
           menuPosition: _menuPosition,
         );
       },
@@ -411,8 +411,9 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
   Widget buildOverlayChild({
     required BuildContext overlayContext,
     required FocusScopeNode menuFocusScopeNode,
-    Object? focusScopeGroupId,
-    Offset? menuPosition
+    Offset? menuPosition,
+    // Provided for subclasses to override.
+    Object? tapRegionGroupId,
   }) {
     return _Submenu(
       anchor: this,
@@ -732,12 +733,13 @@ class MenuController {
 /// corresponding [SubmenuButton] child of the menu bar.
 ///
 /// {@template flutter.material.MenuBar.shortcuts_note}
-/// Menus using [MenuItemButton] can have a [SingleActivator] or
-/// [CharacterActivator] assigned to them as their [MenuItemButton.shortcut],
-/// which will display an appropriate shortcut hint. Even though the shortcut
-/// labels are displayed in the menu, shortcuts are not automatically handled.
-/// They must be available in whatever context they are appropriate, and handled
-/// via another mechanism.
+/// Menus using [MenuItemButton] or [CupertinoMenuItem] can have a
+/// [SingleActivator] or [CharacterActivator] assigned to them as their
+/// [MenuItemButton.shortcut] or [CupertinoMenuItem.shortcut] property, which will
+/// display an appropriate shortcut hint. Even though the shortcut labels are
+/// displayed in the menu, shortcuts are not automatically handled. They must be
+/// available in whatever context they are appropriate, and handled via another
+/// mechanism.
 ///
 /// If shortcuts should be generally enabled, but are not easily defined in a
 /// context surrounding the menu bar, consider registering them with a
@@ -768,8 +770,8 @@ class MenuController {
 ///   platform instead of by Flutter (on macOS, for example).
 /// * [ShortcutRegistry], a registry of shortcuts that apply for the entire
 ///   application.
-/// * [VoidCallbackIntent], to define intents that will call a [VoidCallback] and
-///   work with the [Actions] and [Shortcuts] system.
+/// * [VoidCallbackIntent], to define intents that will call a [VoidCallback]
+///   and work with the [Actions] and [Shortcuts] system.
 /// * [CallbackShortcuts], to define shortcuts that call a callback without
 ///   involving [Actions].
 class MenuBar extends StatelessWidget {

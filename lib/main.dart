@@ -1,8 +1,11 @@
+import 'dart:math';
+import 'dart:ui';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart'  hide  MenuAcceleratorLabel, MenuAnchor, MenuBar, MenuController, MenuItemButton, SubmenuButton;
-
+import 'package:flutter/scheduler.dart';
+import 'cupertino_menu.0.dart';
 import 'menu.dart';
-import 'menu_item.dart';
 import 'test_anchor.dart';
 
 /// Flutter code sample for [MenuAnchor].
@@ -17,76 +20,57 @@ class MenuApp extends StatefulWidget {
 }
 
 class _MenuAppState extends State<MenuApp> with SingleTickerProviderStateMixin {
-  final bool _darkMode = true;
   bool hide = false;
-  final FocusNode focusNode1 = FocusNode();
-  final FocusNode focusNode2 = FocusNode();
-  FocusNode? itemFocusNode = FocusNode();
   late final AnimationController animationController = AnimationController(
     vsync: this,
     duration: const Duration(
       milliseconds: 1000,
     ),
   );
-   List<CupertinoMenuItem> get items => <CupertinoMenuItem>[
-        CupertinoMenuItem(
-          closeOnActivate: false,
-          padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 0),
 
-          focusNode: focusNode1,
-           onPressed: () {
-            setState(() {
-              hide = !hide;
-            });
-          },
-          subtitle: const Text('Item 0'),
-          child: const Text('Item 0'),
-        ),
-        CupertinoMenuItem(
-          closeOnActivate: false,
-          leading: const Icon(Icons.add),
-          trailing: const Icon(Icons.add),
-          padding: const EdgeInsetsDirectional.fromSTEB(20, 0, 20, 0),
-          focusNode: focusNode2,
-          onPressed: () {
-            setState(() {
-              hide = !hide;
-            });
-          },
-          child: const Text('Item 1'),
-        ),
-        CupertinoMenuItem(
-          closeOnActivate: false,
-           onPressed: () {
-            setState(() {
-              hide = !hide;
-            });
-          },
-          child: const Text('Item 2'),
-        ),
-      ];
+  final Alignment _alignment = Alignment.topLeft;
+
+
 
   @override
   void dispose() {
-    focusNode1.dispose();
-    focusNode2.dispose();
     animationController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    const CupertinoThemeData themeData = CupertinoThemeData();
-    return const CupertinoApp(
-          home: CupertinoMenuAnchor(
-            builder: _buildAnchor,
-            menuChildren: <Widget>[
-              _DebugCupertinoMenuEntryMixin(child: Text('Menu 0')),
-              _DebugCupertinoMenuEntryMixin(child: Text('Menu 0')),
-              _DebugCupertinoMenuEntryMixin(child: Text('Menu 0')),
-            ],
+    return  CupertinoApp(
+      home: Column(
+        children: <Widget>[
+          CupertinoMenuItem(
+            onPressed: () {},
+            leading: const Icon(Icons.add),
+            trailing: const Icon(Icons.add),
+            child: const Text('test'),
           ),
-        );
+        ],
+      ));
+
+    // CupertinoApp(
+    //           home:   Center(
+    //             child: CupertinoMenuAnchor(
+    //                   backgroundColor: CupertinoColors.activeGreen.withOpacity(0.5),
+    //                   builder: _buildAnchor,
+    //                   onClose: () {
+    //                     print('closed');
+    //                   },
+    //                   menuChildren: createTestMenus2(
+    //                     onPressed: (TestMenu p0) {
+    //                       _alignment  = Alignment(Random().nextDouble(), Random().nextDouble());
+    //                       setState(() {
+
+    //                       });
+    //                     }
+    //                 ),
+    //             ),
+    //           ),
+    // );
   //  return  ConstrainedBox(
   //         constraints: const BoxConstraints.tightFor(width: 200, height: 200),
   //    child: MaterialApp(
@@ -110,93 +94,26 @@ class _MenuAppState extends State<MenuApp> with SingleTickerProviderStateMixin {
 
 
 
-const double _kBorderWidth = 4.0;
-const double _kBorderRadius = 8.0;
-const double _kClipRadius = 12.0;
-
-const int _kBlueStartingIndex = 0;
-const int _kYellowStartingIndex = 3;
-
-
-
-Widget buildTestApp({
-    AlignmentGeometry? alignment,
-    AlignmentGeometry? menuAlignment,
-    Offset alignmentOffset = Offset.zero,
-    TextDirection textDirection = TextDirection.ltr,
-    bool consumesOutsideTap = false,
-     List<Widget>? children,
-    void Function(TestMenu item)? onPressed,
-    void Function()? onOpen,
-    void Function()? onClose,
-    CupertinoThemeData theme = const CupertinoThemeData(),
-  }) {
-    final FocusNode focusNode = FocusNode();
-    return CupertinoApp(
-      home: CupertinoTheme(
-        data: theme,
-        child: Directionality(
-            textDirection: textDirection,
-            child: Column(
-              children: <Widget>[
-                GestureDetector(
-                    onTap: () {
-                      onPressed?.call(TestMenu.outsideButton);
-                    },
-                    child: Text(TestMenu.outsideButton.label)),
-                CupertinoMenuAnchor(
-                  childFocusNode: focusNode,
-                  alignmentOffset: alignmentOffset,
-                  alignment: alignment,
-                  menuAlignment: menuAlignment,
-                  consumeOutsideTap: consumesOutsideTap,
-                  onOpen: onOpen,
-                  onClose: onClose,
-                  menuChildren: children ?? createTestMenus2(
-                      onPressed: onPressed,
-                  ),
-                  builder: (BuildContext context,
-                      CupertinoMenuController controller, Widget? child) {
-                    return ElevatedButton(
-                      focusNode: focusNode,
-                      onPressed: () {
-                        if (controller.isOpen) {
-                          controller.close();
-                        } else {
-                          controller.open();
-                        }
-                        onPressed?.call(TestMenu.anchorButton);
-                      },
-                      child: TestMenu.anchorButton.text,
-                    );
-                  },
-                ),
-              ],
-            ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildAnchor(
   BuildContext context,
   MenuController controller,
   Widget? child,
 ) {
-  return Material(
-    child: InkWell(
-        onTap: () {
-          if (controller.isOpen) {
-            controller.close();
-          } else {
-            controller.open();
-          }
-        },
-        child:  SizedBox(
-          height: 56,
-          width: 56,
-          child: TestMenu.anchorButton.text,
-        )),
+  return ConstrainedBox(
+    constraints: const BoxConstraints.tightFor(width: 56, height: 56),
+    child: Material(
+      child: InkWell(
+          onTap: () {
+            if (controller.isOpen case true) {
+              controller.close();
+            } else {
+              controller.open();
+            }
+          },
+          child:   const Icon(Icons.add),
+          )
+    ),
   );
 }
 
@@ -221,6 +138,7 @@ List<Widget> createTestMenus2({
     Key? key,
   }) {
     return CupertinoMenuItem(
+      requestCloseOnActivate: false,
       requestFocusOnHover: requestFocusOnHover,
       key: key,
       onPressed: enabled && onPressed != null ? () => onPressed(menu) : null,
@@ -252,10 +170,8 @@ enum TestMenu {
   item4('I&tem 4'),
   item5Disabled('Ite&m 8'),
   item6('Ite&m 9'),
-
   anchorButton('Press Me'),
   outsideButton('Outside');
-
   const TestMenu(this.acceleratorLabel);
   final String acceleratorLabel;
   // Strip the accelerator markers.
@@ -304,3 +220,137 @@ class _DebugCupertinoMenuEntryMixin extends StatelessWidget with CupertinoMenuEn
     return child;
   }
 }
+
+
+
+// List<Widget> createTestMenus({
+//   void Function(TestMenu)? onPressed,
+//   void Function(TestMenu)? onOpen,
+//   void Function(TestMenu)? onClose,
+//   Map<TestMenu, MenuSerializableShortcut> shortcuts = const <TestMenu, MenuSerializableShortcut>{},
+//   bool includeExtraGroups = false,
+//   bool accelerators = false,
+// }) {
+
+//     Widget cupertinoMenuItemButton(
+//     TestMenu menu, {
+//     bool enabled = true,
+//     Widget? leadingIcon,
+//     Widget? trailingIcon,
+//     Key? key,
+//   }) {
+//     return CupertinoMenuItem(
+//       key: key,
+//       onPressed: enabled && onPressed != null ? () => onPressed(menu) : null,
+//       leading: leadingIcon,
+//       trailing: trailingIcon,
+//       child:  const Text('test'),
+//     );
+//   }
+//   Widget submenuButton(
+//     TestMenu menu, {
+//     required List<Widget> menuChildren,
+//   }) {
+//     return SubmenuButton(
+//       onOpen: onOpen != null ? () => onOpen(menu) : null,
+//       onClose: onClose != null ? () => onClose(menu) : null,
+//       menuChildren: menuChildren,
+//       child: accelerators ? MenuAcceleratorLabel(menu.acceleratorLabel) : Text(menu.label),
+//     );
+//   }
+
+//   Widget menuItemButton(
+//     TestMenu menu, {
+//     bool enabled = true,
+//     Widget? leadingIcon,
+//     Widget? trailingIcon,
+//     Key? key,
+//   }) {
+//     return MenuItemButton(
+//       key: key,
+//       onPressed: enabled && onPressed != null ? () => onPressed(menu) : null,
+//       shortcut: shortcuts[menu],
+//       leadingIcon: leadingIcon,
+//       trailingIcon: trailingIcon,
+//       child: accelerators ? MenuAcceleratorLabel(menu.acceleratorLabel) : Text(menu.label),
+//     );
+//   }
+
+//   final List<Widget> result = <Widget>[
+//     cupertinoMenuItemButton(TestMenu.mainMenu0, leadingIcon: const Icon(Icons.add)),
+//       menuItemButton(TestMenu.subMenu00, leadingIcon: const Icon(Icons.add)),
+//     submenuButton(
+//       TestMenu.mainMenu1,
+//       menuChildren: <Widget>[
+//         menuItemButton(TestMenu.subMenu10),
+//         submenuButton(
+//           TestMenu.subMenu11,
+//           menuChildren: <Widget>[
+//             menuItemButton(TestMenu.subSubMenu110, key: UniqueKey()),
+//             menuItemButton(TestMenu.subSubMenu111),
+//             menuItemButton(TestMenu.subSubMenu112),
+//             menuItemButton(TestMenu.subSubMenu113),
+//           ],
+//         ),
+//         menuItemButton(TestMenu.subMenu12),
+//       ],
+//     ),
+//     submenuButton(
+//       TestMenu.mainMenu2,
+//       menuChildren: <Widget>[
+//         menuItemButton(
+//           TestMenu.subMenu20,
+//           leadingIcon: const Icon(Icons.ac_unit),
+//           enabled: false,
+//         ),
+//       ],
+//     ),
+//     if (includeExtraGroups)
+//       submenuButton(
+//         TestMenu.mainMenu3,
+//         menuChildren: <Widget>[
+//           menuItemButton(TestMenu.subMenu30, enabled: false),
+//         ],
+//       ),
+//     if (includeExtraGroups)
+//       submenuButton(
+//         TestMenu.mainMenu4,
+//         menuChildren: <Widget>[
+//           menuItemButton(TestMenu.subMenu40, enabled: false),
+//           menuItemButton(TestMenu.subMenu41, enabled: false),
+//           menuItemButton(TestMenu.subMenu42, enabled: false),
+//         ],
+//       ),
+//     submenuButton(TestMenu.mainMenu5, menuChildren: const <Widget>[]),
+//   ];
+//   return result;
+// }
+
+// enum TestMenu {
+//   mainMenu0('&Menu 0'),
+//   mainMenu1('M&enu &1'),
+//   mainMenu2('Me&nu 2'),
+//   mainMenu3('Men&u 3'),
+//   mainMenu4('Menu &4'),
+//   mainMenu5('Menu &5 && &6 &'),
+//   subMenu00('Sub &Menu 0&0'),
+//   subMenu01('Sub Menu 0&1'),
+//   subMenu02('Sub Menu 0&2'),
+//   subMenu10('Sub Menu 1&0'),
+//   subMenu11('Sub Menu 1&1'),
+//   subMenu12('Sub Menu 1&2'),
+//   subMenu20('Sub Menu 2&0'),
+//   subMenu30('Sub Menu 3&0'),
+//   subMenu40('Sub Menu 4&0'),
+//   subMenu41('Sub Menu 4&1'),
+//   subMenu42('Sub Menu 4&2'),
+//   subSubMenu110('Sub Sub Menu 11&0'),
+//   subSubMenu111('Sub Sub Menu 11&1'),
+//   subSubMenu112('Sub Sub Menu 11&2'),
+//   subSubMenu113('Sub Sub Menu 11&3');
+
+//   const TestMenu(this.acceleratorLabel);
+//   final String acceleratorLabel;
+//   // Strip the accelerator markers.
+//   String get label => MenuAcceleratorLabel.stripAcceleratorMarkers(acceleratorLabel);
+// }

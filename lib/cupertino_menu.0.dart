@@ -16,6 +16,7 @@ import 'package:flutter/widgets.dart';
 import 'menu.dart';
 import 'menu_item.dart';
 import 'resize.dart';
+import 'test_anchor.dart';
 
 // import 'menu.dart';
 // import 'menu_item.dart';
@@ -107,11 +108,7 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
             platformBrightness: _darkMode ? Brightness.dark : Brightness.light,
           ),
           child: SafeArea(
-            child: CupertinoTheme(
-              data: CupertinoThemeData(
-                brightness: _darkMode ? Brightness.dark : Brightness.light,
-              ),
-              child: Stack(
+            child: Stack(
                 children: <Widget>[
                   // if(_lightImage != null)
                   //   Positioned(
@@ -199,7 +196,6 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
                   ),
                 ],
               )
-            ),
           ),
         ),
       ),
@@ -340,34 +336,36 @@ class Menu extends StatefulWidget {
 }
 
 class _MenuState extends State<Menu> {
-    bool textVariant = false;
+  bool textVariant = false;
 
   @override
   Widget build(BuildContext context) {
     final String superLong = 'subtitle ' * 1000;
     return CupertinoMenuAnchor(
             childFocusNode: widget.buttonFocusNode,
-            enablePan: false,
             menuChildren: <Widget>[
               CupertinoMenuItem(
-                isDefaultAction: true,
                 // requestFocusOnHover: true,
                 // panActivationDelay: const Duration(milliseconds: 300),
-                leading: const Icon(CupertinoIcons.check_mark_circled),
-                trailing: const Icon(CupertinoIcons.check_mark_circled),
-                closeOnActivate: false,
-                subtitle: const Text('Subtitle'),
+                leadingAlignment: const Alignment(-0.2, -0.2),
+                trailingAlignment: const Alignment(0.6, 0.8),
+                leading: Container(width: 10, height: 10, color: Colors.red),
+                trailing: Container(width: 10, height: 10, color: Colors.blue),
+                requestCloseOnActivate: false,
+                subtitle: const Text('subtitle'),
+                shortcut: const SingleActivator(LogicalKeyboardKey.keyA, shift: true),
                 onPressed: () {
                   print('activated');
                 },
-                child: const Text('Favorite Animal'),
+                child: const Text('Main text'),
               ),
+
               CupertinoMenuItem(
                 // requestFocusOnHover: true,
                 hoveredColor: Colors.green,
                 pressedColor: const Color.fromRGBO(255, 0, 0, 1),
                 trailing: const Icon(CupertinoIcons.folder_badge_plus),
-                closeOnActivate: false,
+                requestCloseOnActivate: false,
                 onPressed: () {
                   setState(() {
                     textVariant = !textVariant;
@@ -378,9 +376,10 @@ class _MenuState extends State<Menu> {
               const CupertinoLargeMenuDivider(),
               CupertinoMenuItem(
                 // requestFocusOnHover: true,
-                trailing: Text( superLong),
                 leading: Text( superLong),
-                closeOnActivate: false,
+                requestCloseOnActivate: false,
+                shortcut: const SingleActivator(LogicalKeyboardKey.keyA, meta: true, ),
+
                 subtitle: textVariant
                     ? const Text('Small text')
                     :  Text(superLong),
@@ -392,7 +391,7 @@ class _MenuState extends State<Menu> {
 
               CupertinoMenuItem(
                 // requestFocusOnHover: true,
-                closeOnActivate: false,
+                requestCloseOnActivate: false,
                 trailing: const Icon(CupertinoIcons.square_grid_2x2),
                 child: const Text('Icons'),
                 onPressed: () {},
@@ -401,7 +400,7 @@ class _MenuState extends State<Menu> {
               CupertinoMenuItem(
                 // requestFocusOnHover: true,
 
-                closeOnActivate: false,
+                requestCloseOnActivate: false,
                 trailing: const Icon(CupertinoIcons.square_grid_2x2),
                 child: const Text('Icons'),
                 onPressed: () {},
@@ -409,7 +408,7 @@ class _MenuState extends State<Menu> {
               CupertinoMenuItem(
                 // requestFocusOnHover: true,
 
-                closeOnActivate: false,
+                requestCloseOnActivate: false,
                 trailing: const Icon(CupertinoIcons.square_grid_2x2),
                 child: const Text('Icons'),
                 onPressed: () {},
@@ -424,7 +423,7 @@ class _MenuState extends State<Menu> {
                 focusNode: widget.buttonFocusNode,
                 onPressed: () {
                   if (controller.menuStatus
-                      case AnimationStatus.forward || AnimationStatus.completed) {
+                      case MenuStatus.opening || MenuStatus.open) {
                     controller.close();
                   } else {
                     controller.open();

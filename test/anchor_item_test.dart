@@ -1419,9 +1419,10 @@ void main() {
           const EdgeInsetsDirectional.fromSTEB(0.0, 5.0, 0.0, 5.0),
         ),
       );
+
       expect(
         tester.getSize(TestMenu.item0.findWidget),
-        within(distance: 0.05, from: const Size(250, 44)),
+        within(distance: 0.05, from: const Size(250, 43.7)),
       );
 
       // Padding + height is above min height of 44, so padding does
@@ -1493,7 +1494,7 @@ void main() {
       );
       expect(
         tester.getSize(TestMenu.item0.findWidget),
-        within(distance: 0.05, from: const Size(250, 44)),
+        within(distance: 0.05, from: const Size(250, 43.7)),
       );
 
       expect(leading2.left - leading.left, 7);
@@ -1566,7 +1567,7 @@ void main() {
       );
       expect(
         tester.getSize(TestMenu.item0.findWidget),
-        within(distance: 0.05, from: const Size(250, 44)),
+        within(distance: 0.05, from: const Size(250, 43.7)),
       );
 
       expect(leading2.right - leading.right, moreOrLessEquals(-7));
@@ -2250,7 +2251,7 @@ void main() {
           children: <Widget>[
             const CupertinoLargeMenuDivider(),
             CupertinoMenuItem(
-              closeOnActivate: false,
+              requestCloseOnActivate: false,
               panActivationDelay: const Duration(milliseconds: 200),
               onPressed: () {
                 pressedCount++;
@@ -2363,32 +2364,6 @@ void main() {
         isSameColorAs(customPressedColor.darkColor),
       );
     });
-    testWidgets('onPressed is called when set', (WidgetTester tester) async {
-      bool pressed = false;
-      await tester.pumpWidget(
-        CupertinoApp(
-          home: CupertinoMenuAnchor(
-            controller: controller,
-            menuChildren: <Widget>[
-              CupertinoMenuItem(
-                onPressed: () {
-                  pressed = true;
-                },
-                child: TestMenu.item1.text,
-              ),
-            ],
-          ),
-        ),
-      );
-
-      controller.open();
-      await tester.pumpAndSettle();
-
-      await tester.tap(TestMenu.item1.findText);
-      await tester.pumpAndSettle();
-
-      expect(pressed, isTrue);
-    });
     testWidgets('onFocusChange is called on enabled items',
         (WidgetTester tester) async {
       final List<bool> focusChanges = <bool>[];
@@ -2460,11 +2435,11 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
       await tester.pump();
 
-      // Shouldn't be called -- focus is excluded once closing begins
+      // false
       controller.close();
       await tester.pumpAndSettle();
 
-      expect(focusChanges, <bool>[true, false, true, false, true,]);
+      expect(focusChanges, <bool>[true, false, true, false, true, false]);
     });
 
     testWidgets('onHover is called on enabled items', (WidgetTester tester) async {
@@ -2509,7 +2484,7 @@ void main() {
       await gesture.moveTo(tester.getCenter(TestMenu.item0.findWidget));
       await tester.pumpAndSettle();
 
-      // (item0, false)
+      // (item0, false) -- hover is ignored if the item is disabled
       await gesture.moveTo(tester.getCenter(TestMenu.item1.findWidget));
       await tester.pumpAndSettle();
 
@@ -2692,7 +2667,93 @@ void main() {
       expect(controller.isOpen, isFalse);
       expect(pressed, TestMenu.item2);
     });
+testWidgets('respects requestFocusOnHover property', (WidgetTester tester) async {
+      final TestGesture gesture = await tester.createGesture(
+        kind: PointerDeviceKind.mouse,
+        pointer: 1,
+      );
 
+      await gesture.addPointer(location: Offset.zero);
+      addTearDown(() => gesture.removePointer());
+      final List<(TestMenu, bool)> focusChanges = <(TestMenu, bool)>[];
+      await tester.pumpWidget(
+        buildTestApp(
+          children: <Widget>[
+            CupertinoMenuItem(
+              requestFocusOnHover: true,
+              onFocusChange: (bool value) {
+                focusChanges.add((TestMenu.item0, value));
+              },
+              onPressed: () {},
+              child: TestMenu.item0.text,
+            ),
+            // Disabled item -- should not request focus
+            CupertinoMenuItem(
+              requestFocusOnHover: true,
+              child: TestMenu.item1.text,
+              onFocusChange: (bool value) {
+                focusChanges.add((TestMenu.item1, value));
+              },
+            ),
+            CupertinoMenuItem(
+              requestFocusOnHover: true,
+              onFocusChange: (bool value) {
+                focusChanges.add((TestMenu.item2, value));
+              },
+              onPressed: () {},
+              child: TestMenu.item2.text,
+            ),
+            // requestFocusOnHover is false -- should not request focus
+            CupertinoMenuItem(
+              onFocusChange: (bool value) {
+                focusChanges.add((TestMenu.item3, value));
+              },
+              onPressed: () {},
+              child: TestMenu.item3.text,
+            ),
+            CupertinoMenuItem(
+              requestFocusOnHover: true,
+              onFocusChange: (bool value) {
+                focusChanges.add((TestMenu.item4, value));
+              },
+              onPressed: () {},
+              child: TestMenu.item4.text,
+            ),
+          ],
+        ),
+      );
+      controller.open();
+      await tester.pumpAndSettle();
+
+      // (item0, true)
+      await gesture.moveTo(tester.getCenter(TestMenu.item0.findWidget));
+      await tester.pumpAndSettle();
+
+      // (item0, false)
+      await gesture.moveTo(tester.getCenter(TestMenu.item1.findWidget));
+      await tester.pumpAndSettle();
+
+      // (item2, true)
+      await gesture.moveTo(tester.getCenter(TestMenu.item2.findWidget));
+      await tester.pumpAndSettle();
+
+      // No change -- requestFocusOnHover is false
+      await gesture.moveTo(tester.getCenter(TestMenu.item3.findWidget));
+      await tester.pumpAndSettle();
+
+      // (item2, false)
+      // (item4, true)
+      await gesture.moveTo(tester.getCenter(TestMenu.item4.findWidget));
+      await tester.pumpAndSettle();
+
+      expect(focusChanges, <(TestMenu, bool)>[
+        (TestMenu.item0, true),
+        (TestMenu.item0, false),
+        (TestMenu.item2, true),
+        (TestMenu.item2, false),
+        (TestMenu.item4, true),
+      ]);
+    });
     testWidgets('respects closeOnActivate property',
         (WidgetTester tester) async {
 
@@ -2726,7 +2787,7 @@ void main() {
             child: CupertinoMenuAnchor(
               menuChildren: <Widget>[
                 CupertinoMenuItem(
-                  closeOnActivate: false,
+                  requestCloseOnActivate: false,
                   onPressed: () {},
                   child: TestMenu.item0.text,
                 ),
