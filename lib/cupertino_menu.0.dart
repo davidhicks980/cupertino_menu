@@ -8,7 +8,7 @@ import 'package:flutter/cupertino.dart'
         CupertinoTheme,
         CupertinoThemeData;
 import 'package:flutter/material.dart'
-    show CheckboxListTile, Colors, FilledButton, Slider, TextButton, showAboutDialog;
+    show CheckboxListTile, Colors, FilledButton, Material, Slider, TextButton, showAboutDialog;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -244,47 +244,49 @@ class _SettingsState extends State<Settings> {
             });
           },
           feedback: const SizedBox(),
-          child: OverflowBox(
-            child: ListView(
-              children: <Widget>[
-                Padding(
-                  padding: const EdgeInsets.only(left: 16),
-                  child: ConstrainedBox(
-                      constraints:
-                          const BoxConstraints(maxWidth: 200, maxHeight: 30),
-                      child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: <Widget>[
-                            Text(widget.textSizeSliderValue
-                                .toStringAsPrecision(2)),
-                            Flexible(
-                              child: Slider(
-                                  value: widget.textSizeSliderValue,
-                                  min: 0.9,
-                                  max: 2,
-                                  onChanged: widget.onTextSizeSliderChanged),
-                            ),
-                          ])),
-                ),
-                CheckboxListTile.adaptive(
-                  onChanged: widget.onDirectionalityChanged,
-                  value: widget.directionality == TextDirection.ltr,
-                  dense: true,
-                  title: Text('Direction ${widget.directionality}'),
-                ),
-                CheckboxListTile.adaptive(
-                  value: widget.background,
-                  onChanged: widget.onBackgroundChanged,
-                  dense: true,
-                  title: const Text('Background'),
-                ),
-                CheckboxListTile.adaptive(
-                  value: widget.darkMode,
-                  onChanged: widget.onDarkModeChanged,
-                  dense: true,
-                  title: const Text('Dark mode'),
-                ),
-              ],
+          child: Material(
+            child: OverflowBox(
+              child: ListView(
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: ConstrainedBox(
+                        constraints:
+                            const BoxConstraints(maxWidth: 200, maxHeight: 30),
+                        child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: <Widget>[
+                              Text(widget.textSizeSliderValue
+                                  .toStringAsPrecision(2)),
+                              Flexible(
+                                child: Slider(
+                                    value: widget.textSizeSliderValue,
+                                    min: 0.9,
+                                    max: 2,
+                                    onChanged: widget.onTextSizeSliderChanged),
+                              ),
+                            ])),
+                  ),
+                  CheckboxListTile.adaptive(
+                    onChanged: widget.onDirectionalityChanged,
+                    value: widget.directionality == TextDirection.ltr,
+                    dense: true,
+                    title: Text('Direction ${widget.directionality}'),
+                  ),
+                  CheckboxListTile.adaptive(
+                    value: widget.background,
+                    onChanged: widget.onBackgroundChanged,
+                    dense: true,
+                    title: const Text('Background'),
+                  ),
+                  CheckboxListTile.adaptive(
+                    value: widget.darkMode,
+                    onChanged: widget.onDarkModeChanged,
+                    dense: true,
+                    title: const Text('Dark mode'),
+                  ),
+                ],
+              ),
             ),
           ),
         ));
@@ -328,36 +330,36 @@ class _DropdownState extends State<Dropdown> {
 
 class Menu extends StatefulWidget {
 
-  const Menu({super.key,  this.buttonFocusNode});
+  const Menu({super.key,  this.buttonFocusNode, this.insets});
   final FocusNode? buttonFocusNode;
+  final EdgeInsetsGeometry? insets;
 
   @override
   State<Menu> createState() => _MenuState();
 }
 
 class _MenuState extends State<Menu> {
-  bool textVariant = false;
+    bool textVariant = false;
 
   @override
   Widget build(BuildContext context) {
     final String superLong = 'subtitle ' * 1000;
     return CupertinoMenuAnchor(
+            screenInsets: const EdgeInsetsDirectional.fromSTEB(66, 50, 250, 0),
             childFocusNode: widget.buttonFocusNode,
             menuChildren: <Widget>[
               CupertinoMenuItem(
                 // requestFocusOnHover: true,
                 // panActivationDelay: const Duration(milliseconds: 300),
-                leadingAlignment: const Alignment(-0.2, -0.2),
-                trailingAlignment: const Alignment(0.6, 0.8),
-                leading: Container(width: 10, height: 10, color: Colors.red),
-                trailing: Container(width: 10, height: 10, color: Colors.blue),
+                leading: const Icon(CupertinoIcons.alarm),
+                trailing: const Icon(CupertinoIcons.check_mark_circled),
                 requestCloseOnActivate: false,
-                subtitle: const Text('subtitle'),
+                subtitle: const Text('Subtitle'),
                 shortcut: const SingleActivator(LogicalKeyboardKey.keyA, shift: true),
                 onPressed: () {
                   print('activated');
                 },
-                child: const Text('Main text'),
+                child: const MenuAcceleratorLabel('&C&h&eckmark'),
               ),
 
               CupertinoMenuItem(
@@ -423,7 +425,7 @@ class _MenuState extends State<Menu> {
                 focusNode: widget.buttonFocusNode,
                 onPressed: () {
                   if (controller.menuStatus
-                      case MenuStatus.opening || MenuStatus.open) {
+                      case MenuStatus.opening || MenuStatus.opened) {
                     controller.close();
                   } else {
                     controller.open();

@@ -91,7 +91,7 @@ void main() {
 
   Color? findDescendentDecoratedBoxColor(WidgetTester tester, Finder finder,) {
     return (tester
-            .widget<DecoratedBox>(findDescendentDecoration(finder).first)
+            .firstWidget<DecoratedBox>(findDescendentDecoration(finder))
             .decoration as BoxDecoration)
         .color;
   }
@@ -141,14 +141,9 @@ void main() {
     controller = CupertinoMenuController();
   });
 
-  Finder findMenuPanels() {
-    return find.byWidgetPredicate(
-        (Widget widget) => widget.runtimeType.toString() == '_MenuPanel');
-  }
-
   Finder findCupertinoMenuAnchorItemLabels() {
     return find.byWidgetPredicate(
-        (Widget widget) => widget.runtimeType.toString() == '_MenuItemLabel');
+        (Widget widget) => widget.runtimeType.toString() == '_CupertinoMenuItemLabel');
   }
 
   // Finds the mnemonic associated with the menu item that has the given label.
@@ -201,7 +196,7 @@ void main() {
                     consumeOutsideTap: consumesOutsideTap,
                     onOpen: onOpen,
                     onClose: onClose,
-                    menuChildren: children ?? createTestMenus2(
+                    menuChildren: children ?? createTestMenus(
                         onPressed: onPressed,
                     ),
                     builder: _buildAnchor,
@@ -214,21 +209,6 @@ void main() {
     );
   }
 
-  Future<TestGesture> hoverOver(WidgetTester tester, Finder finder) async {
-    final TestGesture gesture =
-        await tester.createGesture(kind: PointerDeviceKind.mouse);
-    await gesture.moveTo(tester.getCenter(finder));
-    await tester.pumpAndSettle();
-    return gesture;
-  }
-
-  T findMenuPanelWidget<T extends Widget>(WidgetTester tester) {
-    return tester.widget<T>(
-      find
-          .descendant(of: findMenuPanels(), matching: find.byType(T))
-          .first,
-    );
-  }
 
   group('CupertinoMenuEntryMixin', () {
    CupertinoApp buildApp(List<Widget> children) {
@@ -246,9 +226,9 @@ void main() {
   );
 }
 
-    testWidgets('allowLeadingSeparator and allowTrailingSeparator',
+    testWidgets('dividers respect allowLeadingSeparator and allowTrailingSeparator',
         (WidgetTester tester) async {
-      Widget buildDebug({required bool lead, required bool trail, Widget? child}) {
+      Widget buildDebugEntry({required bool lead, required bool trail, Widget? child}) {
         return _DebugCupertinoMenuEntryMixin(
           allowLeadingSeparator: lead,
           allowTrailingSeparator: trail,
@@ -262,9 +242,9 @@ void main() {
       );
 
       await tester.pumpWidget(buildApp(<Widget>[
-        buildDebug(lead: true, trail: true, child: TestMenu.item0.text),
-        buildDebug(lead: true, trail: true, child: TestMenu.item1.text),
-        buildDebug(lead: true, trail: true, child: TestMenu.item2.text),
+        buildDebugEntry(lead: true, trail: true, child: TestMenu.item0.text),
+        buildDebugEntry(lead: true, trail: true, child: TestMenu.item1.text),
+        buildDebugEntry(lead: true, trail: true, child: TestMenu.item2.text),
       ]));
 
       controller.open();
@@ -278,9 +258,9 @@ void main() {
       // First item should never have a leading separator and bottom item should
       // never have a trailing separator.
       await tester.pumpWidget(buildApp(<Widget>[
-        buildDebug(lead: false, trail: true,  child: TestMenu.item0.text),
-        buildDebug(lead: true,  trail: true,  child: TestMenu.item1.text),
-        buildDebug(lead: true,  trail: false, child: TestMenu.item2.text),
+        buildDebugEntry(lead: false, trail: true,  child: TestMenu.item0.text),
+        buildDebugEntry(lead: true,  trail: true,  child: TestMenu.item1.text),
+        buildDebugEntry(lead: true,  trail: false, child: TestMenu.item2.text),
       ]));
 
       await tester.pump();
@@ -290,9 +270,9 @@ void main() {
       expect(findAncestorDivider(TestMenu.item2.findText), findsNothing);
 
       await tester.pumpWidget(buildApp(<Widget>[
-        buildDebug(lead: true,  trail: false, child: TestMenu.item0.text),
-        buildDebug(lead: true,  trail: true,  child: TestMenu.item1.text),
-        buildDebug(lead: true,  trail: true,  child: TestMenu.item2.text),
+        buildDebugEntry(lead: true,  trail: false, child: TestMenu.item0.text),
+        buildDebugEntry(lead: true,  trail: true,  child: TestMenu.item1.text),
+        buildDebugEntry(lead: true,  trail: true,  child: TestMenu.item2.text),
       ]));
 
       await tester.pump();
@@ -303,9 +283,9 @@ void main() {
       expect(findAncestorDivider(TestMenu.item2.findText), findsNothing);
 
       await tester.pumpWidget(buildApp(<Widget>[
-        buildDebug(lead: true,  trail: true,  child: TestMenu.item0.text),
-        buildDebug(lead: false, trail: true,  child: TestMenu.item1.text),
-        buildDebug(lead: true,  trail: true,  child: TestMenu.item2.text),
+        buildDebugEntry(lead: true,  trail: true,  child: TestMenu.item0.text),
+        buildDebugEntry(lead: false, trail: true,  child: TestMenu.item1.text),
+        buildDebugEntry(lead: true,  trail: true,  child: TestMenu.item2.text),
       ]));
 
       await tester.pump();
@@ -316,9 +296,9 @@ void main() {
       expect(findAncestorDivider(TestMenu.item2.findText), findsNothing);
 
       await tester.pumpWidget(buildApp(<Widget>[
-        buildDebug(lead: true,  trail: true,  child: TestMenu.item0.text),
-        buildDebug(lead: true, trail: false,  child: TestMenu.item1.text),
-        buildDebug(lead: true,  trail: true,  child: TestMenu.item2.text),
+        buildDebugEntry(lead: true,  trail: true,  child: TestMenu.item0.text),
+        buildDebugEntry(lead: true, trail: false,  child: TestMenu.item1.text),
+        buildDebugEntry(lead: true,  trail: true,  child: TestMenu.item2.text),
       ]));
 
       await tester.pump();
@@ -329,7 +309,7 @@ void main() {
       expect(findAncestorDivider(TestMenu.item2.findText), findsNothing);
     });
 
-     testWidgets('overriding hasLeading displaces sibling CupertinoMenuItems',
+     testWidgets('hasLeading aligns sibling CupertinoMenuItems',
         (WidgetTester tester) async {
       final GlobalKey itemKey = GlobalKey();
 
@@ -490,8 +470,8 @@ void main() {
       );
       controller.open();
       await tester.pumpAndSettle();
-      expect( find.byType(CupertinoLargeMenuDivider), findsOneWidget);
-      expect( find.byType(CupertinoMenuDivider), findsNothing);
+      expect(find.byType(CupertinoLargeMenuDivider), findsOneWidget);
+      expect(find.byType(CupertinoMenuDivider), findsNothing);
     });
   });
 
@@ -519,7 +499,6 @@ void main() {
 
       controller.open();
       await tester.pumpAndSettle();
-
       /*DELETE*/  print(tester.getRect(TestMenu.item0.findText));
       /*DELETE*/  print(tester.getRect(find.text(superLongText)));
       expect(
@@ -542,7 +521,6 @@ void main() {
           mediaQuery: const MediaQueryData(textScaler: TextScaler.linear(1.3)),
           children: <Widget>[
             CupertinoMenuItem(
-              applyInsetScaling: false,
               leading: const Icon(CupertinoIcons.left_chevron),
               trailing: const Icon(CupertinoIcons.right_chevron),
               subtitle: const Text('subtitle'),
@@ -561,16 +539,13 @@ void main() {
      /*DELETE*/ print(tester.getRect(find.text(superLongText)));
       expect(tester.getRect(TestMenu.item0.findText),
           rectEquals(
-      const Rect.fromLTRB(257.0, 19.0, 387.1, 47.0)
+        const Rect.fromLTRB(261.5, 20.5, 391.6, 48.5)
       ));
 
       expect(tester.getRect(find.text(superLongText)),
           rectEquals(
-        const Rect.fromLTRB(261.5, 96.5, 556.8, 2896.5)
-
+        const Rect.fromLTRB(261.5, 99.6, 556.8, 2899.6)
       ));
-
-
     });
 
     testWidgets('child layout RTL', (WidgetTester tester) async {
@@ -620,7 +595,6 @@ void main() {
           textDirection: TextDirection.rtl,
           children: <Widget>[
             CupertinoMenuItem(
-              applyInsetScaling: false,
               leading: const Icon(CupertinoIcons.left_chevron),
               trailing: const Icon(CupertinoIcons.right_chevron),
               subtitle: const Text('subtitle'),
@@ -640,14 +614,14 @@ void main() {
       expect(
         tester.getRect(TestMenu.item0.findText),
         rectEquals(
-         const Rect.fromLTRB(412.9, 19.0, 543.0, 47.0)
+        const Rect.fromLTRB(408.4, 20.5, 538.5, 48.5)
       ),
       );
 
       expect(
         tester.getRect(find.text(superLongText)),
         rectEquals(
-           const Rect.fromLTRB(243.2, 96.5, 538.5, 2896.5)
+           const Rect.fromLTRB(243.2, 99.6, 538.5, 2899.6)
       ),
       );
     });
@@ -970,7 +944,6 @@ void main() {
         buildTestApp(
           children: <Widget>[
             CupertinoMenuItem(
-              applyInsetScaling: false,
               leading: const Icon(CupertinoIcons.left_chevron),
               trailing: const Icon(CupertinoIcons.right_chevron),
               subtitle: const Text('subtitle'),
@@ -1044,7 +1017,6 @@ void main() {
           textDirection: TextDirection.rtl,
           children: <Widget>[
             CupertinoMenuItem(
-              applyInsetScaling: false,
               leading: const Icon(CupertinoIcons.left_chevron),
               trailing: const Icon(CupertinoIcons.right_chevron),
               subtitle: const Text('subtitle'),
@@ -1100,27 +1072,22 @@ void main() {
      /*DELETE*/ print(tester.getRect(find.text('subtitle')));
      /*DELETE*/ print(tester.getRect(find.text(longSubtitle)));
       expect(tester.getRect(find.text('subtitle')),
-          rectEquals(
-            const Rect.fromLTRB(307.0, 99.8, 425.3, 118.8)
-          ));
+          rectEquals(const Rect.fromLTRB(307.0, 99.8, 425.3, 118.8)));
       expect(tester.getRect(find.text(longSubtitle)),
-          rectEquals(
-            const Rect.fromLTRB(307.0, 163.8, 509.0, 201.8)
-            ));
+          rectEquals(const Rect.fromLTRB(307.0, 163.8, 509.0, 201.8)));
 
       // When TextScaler > 1.25, maxLines == 100
       await tester.pumpWidget(buildTestApp(
         mediaQuery: const MediaQueryData(textScaler: TextScaler.linear(1.3)),
         children: <Widget>[
-            CupertinoMenuItem(
-              applyInsetScaling: false,
-              leading: const Icon(CupertinoIcons.left_chevron),
-              trailing: const Icon(CupertinoIcons.right_chevron),
-              subtitle: const Text('subtitle'),
-              child: TestMenu.item0.text,
-            ),
           CupertinoMenuItem(
-            onPressed: (){},
+            leading: const Icon(CupertinoIcons.left_chevron),
+            trailing: const Icon(CupertinoIcons.right_chevron),
+            subtitle: const Text('subtitle'),
+            child: TestMenu.item0.text,
+          ),
+          CupertinoMenuItem(
+            onPressed: () {},
             subtitle: Text(longSubtitle),
             child: TestMenu.item1.text,
           ),
@@ -1131,13 +1098,9 @@ void main() {
     /*DELETE*/ print(tester.getRect(find.text('subtitle')));
      /*DELETE*/ print(tester.getRect(find.text(longSubtitle)));
       expect(tester.getRect(find.text('subtitle')),
-          rectEquals(
-            const Rect.fromLTRB(257.0, 48.0, 411.3, 72.0)
-            ));
+        rectEquals(const Rect.fromLTRB(261.5, 49.5, 415.8, 73.5)));
       expect(tester.getRect(find.text(longSubtitle)),
-          rectEquals(
-           const Rect.fromLTRB(261.5, 125.5, 556.8, 2525.5)
-            ));
+        rectEquals(const Rect.fromLTRB(261.5, 128.6, 556.8, 2528.6)));
     });
     testWidgets('subtitle layout RTL', (WidgetTester tester) async {
       final String longSubtitle = 'subtitle' * 1000;
@@ -1179,7 +1142,6 @@ void main() {
         mediaQuery: const MediaQueryData(textScaler: TextScaler.linear(1.3)),
         children: <Widget>[
             CupertinoMenuItem(
-              applyInsetScaling: false,
               leading: const Icon(CupertinoIcons.left_chevron),
               trailing: const Icon(CupertinoIcons.right_chevron),
               subtitle: const Text('subtitle'),
@@ -1198,14 +1160,13 @@ void main() {
       /*DELETE*/ print(tester.getRect(find.text(longSubtitle)));
       expect(tester.getRect(find.text('subtitle')),
           rectEquals(
-            const Rect.fromLTRB(388.7, 48.0, 543.0, 72.0)
+            const Rect.fromLTRB(384.2, 49.5, 538.5, 73.5)
             ));
       expect(tester.getRect(find.text(longSubtitle)),
           rectEquals(
-           const Rect.fromLTRB(243.2, 125.5, 538.5, 2525.5)
+           const Rect.fromLTRB(243.2, 128.6, 538.5, 2528.6)
             ));
     });
-
     testWidgets('default layout', (WidgetTester tester) async {
       await tester.pumpWidget(
         CupertinoApp(
@@ -1263,8 +1224,93 @@ void main() {
         tester.getRect(TestMenu.item1.findWidget),
         rectEquals(const Rect.fromLTRB(275.0, 8.0, 525.0, 71.7))
       );
+    });
+    testWidgets('applyInsetScaling can be set', (WidgetTester tester) async {
+      // applyInsetScaling, when true, increases the size of the padding,
+      // leading and trailing width, and the constraints by a factor of the
+      // square root of the textScaler. This behavior was observed on the iOS
+      // simulator.
+      await tester.pumpWidget(
+        CupertinoApp(
+          home: MediaQuery(
+            data: const MediaQueryData(
+              textScaler: TextScaler.linear(1.15),
+            ),
+            child: CupertinoMenuAnchor(
+              controller: controller,
+              menuChildren: <Widget>[
+                CupertinoMenuItem(
+                  leading: const Icon(CupertinoIcons.left_chevron),
+                  trailing: const Icon(CupertinoIcons.right_chevron),
+                  subtitle: const Text('subtitle'),
+                  child: TestMenu.item0.text,
+                  onPressed: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 
+      controller.open();
+      await tester.pumpAndSettle();
 
+      // First, test with applyInsetScaling set to true.
+      /*DELETE*/ print(tester.getRect(TestMenu.item0.findWidget));
+      /*DELETE*/ print(tester.getRect(find.byIcon(CupertinoIcons.left_chevron)));
+      /*DELETE*/ print(tester.getRect(find.byIcon(CupertinoIcons.right_chevron)));
+      expect(
+        tester.getRect(TestMenu.item0.findWidget),
+        rectEquals(const Rect.fromLTRB(275.0, 521.4, 525.0, 592.0))
+      );
+      expect(
+        tester.getRect(find.byIcon(CupertinoIcons.left_chevron)),
+        rectEquals(const Rect.fromLTRB(281.9, 545.4, 304.4, 568.0))
+      );
+      expect(
+        tester.getRect(find.byIcon(CupertinoIcons.right_chevron)),
+        rectEquals(const Rect.fromLTRB(486.8, 545.4, 509.3, 568.0))
+      );
+
+      await tester.pumpWidget(
+        CupertinoApp(
+          home: MediaQuery(
+            data: const MediaQueryData(
+              textScaler: TextScaler.linear(1.15),
+            ),
+            child: CupertinoMenuAnchor(
+              controller: controller,
+              menuChildren: <Widget>[
+                CupertinoMenuItem(
+                  applyInsetScaling: false,
+                  leading: const Icon(CupertinoIcons.left_chevron),
+                  trailing: const Icon(CupertinoIcons.right_chevron),
+                  subtitle: const Text('subtitle'),
+                  child: TestMenu.item0.text,
+                  onPressed: () {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Then, test with applyInsetScaling set to false.
+      /*DELETE*/ print(tester.getRect(TestMenu.item0.findWidget));
+      /*DELETE*/ print(tester.getRect(find.byIcon(CupertinoIcons.left_chevron)));
+      /*DELETE*/ print(tester.getRect(find.byIcon(CupertinoIcons.right_chevron)));
+      expect(
+        tester.getRect(TestMenu.item0.findWidget),
+        rectEquals(const Rect.fromLTRB(275.0, 523.0, 525.0, 592.0))
+      );
+      expect(
+        tester.getRect(find.byIcon(CupertinoIcons.left_chevron)),
+        rectEquals(const Rect.fromLTRB(280.5, 546.2, 303.0, 568.8))
+      );
+      expect(
+        tester.getRect(find.byIcon(CupertinoIcons.right_chevron)),
+        rectEquals(const Rect.fromLTRB(488.8, 546.2, 511.3, 568.8))
+      );
     });
      testWidgets('custom constraints', (WidgetTester tester) async {
       await tester.pumpWidget(
@@ -1321,24 +1367,24 @@ void main() {
       /*DELETE*/ print(tester.getRect(TestMenu.item1.findWidget));
       /*DELETE*/ print(getConstraints(TestMenu.item1.findWidget));
 
-      // expect(
-      //   getConstraints(TestMenu.item0.findWidget),
-      //   const BoxConstraints(minHeight: 150.0, maxHeight: 200, minWidth: 50, maxWidth: 150),
-      // );
-      // expect(
-      //   tester.getRect(TestMenu.item0.findWidget),
-      //   rectEquals(const Rect.fromLTRB(325.0, 56.0, 475.0, 256.0))
-      // );
-      // expect(
-      //   getConstraints(TestMenu.item1.findWidget),
-      //   const BoxConstraints(minHeight: 150.0, maxHeight: 200, minWidth: 50, maxWidth: 150),
-      // );
-      // expect(
-      //   tester.getRect(TestMenu.item1.findWidget),
-      //   rectEquals(const Rect.fromLTRB(275.0, 58.5, 525.0, 258.5))
-      // );
+      expect(
+        getConstraints(TestMenu.item0.findWidget),
+        const BoxConstraints(minHeight: 150.0, maxHeight: 200, minWidth: 50, maxWidth: 150),
+      );
+      expect(
+        tester.getRect(TestMenu.item0.findWidget),
+        rectEquals(const Rect.fromLTRB(325.0, 0.0, 475.0, 200.0))
+      );
+      expect(
+        getConstraints(TestMenu.item1.findWidget),
+        const BoxConstraints(minHeight: 150.0, maxHeight: 200, minWidth: 50, maxWidth: 150),
+      );
+      expect(
+        tester.getRect(TestMenu.item1.findWidget),
+        rectEquals(const Rect.fromLTRB(275.0, 8.0, 525.0, 208.0))
+      );
     });
-     testWidgets('Vertical padding', (WidgetTester tester) async {
+     testWidgets('vertical padding', (WidgetTester tester) async {
       EdgeInsetsGeometry getEdgeInsets(Finder finder) {
         return (find.descendant(
                   of: finder,
@@ -2283,17 +2329,19 @@ void main() {
         find.byType(CupertinoLargeMenuDivider),
         warnIfMissed: true,
       ));
-      await tester.pumpAndSettle();
+      await tester.pump();
+
       await gesture.moveTo(tester.getCenter(TestMenu.item0.findWidget));
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       expect(
         findDescendentDecoratedBoxColor(tester , TestMenu.item0.findWidget),
         isSameColorAs(CupertinoMenuItem.defaultPressedColor.darkColor),
       );
+
       // Pressed button with custom pressedColor
       await gesture.moveTo(tester.getCenter(TestMenu.item1.findWidget));
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       expect(
         findDescendentDecoratedBoxColor(tester , TestMenu.item1.findWidget),
@@ -2305,12 +2353,12 @@ void main() {
 
       // Disabled with custom pressedColor -- no effect
       await gesture.moveTo(tester.getCenter(TestMenu.item2.findWidget));
-      await tester.pumpAndSettle();
+      await tester.pump();
       expect(findDescendentDecoration(TestMenu.item2.findWidget), findsNothing);
 
       // Disabled button
       await gesture.moveTo(tester.getCenter(TestMenu.item3.findWidget));
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       expect(findDescendentDecoration(TestMenu.item0.findWidget), findsNothing);
       expect(findDescendentDecoration(TestMenu.item1.findWidget), findsNothing);
@@ -2319,14 +2367,14 @@ void main() {
 
       // Moving back over item0 should cause item0 to fill again
       await gesture.moveTo(tester.getCenter(TestMenu.item0.findWidget));
-      await tester.pumpAndSettle();
+      await tester.pump();
       expect(
         findDescendentDecoratedBoxColor(tester, TestMenu.item0.findWidget),
         isSameColorAs(CupertinoMenuItem.defaultPressedColor.darkColor),
       );
 
       await gesture.up();
-      await tester.pumpAndSettle();
+      await tester.pump();
 
       // On mouse up, should be hovered but not pressed
       expect(
@@ -2338,9 +2386,9 @@ void main() {
 
       await gesture
           .down(tester.getCenter(find.byType(CupertinoLargeMenuDivider)));
-      await tester.pumpAndSettle();
+      await tester.pump();
       await gesture.moveTo(tester.getCenter(TestMenu.item0.findWidget));
-      await tester.pumpAndSettle();
+      await tester.pump();
       expect(
         findDescendentDecoratedBoxColor(tester, TestMenu.item0.findWidget),
         isSameColorAs(CupertinoMenuItem.defaultPressedColor.darkColor),
@@ -2358,7 +2406,7 @@ void main() {
 
       // Moving back over item1 should cause it to fill again
       await gesture.moveTo(tester.getCenter(TestMenu.item1.findWidget));
-      await tester.pumpAndSettle();
+      await tester.pump();
       expect(
         findDescendentDecoratedBoxColor(tester, TestMenu.item1.findWidget),
         isSameColorAs(customPressedColor.darkColor),
@@ -2415,6 +2463,7 @@ void main() {
           ],
         ),
       );
+
       await tester.pump();
       await tester.pumpWidget(
         buildTestApp(
@@ -2431,11 +2480,11 @@ void main() {
           ],
         ),
       );
-      // true
+      // true -- move focus to the first item
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
       await tester.pump();
 
-      // false
+      // false -- focus is excluded if the menu starts closing
       controller.close();
       await tester.pumpAndSettle();
 
@@ -2605,7 +2654,7 @@ void main() {
       expect(second.behavior, HitTestBehavior.translucent);
     });
 
-    testWidgets('panPressActivationDelay works when set', (WidgetTester tester) async {
+    testWidgets('panPressActivationDelay activates when set', (WidgetTester tester) async {
       TestMenu? pressed;
        final TestGesture gesture = await tester.createGesture(
         pointer: 1,
@@ -2885,8 +2934,123 @@ testWidgets('respects requestFocusOnHover property', (WidgetTester tester) async
         SystemMouseCursors.basic,
       );
     });
-  });
 
+    testWidgets('Shortcut mnemonics are displayed', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: CupertinoMenuAnchor(
+                controller: controller,
+                menuChildren: createTestMenus(
+                  shortcuts: <TestMenu, MenuSerializableShortcut>{
+                    TestMenu.item0: const SingleActivator(LogicalKeyboardKey.keyA, control: true),
+                    TestMenu.item1: const SingleActivator(LogicalKeyboardKey.keyB, shift: true),
+                    TestMenu.item2: const SingleActivator(LogicalKeyboardKey.keyC, alt: true),
+                    TestMenu.item3: const SingleActivator(LogicalKeyboardKey.keyD, meta: true),
+                  },
+                ),
+            ),
+          ),
+        ),
+      );
+
+      // Open a menu initially.
+      controller.open();
+      await tester.pumpAndSettle();
+
+      Text mnemonic0;
+      Text mnemonic1;
+      Text mnemonic2;
+      Text mnemonic3;
+
+      switch (defaultTargetPlatform) {
+        case TargetPlatform.android:
+        case TargetPlatform.fuchsia:
+        case TargetPlatform.linux:
+          mnemonic0 = tester.widget(findMnemonic(TestMenu.item0.label));
+          expect(mnemonic0.data, equals('Ctrl+A'));
+          mnemonic1 = tester.widget(findMnemonic(TestMenu.item1.label));
+          expect(mnemonic1.data, equals('Shift+B'));
+          mnemonic2 = tester.widget(findMnemonic(TestMenu.item2.label));
+          expect(mnemonic2.data, equals('Alt+C'));
+          mnemonic3 = tester.widget(findMnemonic(TestMenu.item3.label));
+          expect(mnemonic3.data, equals('Meta+D'));
+        case TargetPlatform.windows:
+          mnemonic0 = tester.widget(findMnemonic(TestMenu.item0.label));
+          expect(mnemonic0.data, equals('Ctrl+A'));
+          mnemonic1 = tester.widget(findMnemonic(TestMenu.item1.label));
+          expect(mnemonic1.data, equals('Shift+B'));
+          mnemonic2 = tester.widget(findMnemonic(TestMenu.item2.label));
+          expect(mnemonic2.data, equals('Alt+C'));
+          mnemonic3 = tester.widget(findMnemonic(TestMenu.item3.label));
+          expect(mnemonic3.data, equals('Win+D'));
+        case TargetPlatform.iOS:
+        case TargetPlatform.macOS:
+          mnemonic0 = tester.widget(findMnemonic(TestMenu.item0.label));
+          expect(mnemonic0.data, equals('⌃ A'));
+          mnemonic1 = tester.widget(findMnemonic(TestMenu.item1.label));
+          expect(mnemonic1.data, equals('⇧ B'));
+          mnemonic2 = tester.widget(findMnemonic(TestMenu.item2.label));
+          expect(mnemonic2.data, equals('⌥ C'));
+          mnemonic3 = tester.widget(findMnemonic(TestMenu.item3.label));
+          expect(mnemonic3.data, equals('⌘ D'));
+      }
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: CupertinoMenuAnchor(
+              controller: controller,
+              menuChildren: createTestMenus(
+                shortcuts: <TestMenu, MenuSerializableShortcut>{
+                  TestMenu.item0: const SingleActivator(LogicalKeyboardKey.arrowRight),
+                  TestMenu.item1: const SingleActivator(LogicalKeyboardKey.arrowLeft),
+                  TestMenu.item2: const SingleActivator(LogicalKeyboardKey.arrowUp),
+                  TestMenu.item3: const SingleActivator(LogicalKeyboardKey.arrowDown),
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      mnemonic0 = tester.widget(findMnemonic(TestMenu.item0.label));
+      expect(mnemonic0.data, equals('→'));
+      mnemonic1 = tester.widget(findMnemonic(TestMenu.item1.label));
+      expect(mnemonic1.data, equals('←'));
+      mnemonic2 = tester.widget(findMnemonic(TestMenu.item2.label));
+      expect(mnemonic2.data, equals('↑'));
+      mnemonic3 = tester.widget(findMnemonic(TestMenu.item3.label));
+      expect(mnemonic3.data, equals('↓'));
+
+      // Try some weirder ones.
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: CupertinoMenuAnchor(
+              controller: controller,
+              menuChildren:  createTestMenus(
+                shortcuts: <TestMenu, MenuSerializableShortcut>{
+                  TestMenu.item0: const SingleActivator(LogicalKeyboardKey.escape),
+                  TestMenu.item1: const SingleActivator(LogicalKeyboardKey.fn),
+                  TestMenu.item2: const SingleActivator(LogicalKeyboardKey.enter),
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      mnemonic0 = tester.widget(findMnemonic(TestMenu.item0.label));
+      expect(mnemonic0.data, equals('Esc'));
+      mnemonic1 = tester.widget(findMnemonic(TestMenu.item1.label));
+      expect(mnemonic1.data, equals('Fn'));
+      mnemonic2 = tester.widget(findMnemonic(TestMenu.item2.label));
+      expect(mnemonic2.data, equals('↵'));
+    }, variant: TargetPlatformVariant.all());
+  });
 
   group('Semantics', () {
     testWidgets('CupertinoMenuItem is not a semantic button',
@@ -2938,17 +3102,14 @@ testWidgets('respects requestFocusOnHover property', (WidgetTester tester) async
 }
 
 
-List<Widget> createTestMenus2({
+List<Widget> createTestMenus({
   void Function(TestMenu)? onPressed,
   Map<TestMenu, MenuSerializableShortcut> shortcuts = const <TestMenu, MenuSerializableShortcut>{},
-  bool includeExtraGroups = false,
   bool accelerators = false,
   double? leadingWidth,
   double? trailingWidth,
   BoxConstraints? constraints,
-
 }) {
-
 
   Widget cupertinoMenuItemButton(
     TestMenu menu, {
@@ -2960,10 +3121,11 @@ List<Widget> createTestMenus2({
     return CupertinoMenuItem(
       requestFocusOnHover: true,
       key: key,
+      shortcut: shortcuts[menu],
       onPressed: enabled && onPressed != null ? () => onPressed(menu) : null,
       leading: leadingIcon,
       trailing: trailingIcon,
-      child:  menu.text,
+      child:accelerators? MenuAcceleratorLabel(menu.acceleratorLabel) : menu.text,
     );
   }
 
