@@ -19,10 +19,17 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'semantics.dart';
 
- // TODO(davidhicks980): Accelerators are not used on Apple platforms -- exclude
-  // them from the library?
+// TODO(davidhicks980): Accelerators are not used on Apple platforms -- exclude
+// them from the library?
 
-typedef MenuParts = ({TextStyle? leadingIconStyle, TextStyle? leadingTextStyle, TextStyle? subtitleStyle, TextStyle? titleStyle, TextStyle? trailingIconStyle, TextStyle? trailingTextStyle});
+typedef MenuParts = ({
+  TextStyle? leadingIconStyle,
+  TextStyle? leadingTextStyle,
+  TextStyle? subtitleStyle,
+  TextStyle? titleStyle,
+  TextStyle? trailingIconStyle,
+  TextStyle? trailingTextStyle
+});
 void main() {
   late CupertinoMenuController controller;
   String? focusedMenu;
@@ -32,9 +39,6 @@ void main() {
   Matcher rectEquals(Rect rect) {
     return rectMoreOrLessEquals(rect, epsilon: 0.1);
   }
-
-
-
 
   void onPressed(TestMenu item) {
     selected.add(item);
@@ -78,6 +82,7 @@ void main() {
     return find.byWidgetPredicate(
         (Widget widget) => widget.runtimeType.toString() == '_MenuPanel');
   }
+
   Finder findMenuPanelDescendent<T>() {
     return find.descendant(
       of: findMenuPanel(),
@@ -85,22 +90,6 @@ void main() {
     );
   }
 
-  Finder findCupertinoMenuAnchorItemLabels() {
-    return find.byWidgetPredicate(
-        (Widget widget) => widget.runtimeType.toString() == '_MenuItemLabel');
-  }
-
-  // Finds the mnemonic associated with the menu item that has the given label.
-  Finder findMnemonic(String label) {
-    return find
-        .descendant(
-          of: find.ancestor(
-              of: find.text(label),
-              matching: findCupertinoMenuAnchorItemLabels()),
-          matching: find.byType(Text),
-        )
-        .last;
-  }
 
   Widget buildTestApp({
     AlignmentGeometry? alignment,
@@ -199,26 +188,25 @@ void main() {
 
     await tester.pumpWidget(
       buildApp(
-          Column(
-            children: <Widget>[
-              CupertinoMenuAnchor(
-                builder: _buildAnchor,
-               menuChildren: <Widget>[
-                  CupertinoMenuItem(
-                    onPressed: onMenuSelected,
-                    child: TestMenu.item1.text,
-                  ),
-                ],
-              ),
-              ElevatedButton(
-            autofocus: true,
-            onPressed: () {},
-            focusNode: buttonFocus,
-            child: TestMenu.outsideButton.text,
-          ),
-            ],
-          ),
-
+        Column(
+          children: <Widget>[
+            CupertinoMenuAnchor(
+              builder: _buildAnchor,
+              menuChildren: <Widget>[
+                CupertinoMenuItem(
+                  onPressed: onMenuSelected,
+                  child: TestMenu.item1.text,
+                ),
+              ],
+            ),
+            ElevatedButton(
+              autofocus: true,
+              onPressed: () {},
+              focusNode: buttonFocus,
+              child: TestMenu.outsideButton.text,
+            ),
+          ],
+        ),
       ),
     );
 
@@ -229,7 +217,6 @@ void main() {
 
     await tester.tap(TestMenu.item1.findText);
     await tester.pump();
-    await tester.pump();
 
     expect(focusInOnPressed, equals(buttonFocus));
     expect(FocusManager.instance.primaryFocus, equals(buttonFocus));
@@ -237,12 +224,7 @@ void main() {
 
   group('Menu functions', () {
     group('Open and closing', () {
-      Future<void> openCloseTester(
-        WidgetTester tester,
-        CupertinoMenuController controller, {
-        required FutureOr<void> Function() open,
-        required FutureOr<void> Function() close,
-      }) async {
+      testWidgets('controller open and close', (WidgetTester tester) async {
         await tester.pumpWidget(
           buildApp(
               CupertinoMenuAnchor(
@@ -273,7 +255,7 @@ void main() {
         expect(controller.isOpen, isFalse);
 
         // Open the menu.
-        await open();
+        controller.open();
         await tester.pump();
 
         // The menu is opening => MenuStatus.opening.
@@ -288,7 +270,7 @@ void main() {
         expect(TestMenu.item1.findText, findsOneWidget);
 
         // Interrupt the opening animation by closing the menu.
-        await close();
+        controller.close();
         await tester.pump();
 
         // The menu is closing => MenuStatus.closing.
@@ -297,7 +279,7 @@ void main() {
         expect(TestMenu.item1.findText, findsOneWidget);
 
         // Open the menu again.
-        await open();
+        controller.open();
         await tester.pump();
 
         // The menu is animating open => MenuStatus.opening.
@@ -314,7 +296,7 @@ void main() {
         expect(TestMenu.item1.findText, findsOneWidget);
 
         // Close the menu.
-        await close();
+        controller.close();
         await tester.pump();
 
         expect(controller.menuStatus, MenuStatus.closing);
@@ -328,7 +310,7 @@ void main() {
         expect(TestMenu.item1.findText, findsOneWidget);
 
         // Interrupt the closing animation by opening the menu.
-        await open();
+        controller.open();
         await tester.pump();
 
         // The menu is animating open => MenuStatus.opening.
@@ -337,7 +319,7 @@ void main() {
         expect(TestMenu.item1.findText, findsOneWidget);
 
         // Close the menu again.
-        await close();
+        controller.close();
         await tester.pump();
 
         // The menu is closing => MenuStatus.closing.
@@ -351,31 +333,118 @@ void main() {
         expect(controller.menuStatus, MenuStatus.closed);
         expect(controller.isOpen, isFalse);
         expect(TestMenu.item1.findText, findsNothing);
-      }
-
-      testWidgets('controller open and close', (WidgetTester tester) async {
-        final CupertinoMenuController controller = CupertinoMenuController();
-        await openCloseTester(
-          tester,
-          controller,
-          open: controller.open,
-          close: controller.close,
-        );
       });
       testWidgets('tap open and close', (WidgetTester tester) async {
-        final CupertinoMenuController controller = CupertinoMenuController();
-        await openCloseTester(
-          tester,
-          controller,
-          open: () async {
-             await  tester.tap(find.byType(CupertinoMenuAnchor));
-          },
-          close: () async {
-              await tester.tap(find.byType(CupertinoMenuAnchor));
-
-          },
+        await tester.pumpWidget(
+          buildApp(
+              CupertinoMenuAnchor(
+                builder: _buildAnchor,
+                controller: controller,
+                menuChildren: <Widget>[
+                  CupertinoMenuItem(
+                    child: TestMenu.item1.text,
+                  ),
+                  CupertinoMenuItem(
+                    leading: const Icon(Icons.send),
+                    trailing: const Icon(Icons.mail),
+                    child: TestMenu.item2.text,
+                  ),
+                  CupertinoMenuItem(
+                    child: TestMenu.item4.text,
+                  ),
+                ],
+              ),
+          ),
         );
+
+        // Create the menu. The menu is closed, so no menu items should be found in
+        // the widget tree.
+        await tester.pumpAndSettle();
+        expect(controller.menuStatus, MenuStatus.closed);
+        expect(TestMenu.item1.findText, findsNothing);
+        expect(controller.isOpen, isFalse);
+
+        // Open the menu.
+        await tester.tap(find.byType(CupertinoMenuAnchor));
+        await tester.pump();
+
+        // The menu is opening => MenuStatus.opening.
+        expect(controller.menuStatus, MenuStatus.opening);
+        expect(controller.isOpen, isTrue);
+        expect(TestMenu.item1.findText, findsOneWidget);
+
+        // After 100 ms, the menu should still be animating open.
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(controller.menuStatus, MenuStatus.opening);
+        expect(controller.isOpen, isTrue);
+        expect(TestMenu.item1.findText, findsOneWidget);
+
+        // Interrupt the opening animation by closing the menu.
+        await tester.tap(find.byType(CupertinoMenuAnchor));
+        await tester.pump();
+
+        // The menu is closing => MenuStatus.closing.
+        expect(controller.menuStatus, MenuStatus.closing);
+        expect(controller.isOpen, isTrue);
+        expect(TestMenu.item1.findText, findsOneWidget);
+
+        // Open the menu again.
+        await tester.tap(find.byType(CupertinoMenuAnchor));
+        await tester.pump();
+
+        // The menu is animating open => MenuStatus.opening.
+        expect(controller.menuStatus, MenuStatus.opening);
+        expect(controller.isOpen, isTrue);
+        expect(TestMenu.item1.findText, findsOneWidget);
+
+        await tester.pumpAndSettle();
+
+        // The menu has finished opening, so it should report it's animation
+        // status as MenuStatus.open.
+        expect(controller.menuStatus, MenuStatus.opened);
+        expect(controller.isOpen, isTrue);
+        expect(TestMenu.item1.findText, findsOneWidget);
+
+        // Close the menu.
+        await tester.tap(find.byType(CupertinoMenuAnchor));
+        await tester.pump();
+
+        expect(controller.menuStatus, MenuStatus.closing);
+        expect(controller.isOpen, isTrue);
+        expect(TestMenu.item1.findText, findsOneWidget);
+
+        // After 100 ms, the menu should still be closing.
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(controller.menuStatus, MenuStatus.closing);
+        expect(controller.isOpen, isTrue);
+        expect(TestMenu.item1.findText, findsOneWidget);
+
+        // Interrupt the closing animation by opening the menu.
+        await tester.tap(find.byType(CupertinoMenuAnchor));
+        await tester.pump();
+
+        // The menu is animating open => MenuStatus.opening.
+        expect(controller.menuStatus, MenuStatus.opening);
+        expect(controller.isOpen, isTrue);
+        expect(TestMenu.item1.findText, findsOneWidget);
+
+        // Close the menu again.
+        await tester.tap(find.byType(CupertinoMenuAnchor));
+        await tester.pump();
+
+        // The menu is closing => MenuStatus.closing.
+        expect(controller.menuStatus, MenuStatus.closing);
+        expect(controller.isOpen, isTrue);
+        expect(TestMenu.item1.findText, findsOneWidget);
+
+        await tester.pumpAndSettle();
+
+        // The menu has closed => MenuStatus.closed.
+        expect(controller.menuStatus, MenuStatus.closed);
+        expect(controller.isOpen, isFalse);
+        expect(TestMenu.item1.findText, findsNothing);
       });
+
       testWidgets('close when Navigator.pop() is called',
           (WidgetTester tester) async {
         final CupertinoMenuController controller = CupertinoMenuController();
@@ -1844,7 +1913,7 @@ void main() {
       expect(focusedMenu, equals(TestMenu.item6.debugFocusLabel));
     });
 
-    testWidgets('menus close on ancestor scroll', (WidgetTester tester) async {
+    testWidgets('menu closes on ancestor scroll', (WidgetTester tester) async {
       final ScrollController scrollController = ScrollController();
       addTearDown(scrollController.dispose);
       bool opened = false;
@@ -1890,7 +1959,7 @@ void main() {
       expect(closed, isTrue);
     });
 
-    testWidgets('menus do not close on root menu internal scroll',
+    testWidgets('menu does not close on root menu internal scroll',
         (WidgetTester tester) async {
       // Regression test for https://github.com/flutter/flutter/issues/122168.
       final ScrollController scrollController = ScrollController();
@@ -2558,15 +2627,15 @@ void main() {
 
       final List<Rect> actual = collectRects<CupertinoMenuItem>();
       const List<Rect> expected = <Rect>[
-        Rect.fromLTRB(8.0, 8.0, 212.0, 52.0),
-        Rect.fromLTRB(8.0, 52.0, 212.0, 96.0),
-        Rect.fromLTRB(8.0, 104.0, 212.0, 148.0),
-        Rect.fromLTRB(8.0, 148.0, 212.0, 192.0)
+        Rect.fromLTRB(8.0, 8.0, 212.0, 51.7),
+        Rect.fromLTRB(8.0, 52.0, 212.0, 95.7),
+        Rect.fromLTRB(8.0, 103.7, 212.0, 147.3),
+        Rect.fromLTRB(8.0, 147.7, 212.0, 191.3),
+        Rect.fromLTRB(8.0, 191.7, 212.0, 235.3),
       ];
 
       for (int i = 0; i < actual.length; i++) {
-        /*DELETE*/ print('${actual[i]},');
-        // expect(actual[i], rectEquals(expected[i]));
+        expect(actual[i], rectEquals(expected[i]));
       }
     });
 

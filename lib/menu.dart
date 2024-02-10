@@ -18,7 +18,6 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'menu_item.dart';
 import 'test_anchor.dart';
 
 // TODO(davidhicks980): A menu button inside of a context menu prevents closure
@@ -42,12 +41,19 @@ import 'test_anchor.dart';
 // TODO(davidhicks980): remove _UniversalCupertinoScrollBehavior if it's not
 // necessary.
 
+// Should menu open position be dependent on TextDirection?
+
+// TODO: I think alt shortcut symbol is switched with control key on macos
+
+// TODO: Expose open and close overlay?
 
 const Duration _kMenuPanReboundDuration = Duration(milliseconds: 600);
-const bool _kDebugMenus = false;
+const bool _kDebugMenus = true;
 
 
 /// Whether [defaultTargetPlatform] is an Apple platform (Mac or iOS).
+// I left this code alone because it appears to be for clarity rather than
+// efficiency.
 bool get _isApple {
   switch (defaultTargetPlatform) {
     case TargetPlatform.iOS:
@@ -94,9 +100,9 @@ const Map<ShortcutActivator, Intent> _kMenuTraversalShortcuts =
 /// [allowTrailingSeparator] set to `true` and the second item has
 /// [allowLeadingSeparator] set to `true`.
 ///
-/// The [hasLeading] property describes whether this menu item has a
-/// leading widget. If true, the siblings of this menu item that are missing a
-/// leading widget will have leading space added to align the leading edges of
+/// The [hasLeading] property describes whether this menu item has a leading
+/// widget. If true, the siblings of this menu item that are missing a leading
+/// widget will have leading space added. This will align the leading edges of
 /// all menu items. Defaults to `false`.
 mixin CupertinoMenuEntryMixin {
   /// Whether a separator can be drawn before this menu item.
@@ -147,7 +153,9 @@ enum MenuStatus {
 ///   pressed.
 // [MenuController] is extended so that menu actions, such as
 // [DismissMenuAction], can be used with this controller.
-class CupertinoMenuController extends MenuController with ChangeNotifier {
+//
+// Should this extend ChangeNotifier?
+class CupertinoMenuController extends MenuController  {
   /// The anchor that this controller controls.
   ///
   /// This is set automatically when a [CupertinoMenuController] is given to the
@@ -168,18 +176,18 @@ class CupertinoMenuController extends MenuController with ChangeNotifier {
     _anchor!._animateClosed();
   }
 
-  /// Opens the menu that this menu controller is associated with.
+  /// Open the menu that this controller is associated with.
   ///
   /// If `position` is given, then the menu will open at the position given, in
   /// the coordinate space of the [CupertinoMenuAnchor] this controller is
   /// attached to.
   ///
-  /// If given, the `position` will override the
-  /// [CupertinoMenuAnchor.alignmentOffset] given to the [CupertinoMenuAnchor].
+  /// The `position` will override the [CupertinoMenuAnchor.alignmentOffset]
+  /// given to the [CupertinoMenuAnchor].
   ///
-  /// If the menu's anchor point (the [CupertinoMenuAnchor]) is
-  /// scrolled by an ancestor, or the view changes size, then any open menu will
-  /// automatically close.
+  /// If the menu's anchor point (the [CupertinoMenuAnchor]) is scrolled by an
+  /// ancestor, or the view changes size, then any open menu will automatically
+  /// close.
   @override
   void open({ui.Offset? position}) {
     assert(_anchor != null, 'CupertinoMenuController is not attached to an anchor');
@@ -187,7 +195,12 @@ class CupertinoMenuController extends MenuController with ChangeNotifier {
     _openOverlay(position: position);
   }
 
+  // Removes the menu overlay widget. This should not be called until
+  // animations are finished.
   void _closeOverlay() => super.close();
+
+  // Removes the menu overlay widget. This should be called as soon as the
+  // menu begins opening.
   void _openOverlay({ui.Offset? position}) => super.open(position: position);
 
   // ignore: use_setters_to_change_properties
@@ -214,11 +227,11 @@ class _AnchorScope extends InheritedWidget {
 
 /// A builder for the widget that this [CupertinoMenuAnchor] surrounds.
 ///
-/// Typically this is a button used to open the menu by calling
+/// Typically, this is a button that opens the menu by calling
 /// [CupertinoMenuAnchor.open] on the `controller` passed to the builder.
 ///
-/// If not supplied, then the [MenuAnchor] will be the size that its parent
-/// allocates for it.
+/// If a child is not supplied, then the [CupertinoMenuAnchor] will be the size
+/// that its parent allocates for it.
 typedef CupertinoMenuAnchorChildBuilder = Widget Function(
   BuildContext context,
   CupertinoMenuController controller,
@@ -234,10 +247,44 @@ typedef CupertinoMenuSurfaceBuilder = Widget Function(
   Clip clipBehavior,
 );
 
+/// A callback that is invoked when the [MenuStatus] changes.
 typedef CupertinoMenuStatusChangedCallback = void Function(MenuStatus status);
 
-
+/// A widget used to mark the "anchor" for a menu, defining the rectangle used
+/// to position the menu, which can be done with an explicit location, or
+/// with an alignment.
+///
+/// The [CupertinoMenuAnchor] is typically used to wrap a button that opens a
+/// menu when pressed. The menu position is determined by the [alignment] of the
+/// anchor attachment point and the [menuAlignment] of the menu attachment
+/// point. The [alignmentOffset] can be used to adjust the position of the menu.
+///
+/// The [menuChildren] are the contents of the menu, and a [surfaceBuilder] can
+/// be used to customize the appearance of the menu surface.
+///
+/// The [controller] can be used to open and close the menu from other widgets.
+/// The [onOpen] callback is invoked when the menu popup is mounted and the menu
+/// status changes **FROM** [MenuStatus.closed]. The [onClose] callback is
+/// invoked when the menu popup is unmounted and the menu status changes **TO**
+/// [MenuStatus.closed]. The [onStatusChanged] callback is invoked when the
+/// status of the menu changes (see [MenuStatus]).
+///
+/// {@tool dartpad} This example shows how to use a [CupertinoMenuAnchor] to
+/// wrap a button and open a menu from the button.
+///
+/// ** See code in examples/api/lib/cupertino/menu_anchor/cupertino_menu_anchor.0.dart **
+/// {@end-tool}
+///
+/// {@tool dartpad} This example shows how to use a [CupertinoMenuAnchor] to
+/// create a context menu in a region of the view, positioned where
+/// the user clicks the mouse with Ctrl pressed. The [anchorTapClosesMenu]
+/// attribute is set to true so that clicks on the [CupertinoMenuAnchor] area
+/// will cause the menus to be closed.
+///
+/// ** See code in examples/api/lib/cupertino/menu_anchor/cupertino_menu_anchor.0.dart **
+/// {@end-tool}
 class CupertinoMenuAnchor extends StatefulWidget {
+  /// Creates a [CupertinoMenuAnchor].
   const CupertinoMenuAnchor({
     super.key,
     required this.menuChildren,
@@ -280,21 +327,20 @@ class CupertinoMenuAnchor extends StatefulWidget {
   final FocusNode? childFocusNode;
 
   /// The offset of the menu relative to the alignment origin determined by
-  /// [MenuStyle.alignment] on the [style] attribute and the ambient
-  /// [Directionality].
+  /// [alignment] and the ambient [Directionality].
   ///
   /// Use this for adjustments of the menu placement.
   ///
   /// Increasing [Offset.dy] values of [alignmentOffset] move the menu position
   /// down.
   ///
-  /// If the [MenuStyle.alignment] from [style] is not an [AlignmentDirectional]
-  /// (e.g. [Alignment]), then increasing [Offset.dx] values of
-  /// [alignmentOffset] move the menu position to the right.
+  /// If the [alignment] is not an [AlignmentDirectional], then increasing
+  /// [Offset.dx] values of [alignmentOffset] move the menu position to the
+  /// right.
   ///
-  /// If the [MenuStyle.alignment] from [style] is an [AlignmentDirectional],
-  /// then in a [TextDirection.ltr] [Directionality], increasing [Offset.dx]
-  /// values of [alignmentOffset] move the menu position to the right. In a
+  /// If the [alignment] is an [AlignmentDirectional], then in a
+  /// [TextDirection.ltr] [Directionality], increasing [Offset.dx] values of
+  /// [alignmentOffset] move the menu position to the right. In a
   /// [TextDirection.rtl] directionality, increasing [Offset.dx] values of
   /// [alignmentOffset] move the menu position to the left.
   ///
@@ -302,8 +348,6 @@ class CupertinoMenuAnchor extends StatefulWidget {
   final Offset alignmentOffset;
 
   /// {@macro flutter.material.Material.clipBehavior}
-  ///
-  /// Must not be [Clip.antiAliasWithSaveLayer]. Defaults to [Clip.hardEdge].
   final Clip clipBehavior;
 
   /// Whether or not a tap event that closes the menu will be permitted to
@@ -338,17 +382,17 @@ class CupertinoMenuAnchor extends StatefulWidget {
   final CupertinoMenuStatusChangedCallback? onStatusChanged;
 
   /// A list of children containing the menu items that are the contents of the
-  /// menu surrounded by this [MenuAnchor].
+  /// menu surrounded by this [CupertinoMenuAnchor].
   ///
   /// {@macro flutter.material.MenuBar.shortcuts_note}
   final List<Widget> menuChildren;
 
-  /// The widget that this [MenuAnchor] surrounds.
+  /// The widget that this [CupertinoMenuAnchor] surrounds.
   ///
   /// Typically this is a button used to open the menu by calling
-  /// [MenuController.open] on the `controller` passed to the builder.
+  /// [CupertinoMenuController.open] on the `controller` passed to the builder.
   ///
-  /// If not supplied, then the [MenuAnchor] will be the size that its parent
+  /// If not supplied, then the [CupertinoMenuAnchor] will be the size that its parent
   /// allocates for it.
   final CupertinoMenuAnchorChildBuilder? builder;
 
@@ -374,21 +418,21 @@ class CupertinoMenuAnchor extends StatefulWidget {
   /// The [SpringDescription] used for the closing animation of the menu.
   final SpringDescription reverseSpring;
 
-  /// The constraints to apply to the menu.
+  /// The constraints to apply to the menu scrollable.
   final BoxConstraints? constraints;
 
-  /// The alignment of the menu relative to the anchor.
+  /// The point on the anchor surface that attaches to the menu.
   ///
   /// If null, defaults to [Alignment.topCenter] when the anchor is above
   /// the center of the screen, and [Alignment.bottomCenter] when the anchor is
   /// below the center of the screen.
   final AlignmentGeometry? alignment;
 
-  /// The alignment of the point from which the menu should grow.
+  /// The point on the menu surface that attaches to the anchor.
   ///
   /// Defaults to [Alignment.topCenter] when the anchor is above the center of
-  /// the screen, and [Alignment.bottomCenter] when the anchor is below the
-  /// center of the screen.
+  /// the screen, and [Alignment.bottomCenter] (the bottom of the menu surface)
+  /// when the anchor is below the center of the screen.
   final AlignmentGeometry? menuAlignment;
 
   /// Whether or not panning is enabled on the menu.
@@ -396,19 +440,19 @@ class CupertinoMenuAnchor extends StatefulWidget {
   /// When panning is enabled, a [PanGestureRecognizer] is added around the menu
   /// anchor and menu items. The [PanGestureRecognizer] allows for users to
   /// press, move, and activate adjacent menu items in a single gesture. Panning
-  /// is also responsible for the scale animation of the menu panel when users
-  /// drag their pointer away from the menu.
+  /// also scales the menu panel when users drag their pointer away from the
+  /// menu.
   ///
   /// Disabling panning can be useful if the menu pan effects interfere with
   /// another pan gesture, such as in the case of dragging a menu anchor around
   /// the screen.
   ///
-  /// Defaults to true.
+  /// Defaults to `true`.
   final bool enablePan;
 
   /// The background color of the menu.
   ///
-  /// If null, the menu will use [defaultBackground]. If the provided color is
+  /// If `null`, the menu will use [defaultBackground]. If the provided color is
   /// not opaque, the menu will apply a [ui.ColorFilter.matrix] and
   /// [ui.ImageFilter.blur] to the contents behind the menu using a
   /// [BackdropFilter] widget.
@@ -455,6 +499,20 @@ class CupertinoMenuAnchor extends StatefulWidget {
     damping: 28.8 * math.pi
   );
 
+  /// The default background color of the menu surface.
+  //
+  // Background colors are based on the following:
+  //
+  // Dark mode on white background => rgb(83, 83, 83)
+  // Dark mode on black => rgb(31, 31, 31)
+  // Light mode on black background => rgb(197,197,197)
+  // Light mode on white => rgb(246, 246, 246)
+  static const CupertinoDynamicColor defaultBackground =
+      CupertinoDynamicColor.withBrightness(
+    color: Color.fromRGBO(243, 243, 243, 0.775),
+    darkColor: Color.fromRGBO(55, 55, 55, 0.735),
+  );
+
   /// The default screen insets to avoid when positioning the menu.
   static const EdgeInsets defaultScreenInsets =  EdgeInsets.all(8);
 
@@ -462,6 +520,16 @@ class CupertinoMenuAnchor extends StatefulWidget {
     return context.findAncestorWidgetOfExactType<_AnchorScope>()?.state;
   }
 
+  /// The default builder for the menu surface.
+  ///
+  /// - The [context] is the build context of the menu overlay.
+  /// - The [child] is the scrollable containing the [menuChildren].
+  /// - The [animation] is the animation that runs as the menu is opening or
+  ///   closing.
+  /// - The [backgroundColor] is the color passed to
+  ///   [CupertinoMenuAnchor.backgroundColor].
+  /// - The [clipBehavior] is the clip behavior passed to
+  ///   [CupertinoMenuAnchor.clipBehavior].
   static Widget defaultSurfaceBuilder(
     BuildContext context,
     Widget child,
@@ -476,20 +544,6 @@ class CupertinoMenuAnchor extends StatefulWidget {
       child: child,
     );
   }
-
-  /// The default transparent [_MenuPanelLayout] background color.
-  //
-  // Background colors are based on the following:
-  //
-  // Dark mode on white background => rgb(83, 83, 83)
-  // Dark mode on black => rgb(31, 31, 31)
-  // Light mode on black background => rgb(197,197,197)
-  // Light mode on white => rgb(246, 246, 246)
-  static const CupertinoDynamicColor defaultBackground =
-      CupertinoDynamicColor.withBrightness(
-    color: Color.fromRGBO(243, 243, 243, 0.775),
-    darkColor: Color.fromRGBO(55, 55, 55, 0.735),
-  );
 
   @override
   State<CupertinoMenuAnchor> createState() => _CupertinoMenuAnchorState();
@@ -534,17 +588,18 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
   CupertinoMenuController? _internalMenuController;
   CupertinoMenuController get _menuController => widget.controller
                                                   ?? _internalMenuController!;
-
-
   @override
   void initState() {
     super.initState();
     if (widget.controller == null) {
       _internalMenuController = CupertinoMenuController();
     }
+
     _menuController._attach(this);
     _animationController = AnimationController.unbounded(vsync: this);
     _panAnimationController = AnimationController.unbounded(value: 1, vsync: this);
+    // The scale animation is a combination of the menu opening and pan
+    // animations.
     _scaleAnimation = _AnimationProduct(
       first: _animationController,
       next: _panAnimationController,
@@ -595,15 +650,14 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     super.dispose();
   }
 
+  // Update the menu status and call listeners.
   void _handleStatusChanged(MenuStatus status) {
     if (status == _menuStatus) {
       return;
     }
 
-    // Update menu status, then call listeners.
     final MenuStatus previousStatus = _menuStatus;
     _menuStatus = status;
-
     if (mounted && SchedulerBinding.instance.schedulerPhase !=
                    SchedulerPhase.persistentCallbacks) {
       setState(() { /* Mark dirty if mounted and not already building. */ });
@@ -618,6 +672,7 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     }
 
     widget.onStatusChanged?.call(status);
+    assert(_debugMenuInfo('$_menuStatus'));
   }
 
   // Immediately close the menu and set the menu status to closed
@@ -634,6 +689,7 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     _handleStatusChanged(MenuStatus.opened);
   }
 
+  // Animate the menu closed, then trigger the root menu to close the overlay.
   void _animateClosed() {
     if (_menuStatus case MenuStatus.closed || MenuStatus.closing) {
       return;
@@ -674,6 +730,8 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
 
     _handleStatusChanged(MenuStatus.opening);
 
+    // When the menu is first opened, set the first focus to the first item in
+    // the menu.
     SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
       final BuildContext? panelContext = _panelScrollableKey.currentContext;
       if (mounted && (panelContext?.mounted ?? false)) {
@@ -696,18 +754,17 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     }
 
     final RenderBox scrollable = _panelScrollableKey
-                                      .currentContext!
-                                      .findRenderObject()! as RenderBox;
+                                    .currentContext!
+                                    .findRenderObject()! as RenderBox;
     final RenderBox overlay = Overlay.of(overlayContext)
-                              .context
-                              .findRenderObject()! as RenderBox;
+                                .context
+                                .findRenderObject()! as RenderBox;
     final ui.Rect panelRect =
         scrollable.localToGlobal(Offset.zero, ancestor: overlay) &
             scrollable.size;
 
     // Capture the area occupied by the menu panel and the anchor.
     final Rect rect = panelRect.expandToInclude(_anchorRect);
-
     if (rect.contains(panPosition)) {
       _panAnimationController.value = 1.0;
       return;
@@ -898,6 +955,7 @@ class _MenuPanel extends StatelessWidget {
     required this.surfaceBuilder,
     required this.shrinkWrap,
     required this.screenInsets,
+    required this.baseAnchorController,
     this.scrollPhysics,
     this.menuAlignment,
     this.alignment,
@@ -911,6 +969,7 @@ class _MenuPanel extends StatelessWidget {
   final BuildContext context;
   final bool consumeOutsideTaps;
   final CupertinoMenuController controller;
+  final MenuController baseAnchorController;
   final ui.Rect anchorRect;
   final ui.Size overlaySize;
   final FocusScopeNode menuScopeNode;
@@ -1122,6 +1181,7 @@ class _MenuPanelLayout extends StatelessWidget {
   }
 }
 
+// The default background of the menu.
 class _MenuSurface extends StatelessWidget {
   const _MenuSurface({
     required this.child,
@@ -1155,8 +1215,8 @@ class _MenuSurface extends StatelessWidget {
         ]),
   );
 
-  //  Align is used instead of sizeTransition because sizeTransition uses
-  //  ClipRect rather than ClipRRect.
+  //  SizeTransition is not used here because it uses ClipRect rather than
+  //  ClipRRect.
   Align _alignTransitionBuilder(BuildContext context, Widget? child) {
     return Align(
       alignment: Alignment.topCenter,
@@ -1189,6 +1249,7 @@ class _MenuSurface extends StatelessWidget {
   }
 }
 
+// Animates the vibrance, blur, and background of the menu panel.
 class _AnimatedSurfaceVibrance extends AnimatedWidget {
   const _AnimatedSurfaceVibrance({
     required Animation<double> listenable,
@@ -1380,7 +1441,7 @@ class _MenuPanelScrollableState extends State<_MenuPanelScrollable> {
 }
 
 
-/// This class applies [CupertinoScrollbar] to all platforms.
+/// This class applies [CupertinoScrollbar] to all platforms. Otherwise,
 /// [CupertinoScrollBehavior] only applies [CupertinoScrollbar] to desktop
 /// platforms.
 class _UniversalCupertinoScrollBehavior extends CupertinoScrollBehavior {
@@ -1395,8 +1456,8 @@ class _UniversalCupertinoScrollBehavior extends CupertinoScrollBehavior {
       case TargetPlatform.linux:
       case TargetPlatform.macOS:
       case TargetPlatform.windows:
-        // The native MacOS menu doesn't have a scrollbar, so a thicker version
-        // of the iOS scrollbar is used instead.
+        // The native MacOS menu doesn't have a scrollbar, so a thicker iOS
+        // scrollbar is used for desktop platforms.
         return CupertinoScrollbar(
           thickness: 6.0,
           radius: const Radius.circular(3.0),
@@ -1906,13 +1967,13 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
 
   /// Called when the button is tapped or otherwise activated.
   ///
-  /// If this callback is null, then the button will be disabled.
+  /// If this callback is `null`, then the button will be disabled.
   final VoidCallback? onPressed;
 
   /// Called when a pointer enters or exits the button response area.
   ///
-  /// The value passed to the callback is true if a pointer has entered the
-  /// button area and false if a pointer has exited.
+  /// The value passed to the callback is `true` if a pointer has entered the
+  /// button area and `false` if a pointer has exited.
   final ValueChanged<bool>? onHover;
 
   /// Called when the menu item gains or loses focus.
@@ -2007,12 +2068,9 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
   /// The constraints to apply to the menu item.
   ///
   /// Because padding is applied to the menu item prior to constraints, padding
-  /// will only affect the size of the menu item iff the height of the padding
+  /// will only affect the size of the menu item if the height of the padding
   /// plus the height of the menu item's children exceeds the
   /// [BoxConstraints.minHeight].
-  ///
-  /// By default, the only constraint applied to the menu item is a
-  /// [BoxConstraints.minHeight] of [kMinInteractiveDimensionCupertino].
   final BoxConstraints? constraints;
 
   /// The default [TextStyle] applied to the [child] widget.
@@ -2118,21 +2176,17 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
     final TextStyle titleTextStyle = _resolveTitleStyle(context);
     final double textScale =
         (MediaQuery.maybeTextScalerOf(context) ?? TextScaler.noScaling).scale(1);
-    Widget? subtitleWidget = subtitle;
-    if (subtitleWidget != null) {
+    TextStyle? blendedSubtitleStyle;
+    if (subtitle != null || shortcut != null) {
       final bool isDark = CupertinoTheme.brightnessOf(context) == Brightness.dark;
-      final Paint subtitlePainter = Paint()
-        ..blendMode = isDark ? BlendMode.plus
-                             : BlendMode.hardLight
-        ..color = CupertinoDynamicColor.maybeResolve(
-                  defaultSubtitleStyle.color,
-                    context,
-                  ) ?? defaultSubtitleStyle.color!;
-      subtitleWidget = DefaultTextStyle.merge(
-        style: defaultSubtitleStyle.copyWith(foreground: subtitlePainter),
-        child: _AnimatedTitleSwitcher(
-          child: subtitleWidget,
-        ),
+      blendedSubtitleStyle = defaultSubtitleStyle.copyWith(
+        foreground: Paint()
+          ..blendMode = isDark ? BlendMode.plus : BlendMode.hardLight
+          ..color = CupertinoDynamicColor.maybeResolve(
+                    defaultSubtitleStyle.color,
+                      context,
+                    )
+                    ?? defaultSubtitleStyle.color!,
       );
     }
 
@@ -2141,19 +2195,23 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
       constraints: constraints,
       trailing: textScale <= 1.25 ? trailing : null,
       leading: leading,
-      subtitle: subtitleWidget,
       leadingAlignment: leadingAlignment,
       trailingAlignment: trailingAlignment,
       leadingWidth: leadingWidth,
       trailingWidth: trailingWidth,
       applyInsetScaling: applyInsetScaling,
       shortcut: shortcut,
+      shortcutStyle: blendedSubtitleStyle,
+      subtitle: subtitle != null
+           ? DefaultTextStyle.merge(
+               style: blendedSubtitleStyle,
+               child: _AnimatedTitleSwitcher(child: subtitle!)
+             )
+           : null,
       child: DefaultTextStyle.merge(
-        style: titleTextStyle,
-        child: _AnimatedTitleSwitcher(
-          child: child,
-        ),
-      ),
+               style: titleTextStyle,
+               child: _AnimatedTitleSwitcher(child: child),
+             ),
     );
 
     if (leading != null || trailing != null) {
@@ -2269,11 +2327,11 @@ class _AnimatedTitleSwitcher extends StatelessWidget {
   }
 }
 
-/// A label widget that is used as the label for a [CupertinoMenuItem].
+/// A structured label for a [CupertinoMenuItem].
 ///
-/// It not only shows the [CupertinoMenuItem.child], but if
-/// there is a shortcut associated with the [CupertinoMenuItem], it will display a
-/// mnemonic for the shortcut.
+/// It not only shows the [CupertinoMenuItem.child], but if there is a shortcut
+/// associated with the [CupertinoMenuItem], it will display a mnemonic for the
+/// shortcut.
 class _CupertinoMenuItemLabel extends StatelessWidget
     with CupertinoMenuEntryMixin {
   /// Creates a [_CupertinoMenuItemLabel]
@@ -2283,6 +2341,7 @@ class _CupertinoMenuItemLabel extends StatelessWidget
     this.trailing,
     this.subtitle,
     this.shortcut,
+    this.shortcutStyle,
     this.applyInsetScaling = true,
     BoxConstraints? constraints,
     EdgeInsetsGeometry? padding,
@@ -2362,6 +2421,9 @@ class _CupertinoMenuItemLabel extends StatelessWidget
   /// the shortcut.
   final MenuSerializableShortcut? shortcut;
 
+  /// The [TextStyle] to apply when displaying this shortcut.
+  final TextStyle? shortcutStyle;
+
   @override
   Widget build(BuildContext context) {
     final double textScale = MediaQuery.maybeTextScalerOf(context)?.scale(1) ?? 1.0;
@@ -2378,6 +2440,7 @@ class _CupertinoMenuItemLabel extends StatelessWidget
                             ?? (showLeadingWidget
                                   ? leadingWidgetWidth
                                   : defaultHorizontalWidth);
+
     // Subtract a physical pixel from the default padding if no padding is
     // specified by the user. (iOS 17.2 simulator debug view)
     EdgeInsetsGeometry padding = _padding
@@ -2385,6 +2448,7 @@ class _CupertinoMenuItemLabel extends StatelessWidget
                  top:    math.max(defaultPadding.top - physicalPixel / 2, 0),
                  bottom: math.max(defaultPadding.bottom - physicalPixel / 2, 0),
                );
+
     BoxConstraints constraints = _constraints
                     ?? defaultConstraints.copyWith(
                         minHeight: defaultConstraints.minHeight - physicalPixel
@@ -2433,15 +2497,19 @@ class _CupertinoMenuItemLabel extends StatelessWidget
               Padding(
                   padding: const EdgeInsetsDirectional.only(start: 8),
                   child: Text(
+                    // Should CupertinoLocalizations be used here?
                     LocalizedShortcutLabeler.instance.getShortcutLabel(
                       shortcut!,
                       MaterialLocalizations.of(context),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.fade,
-                    style: const TextStyle(
-                      color: CupertinoColors.secondaryLabel,
-                    )
+                    style: shortcutStyle
+                            ?? TextStyle(
+                                 color: CupertinoColors
+                                            .secondaryLabel
+                                            .resolveFrom(context)
+                               )
                   )
               ),
             SizedBox(
@@ -2468,7 +2536,6 @@ class _CupertinoMenuItemLabel extends StatelessWidget
 /// * [CupertinoMenuDivider], a thin horizontal divider that separates menu
 ///   items in a [CupertinoMenuAnchor].
 /// * [CupertinoMenuAnchor], a widget that creates a Cupertino-style popup menu.
-@immutable
 class CupertinoLargeMenuDivider extends StatelessWidget
     with CupertinoMenuEntryMixin {
   /// Creates a large horizontal divider for a [_CupertinoMenuPanel].
@@ -2510,41 +2577,12 @@ class CupertinoLargeMenuDivider extends StatelessWidget
 ///
 /// The default width of the divider is 1 physical pixel, Unlike a [Border],
 /// the [thickness] of the divider does occupy layout space.
-@immutable
 class CupertinoMenuDivider extends StatelessWidget {
-  /// Creates a [CupertinoMenuDivider].
-  ///
-  /// By default, the divider is 1 physical pixel thick.
-  const CupertinoMenuDivider({
-    super.key,
-    this.color = baseColor,
-    this.tint = tintColor,
-    this.thickness,
-  })  : _child = null,
-        _alignmentStart = AlignmentDirectional.centerStart,
-        _alignmentEnd = AlignmentDirectional.centerEnd;
-
-  /// Draws a [CupertinoMenuDivider] above a [child].
-  const CupertinoMenuDivider.wrapTop({
-    super.key,
-    this.color = baseColor,
-    this.tint = tintColor,
-    this.thickness,
-    required Widget child,
-  })  : _child = child,
-        _alignmentStart = AlignmentDirectional.topStart,
-        _alignmentEnd = AlignmentDirectional.topEnd;
-
   /// Draws a [CupertinoMenuDivider] below a [child].
   const CupertinoMenuDivider.wrapBottom({
     super.key,
-    this.color = baseColor,
-    this.tint = tintColor,
-    this.thickness,
     required Widget child,
-  })  : _child = child,
-        _alignmentStart = AlignmentDirectional.bottomStart,
-        _alignmentEnd = AlignmentDirectional.bottomEnd;
+  })  : _child = child;
 
   /// Default transparent color for [CupertinoMenuDivider] and
   /// [CupertinoVerticalMenuDivider].
@@ -2566,37 +2604,16 @@ class CupertinoMenuDivider extends StatelessWidget {
     darkColor: Color.fromRGBO(255, 255, 255, 0.23),
   );
 
-  /// The color of divider.
-  ///
-  /// Defaults to [CupertinoMenuDivider.baseColor].
-  final CupertinoDynamicColor color;
-
-  /// The color of divider.
-  ///
-  /// Defaults to [CupertinoMenuDivider.tintColor].
-  final CupertinoDynamicColor tint;
-
-  /// The thickness of the divider.
-  ///
-  /// If null, the default divider thickness is 1 physical pixel.
-  final double? thickness;
-
   /// The widget below this widget in the tree.
   final Widget? _child;
-
-  /// The relative start point of the divider's path.
-  final AlignmentDirectional _alignmentStart;
-
-  /// The relative end point of the divider's path.
-  final AlignmentDirectional _alignmentEnd;
 
   @override
   Widget build(BuildContext context) {
     final double pixelRatio = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0;
-    final double displacement = thickness ?? (1 / pixelRatio);
+    final double displacement = 1 / pixelRatio;
     final TextDirection textDirection = Directionality.of(context);
-    final Alignment begin = _alignmentStart.resolve(textDirection);
-    final Alignment end = _alignmentEnd.resolve(textDirection);
+    final Alignment begin = AlignmentDirectional.bottomStart.resolve(textDirection);
+    final Alignment end = AlignmentDirectional.bottomEnd.resolve(textDirection);
     assert(
       begin.y == end.y && begin.y.roundToDouble() == begin.y,
       'CupertinoMenuDivider must either inhabit the top, bottom, or center of its parent.',
@@ -2605,24 +2622,18 @@ class CupertinoMenuDivider extends StatelessWidget {
       painter: _AliasedBorderPainter(
         begin: begin,
         end: end,
-        tint: CupertinoDynamicColor.maybeResolve(tint, context) ?? tint,
-        color: CupertinoDynamicColor.maybeResolve(color, context) ?? color,
-        offset: Offset(0, -displacement / 2) * begin.y,
-        border: BorderSide(width: thickness ?? 0.0),
+        tint: CupertinoDynamicColor.resolve(tintColor, context),
+        color: CupertinoDynamicColor.resolve(baseColor, context),
+        offset: Offset(0, -displacement / 2),
+        border: const BorderSide(width: 0.0),
         // Only anti-alias the border if the thickness is less than one physical
         // pixel.
         antiAlias: pixelRatio < 1.0,
       ),
-      size: _child == null ? Size(double.infinity, displacement) : Size.zero,
-      child: _child != null
-          ? Padding(
-              padding: EdgeInsets.only(
-                top: begin.y == -1 ? displacement : 0.0,
-                bottom: begin.y == 1 ? displacement : 0.0,
-              ),
-              child: _child,
-            )
-          : null,
+      child: Padding(
+        padding: EdgeInsets.only(bottom: displacement),
+        child: _child,
+      ),
     );
   }
 }
