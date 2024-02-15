@@ -1,5 +1,4 @@
 {
-  "dart.flutterSdkPath": "/Users/davidhicks/fvm/versions/master",
   "[dart]": {
     "editor.formatOnSave": false,
     "editor.formatOnType": false,
@@ -12,10 +11,20 @@
     "source.organizeImports": "never",
     "source.fixAll": "explicit"
   },
+
   "dart.analyzeAngularTemplates": false,
-  "dart.analysisServerFolding": false,
   "dart.documentation": "full",
   "dart.enableCompletionCommitCharacters": true,
   "dart.renameFilesWithClasses": "prompt",
-  "dart.allowTestsOutsideTestFolder": true
+  "dart.allowTestsOutsideTestFolder": true,
+  "dart.autoImportCompletions": true,
+  "dart.flutterSdkPath": "~/development/custom",
+  // Remove .fvm files from search
+  "search.exclude": {
+    "**/.fvm": true
+  },
+  // Remove from file watching
+  "files.watcherExclude": {
+    "**/.fvm": true
+  }
 }

@@ -8,7 +8,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/src/services/mouse_cursor.dart';
-import 'package:path_provider/path_provider.dart';
 
 class ResizebleWidget extends StatefulWidget {
   const ResizebleWidget({super.key, required this.child, required this.id});
@@ -360,7 +359,7 @@ class CounterStorage {
   );
   final String _key;
   Future<File> get _localFile async {
-    final Directory appDocumentsDir = await getApplicationSupportDirectory();
+    final Directory appDocumentsDir =  Directory.systemTemp;
     return File('${appDocumentsDir.path}/$_key.json');
   }
 

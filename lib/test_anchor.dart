@@ -38,7 +38,7 @@ import 'package:flutter/widgets.dart';
 // late StateSetter setState;
 
 // Enable if you want verbose logging about menu changes.
-const bool _kDebugMenus = false;
+const bool _kDebugMenus = true;
 
 // The default size of the arrow in _MenuItemLabel that indicates that a menu
 // has a submenu.
@@ -93,6 +93,26 @@ typedef MenuAnchorChildBuilder = Widget Function(
   Widget? child,
 );
 
+/// The type of builder function used by [MenuAnchor.withOverlayBuilder] to build
+/// the overlay attached to a [MenuAnchor].
+///
+/// The `context` is the context that the overlay is being built in.
+///
+/// The `menuFocusScopeNode` is the [FocusScopeNode] that should be provided to
+/// the [FocusScope.focusNode] for the menu.
+///
+/// The `menuPosition` should be used to position the menu at a specific
+/// location.
+///
+/// The `tapRegionGroupId` is the [TapRegion.groupId] that should be used to
+/// consume taps outside of the menu.
+typedef MenuOverlayBuilder = Widget Function(
+  BuildContext context,
+  FocusScopeNode menuFocusScopeNode,
+  Offset? menuPosition,
+  Object? tapRegionGroupId,
+);
+
 /// A widget used to mark the "anchor" for a set of submenus, defining the
 /// rectangle used to position the menu, which can be done either with an
 /// explicit location, or with an alignment.
@@ -142,7 +162,46 @@ class MenuAnchor extends StatefulWidget {
     required this.menuChildren,
     this.builder,
     this.child,
-  });
+  }) : _overlayBuilder = null;
+
+
+  /// Builds a [MenuAnchor] that lays out it's [menuChildren] in a custom
+  /// overlay built by `overlayBuilder`.
+  ///
+  /// Because providing an `overlayBuilder` entails managing the positioning,
+  /// appearance, semantics, and interaction of the menu overlay, in most cases
+  /// the default overlay provided by [MenuAnchor] is sufficient. However, in
+  /// cases where a custom overlay is needed (e.g. an animated menu), this
+  /// constructor can be used to provide one.
+  ///
+  /// When defining an `overlayBuilder`, proper focus management can be achieved
+  /// by wrapping a [FocusScope] around your overlay and providing a
+  /// `menuFocusScopeNode` to the [FocusScope.focusNode] property. The
+  /// `menuPosition` property should be used to position the menu at the
+  /// user-specified location. If a [TapRegion] is used to consume taps outside
+  /// of the menu, the `tapRegionGroupId` should be used as the
+  /// [TapRegion.groupId].
+  const MenuAnchor.withOverlayBuilder({
+    super.key,
+    this.controller,
+    this.childFocusNode,
+    this.style,
+    this.alignmentOffset = Offset.zero,
+    this.clipBehavior = Clip.hardEdge,
+    @Deprecated(
+      'Use consumeOutsideTap instead. '
+      'This feature was deprecated after v3.16.0-8.0.pre.',
+    )
+    this.anchorTapClosesMenu = false,
+    this.consumeOutsideTap = false,
+    this.onOpen,
+    this.onClose,
+    this.crossAxisUnconstrained = true,
+    required this.menuChildren,
+    required MenuOverlayBuilder overlayBuilder,
+    this.builder,
+    this.child,
+  }) : _overlayBuilder = overlayBuilder;
 
   /// An optional controller that allows opening and closing of the menu from
   /// other widgets.
@@ -267,8 +326,21 @@ class MenuAnchor extends StatefulWidget {
   /// to rebuild this child when those change.
   final Widget? child;
 
+  /// A method that builds the overlay attached to this [MenuAnchor].
+  ///
+  /// If supplied, this function is responsible for building a widget that handles
+  /// the positioning, appearance, and interaction of the menu overlay.
+  ///
+  /// When providing a custom overlay builder, a [FocusScope] should wrap the
+  /// menu, and the [menuFocusScopeNode] should be provided to the
+  /// [FocusScope.focusNode]. The [menuPosition] should be used to position the
+  /// menu at the user-specified location. If a [TapRegion] is used to consume
+  /// taps outside of the menu, the [tapRegionGroupId] should be used as the
+  /// [TapRegion.groupId].
+  final MenuOverlayBuilder? _overlayBuilder;
+
   @override
-  State<MenuAnchor> createState() => MenuAnchorState();
+  State<MenuAnchor> createState() => _MenuAnchorState();
 
   @override
   List<DiagnosticsNode> debugDescribeChildren() {
@@ -287,18 +359,16 @@ class MenuAnchor extends StatefulWidget {
   }
 }
 
-@optionalTypeArgs
-@protected
-class MenuAnchorState<W extends MenuAnchor> extends State<W> {
+class _MenuAnchorState extends State<MenuAnchor> {
   // This is the global key that is used later to determine the bounding rect
   // for the anchor's region that the CustomSingleChildLayout's delegate
   // uses to determine where to place the menu on the screen and to avoid the
   // view's edges.
-  final GlobalKey<MenuAnchorState> _anchorKey = GlobalKey<MenuAnchorState>(debugLabel: kReleaseMode ? null : 'MenuAnchor');
-  MenuAnchorState? _parent;
+  final GlobalKey<_MenuAnchorState> _anchorKey = GlobalKey<_MenuAnchorState>(debugLabel: kReleaseMode ? null : 'MenuAnchor');
+  _MenuAnchorState? _parent;
   late final FocusScopeNode _menuScopeNode;
   MenuController? _internalMenuController;
-  final List<MenuAnchorState> _anchorChildren = <MenuAnchorState>[];
+  final List<_MenuAnchorState> _anchorChildren = <_MenuAnchorState>[];
   ScrollPosition? _scrollPosition;
   Size? _viewSize;
   final OverlayPortalController _overlayController = OverlayPortalController(debugLabel: kReleaseMode ? null : 'MenuAnchor controller');
@@ -336,7 +406,7 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final MenuAnchorState? newParent = MenuAnchorState._maybeOf(context);
+    final _MenuAnchorState? newParent = _MenuAnchorState._maybeOf(context);
     if (newParent != _parent) {
       _parent?._removeChild(this);
       _parent = newParent;
@@ -356,7 +426,7 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
 
   @override
   void didUpdateWidget(covariant MenuAnchor oldWidget) {
-    super.didUpdateWidget(oldWidget as W);
+    super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
       oldWidget.controller?._detach(this);
       if (widget.controller != null) {
@@ -375,20 +445,13 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
   Widget build(BuildContext context) {
     Widget child = OverlayPortal(
       controller: _overlayController,
-      overlayChildBuilder: (BuildContext overlayContext) {
-        return buildOverlayChild(
-          overlayContext: overlayContext,
-          menuFocusScopeNode: _menuScopeNode,
-          tapRegionGroupId: _root._menuScopeNode,
-          menuPosition: _menuPosition,
-        );
-      },
+      overlayChildBuilder: _buildOverlay,
       child: _buildContents(context),
     );
 
     if (!widget.anchorTapClosesMenu) {
       child = TapRegion(
-        groupId: _root._menuScopeNode,
+        groupId: _root,
         consumeOutsideTaps: _root._isOpen && widget.consumeOutsideTap,
         onTapOutside: (PointerDownEvent event) {
           assert(_debugMenuInfo('Tapped Outside ${widget.controller}'));
@@ -406,23 +469,24 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
     );
   }
 
+  Widget _buildOverlay(BuildContext overlayContext) {
+    if (widget._overlayBuilder == null) {
+      return _Submenu(
+        anchor: this,
+        menuStyle: widget.style,
+        alignmentOffset: widget.alignmentOffset ?? Offset.zero,
+        menuPosition: _menuPosition,
+        clipBehavior: widget.clipBehavior,
+        menuChildren: widget.menuChildren,
+        crossAxisUnconstrained: widget.crossAxisUnconstrained,
+      );
+    }
 
-  @protected
-  Widget buildOverlayChild({
-    required BuildContext overlayContext,
-    required FocusScopeNode menuFocusScopeNode,
-    Offset? menuPosition,
-    // Provided for subclasses to override.
-    Object? tapRegionGroupId,
-  }) {
-    return _Submenu(
-      anchor: this,
-      menuStyle: widget.style,
-      alignmentOffset: widget.alignmentOffset ?? Offset.zero,
-      menuPosition: menuPosition,
-      clipBehavior: widget.clipBehavior,
-      menuChildren: widget.menuChildren,
-      crossAxisUnconstrained: widget.crossAxisUnconstrained,
+    return widget._overlayBuilder!(
+      overlayContext,
+      _menuScopeNode,
+      _menuPosition,
+      _root,
     );
   }
 
@@ -459,7 +523,7 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
     return policy.findFirstFocus(_menuScopeNode, ignoreCurrentFocus: true);
   }
 
-  void _addChild(MenuAnchorState child) {
+  void _addChild(_MenuAnchorState child) {
     assert(_isRoot || _debugMenuInfo('Added root child: $child'));
     assert(!_anchorChildren.contains(child));
     _anchorChildren.add(child);
@@ -467,7 +531,7 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
     assert(_debugMenuInfo('Tree:\n${widget.toStringDeep()}'));
   }
 
-  void _removeChild(MenuAnchorState child) {
+  void _removeChild(_MenuAnchorState child) {
     assert(_isRoot || _debugMenuInfo('Removed root child: $child'));
     assert(_anchorChildren.contains(child));
     assert(_debugMenuInfo('Removing:\n${child.widget.toStringDeep()}'));
@@ -475,25 +539,25 @@ class MenuAnchorState<W extends MenuAnchor> extends State<W> {
     assert(_debugMenuInfo('Tree:\n${widget.toStringDeep()}'));
   }
 
-  List<MenuAnchorState> _getFocusableChildren() {
+  List<_MenuAnchorState> _getFocusableChildren() {
     if (_parent == null) {
-      return <MenuAnchorState>[];
+      return <_MenuAnchorState>[];
     }
-    return _parent!._anchorChildren.where((MenuAnchorState menu) {
+    return _parent!._anchorChildren.where((_MenuAnchorState menu) {
       return menu.widget.childFocusNode?.canRequestFocus ?? false;
     },).toList();
   }
 
-  MenuAnchorState? get _nextFocusableSibling {
-    final List<MenuAnchorState> focusable = _getFocusableChildren();
+  _MenuAnchorState? get _nextFocusableSibling {
+    final List<_MenuAnchorState> focusable = _getFocusableChildren();
       if (focusable.isEmpty) {
         return null;
       }
       return focusable[(focusable.indexOf(this) + 1) % focusable.length];
   }
 
-MenuAnchorState? get _previousFocusableSibling {
-  final List<MenuAnchorState> focusable = _getFocusableChildren();
+_MenuAnchorState? get _previousFocusableSibling {
+  final List<_MenuAnchorState> focusable = _getFocusableChildren();
   if (focusable.isEmpty) {
     return null;
   }
@@ -501,16 +565,16 @@ MenuAnchorState? get _previousFocusableSibling {
 }
 
   @protected
-  MenuAnchorState get _root {
-    MenuAnchorState anchor = this;
+  _MenuAnchorState get _root {
+    _MenuAnchorState anchor = this;
     while (anchor._parent != null) {
       anchor = anchor._parent!;
     }
     return anchor;
   }
 
-  MenuAnchorState get _topLevel {
-    MenuAnchorState handle = this;
+  _MenuAnchorState get _topLevel {
+    _MenuAnchorState handle = this;
     while (handle._parent != null && !handle._parent!._isTopLevel) {
       handle = handle._parent!;
     }
@@ -626,7 +690,7 @@ MenuAnchorState? get _previousFocusableSibling {
 
   void _closeChildren({bool inDispose = false}) {
     assert(_debugMenuInfo('Closing children of $this${inDispose ? ' (dispose)' : ''}'));
-    for (final MenuAnchorState child in List<MenuAnchorState>.from(_anchorChildren)) {
+    for (final _MenuAnchorState child in List<_MenuAnchorState>.from(_anchorChildren)) {
       child._close(inDispose: inDispose);
     }
   }
@@ -634,7 +698,7 @@ MenuAnchorState? get _previousFocusableSibling {
   // Returns the active anchor in the given context, if any, and creates a
   // dependency relationship that will rebuild the context when the node
   // changes.
-  static MenuAnchorState? _maybeOf(BuildContext context) {
+  static _MenuAnchorState? _maybeOf(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<_MenuAnchorScope>()?.anchor;
   }
 
@@ -661,7 +725,7 @@ class MenuController {
   ///
   /// This is set automatically when a [MenuController] is given to the anchor
   /// it controls.
-  MenuAnchorState? _anchor;
+  _MenuAnchorState? _anchor;
 
   /// Whether or not the associated menu is currently open.
   bool get isOpen {
@@ -700,11 +764,11 @@ class MenuController {
   }
 
   // ignore: use_setters_to_change_properties
-  void _attach(MenuAnchorState anchor) {
+  void _attach(_MenuAnchorState anchor) {
     _anchor = anchor;
   }
 
-  void _detach(MenuAnchorState anchor) {
+  void _detach(_MenuAnchorState anchor) {
     if (_anchor == anchor) {
       _anchor = null;
     }
@@ -1154,7 +1218,7 @@ class _MenuItemButtonState extends State<MenuItemButton> {
   void _handleFocusChange() {
     if (!_focusNode.hasPrimaryFocus) {
       // Close any child menus of this button's menu.
-      MenuAnchorState._maybeOf(context)?._closeChildren();
+      _MenuAnchorState._maybeOf(context)?._closeChildren();
     }
   }
 
@@ -1169,7 +1233,7 @@ class _MenuItemButtonState extends State<MenuItemButton> {
   void _handleSelect() {
     assert(_debugMenuInfo('Selected ${widget.child} menu'));
     if (widget.closeOnActivate) {
-      MenuAnchorState._maybeOf(context)?._root._close();
+      _MenuAnchorState._maybeOf(context)?._root._close();
     }
     // Delay the call to onPressed until post-frame so that the focus is
     // restored to what it was before the menu was opened before the action is
@@ -1843,7 +1907,7 @@ class _SubmenuButtonState extends State<SubmenuButton> {
   bool _waitingToFocusMenu = false;
   MenuController? _internalMenuController;
   MenuController get _menuController => widget.controller ?? _internalMenuController!;
-  MenuAnchorState? get _anchor => MenuAnchorState._maybeOf(context);
+  _MenuAnchorState? get _anchor => _MenuAnchorState._maybeOf(context);
   FocusNode get _buttonFocusNode => widget.focusNode ?? _internalFocusNode!;
   bool get _enabled => widget.menuChildren.isNotEmpty;
 
@@ -2318,7 +2382,7 @@ class _MenuAnchorScope extends InheritedWidget {
   });
 
   final GlobalKey anchorKey;
-  final MenuAnchorState anchor;
+  final _MenuAnchorState anchor;
   final bool isOpen;
 
   @override
@@ -2343,11 +2407,11 @@ class _MenuBarAnchor extends MenuAnchor {
   State<MenuAnchor> createState() => _MenuBarAnchorState();
 }
 
-class _MenuBarAnchorState extends MenuAnchorState {
+class _MenuBarAnchorState extends _MenuAnchorState {
   @override
   bool get _isOpen {
     // If it's a bar, then it's "open" if any of its children are open.
-    for (final MenuAnchorState child in _anchorChildren) {
+    for (final _MenuAnchorState child in _anchorChildren) {
       if (child._isOpen) {
         return true;
       }
@@ -2406,7 +2470,7 @@ class _MenuPreviousFocusAction extends PreviousFocusAction {
     if (context == null) {
       return super.invoke(intent);
     }
-    final MenuAnchorState? anchor = MenuAnchorState._maybeOf(context);
+    final _MenuAnchorState? anchor = _MenuAnchorState._maybeOf(context);
     if (anchor == null || !anchor._root._isOpen) {
       return super.invoke(intent);
     }
@@ -2414,8 +2478,8 @@ class _MenuPreviousFocusAction extends PreviousFocusAction {
     return _moveToPreviousFocusable(anchor);
   }
 
-  static bool _moveToPreviousFocusable(MenuAnchorState currentMenu) {
-    final MenuAnchorState? sibling = currentMenu._previousFocusableSibling;
+  static bool _moveToPreviousFocusable(_MenuAnchorState currentMenu) {
+    final _MenuAnchorState? sibling = currentMenu._previousFocusableSibling;
     sibling?._focusButton();
     return true;
   }
@@ -2429,7 +2493,7 @@ class _MenuNextFocusAction extends NextFocusAction {
     if (context == null) {
       return super.invoke(intent);
     }
-    final MenuAnchorState? anchor = MenuAnchorState._maybeOf(context);
+    final _MenuAnchorState? anchor = _MenuAnchorState._maybeOf(context);
     if (anchor == null || !anchor._root._isOpen) {
       return super.invoke(intent);
     }
@@ -2437,8 +2501,8 @@ class _MenuNextFocusAction extends NextFocusAction {
     return _moveToNextFocusable(anchor);
   }
 
-  static bool _moveToNextFocusable(MenuAnchorState currentMenu) {
-    final MenuAnchorState? sibling = currentMenu._nextFocusableSibling;
+  static bool _moveToNextFocusable(_MenuAnchorState currentMenu) {
+    final _MenuAnchorState? sibling = currentMenu._nextFocusableSibling;
     sibling?._focusButton();
     return true;
   }
@@ -2457,7 +2521,7 @@ class MenuDirectionalFocusAction extends DirectionalFocusAction {
       super.invoke(intent);
       return;
     }
-    final MenuAnchorState? anchor = MenuAnchorState._maybeOf(context);
+    final _MenuAnchorState? anchor = _MenuAnchorState._maybeOf(context);
     if (anchor == null || !anchor._root._isOpen) {
       super.invoke(intent);
       return;
@@ -2589,7 +2653,7 @@ class MenuDirectionalFocusAction extends DirectionalFocusAction {
     super.invoke(intent);
   }
 
-  bool _moveToNext(MenuAnchorState currentMenu) {
+  bool _moveToNext(_MenuAnchorState currentMenu) {
     assert(_debugMenuInfo('Moving focus to next item in menu'));
     // Need to invalidate the scope data because we're switching scopes, and
     // otherwise the anti-hysteresis code will interfere with moving to the
@@ -2603,13 +2667,13 @@ class MenuDirectionalFocusAction extends DirectionalFocusAction {
     return false;
   }
 
-  bool _moveToNextFocusableTopLevel(MenuAnchorState currentMenu) {
-    final MenuAnchorState? sibling = currentMenu._topLevel._nextFocusableSibling;
+  bool _moveToNextFocusableTopLevel(_MenuAnchorState currentMenu) {
+    final _MenuAnchorState? sibling = currentMenu._topLevel._nextFocusableSibling;
     sibling?._focusButton();
       return true;
   }
 
-  bool _moveToParent(MenuAnchorState currentMenu) {
+  bool _moveToParent(_MenuAnchorState currentMenu) {
     assert(_debugMenuInfo('Moving focus to parent menu button'));
     if (!(currentMenu.widget.childFocusNode?.hasPrimaryFocus ?? true)) {
       currentMenu._focusButton();
@@ -2617,7 +2681,7 @@ class MenuDirectionalFocusAction extends DirectionalFocusAction {
     return true;
   }
 
-  bool _moveToPrevious(MenuAnchorState currentMenu) {
+  bool _moveToPrevious(_MenuAnchorState currentMenu) {
     assert(_debugMenuInfo('Moving focus to previous item in menu'));
     // Need to invalidate the scope data because we're switching scopes, and
     // otherwise the anti-hysteresis code will interfere with moving to the
@@ -2631,13 +2695,13 @@ class MenuDirectionalFocusAction extends DirectionalFocusAction {
     return false;
   }
 
-  bool _moveToPreviousFocusableTopLevel(MenuAnchorState currentMenu) {
-    final MenuAnchorState? sibling = currentMenu._topLevel._previousFocusableSibling;
+  bool _moveToPreviousFocusableTopLevel(_MenuAnchorState currentMenu) {
+    final _MenuAnchorState? sibling = currentMenu._topLevel._previousFocusableSibling;
     sibling?._focusButton();
     return true;
   }
 
-  bool _moveToSubmenu(MenuAnchorState currentMenu) {
+  bool _moveToSubmenu(_MenuAnchorState currentMenu) {
     assert(_debugMenuInfo('Opening submenu'));
     if (!currentMenu._isOpen) {
       // If no submenu is open, then an arrow opens the submenu.
@@ -2963,7 +3027,7 @@ class _MenuAcceleratorLabelState extends State<MenuAcceleratorLabel> {
   late String _displayLabel;
   int _acceleratorIndex = -1;
   MenuAcceleratorCallbackBinding? _binding;
-  MenuAnchorState? _anchor;
+  _MenuAnchorState? _anchor;
   ShortcutRegistry? _shortcutRegistry;
   ShortcutRegistryEntry? _shortcutRegistryEntry;
   bool _showAccelerators = false;
@@ -2999,7 +3063,7 @@ class _MenuAcceleratorLabelState extends State<MenuAcceleratorLabel> {
       return;
     }
     _binding = MenuAcceleratorCallbackBinding.maybeOf(context);
-    _anchor = MenuAnchorState._maybeOf(context);
+    _anchor = _MenuAnchorState._maybeOf(context);
     _shortcutRegistry = ShortcutRegistry.maybeOf(context);
     _updateAcceleratorShortcut();
   }
@@ -3531,7 +3595,7 @@ class _Submenu extends StatelessWidget {
     required this.menuChildren,
   });
 
-  final MenuAnchorState anchor;
+  final _MenuAnchorState anchor;
   final MenuStyle? menuStyle;
   final Offset? menuPosition;
   final Offset alignmentOffset;
@@ -3609,7 +3673,7 @@ class _Submenu extends StatelessWidget {
             parentOrientation: anchor._parent?._orientation ?? Axis.horizontal,
           ),
           child: TapRegion(
-            groupId: anchor._root._menuScopeNode,
+            groupId: anchor._root,
             consumeOutsideTaps: anchor._root._isOpen && anchor.widget.consumeOutsideTap,
             onTapOutside: (PointerDownEvent event) {
               anchor._close();
