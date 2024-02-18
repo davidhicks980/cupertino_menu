@@ -38,7 +38,7 @@ import 'package:flutter/widgets.dart';
 // late StateSetter setState;
 
 // Enable if you want verbose logging about menu changes.
-const bool _kDebugMenus = true;
+const bool _kDebugMenus = false;
 
 // The default size of the arrow in _MenuItemLabel that indicates that a menu
 // has a submenu.
@@ -564,7 +564,6 @@ _MenuAnchorState? get _previousFocusableSibling {
   return focusable[(focusable.indexOf(this) - 1 + focusable.length) % focusable.length];
 }
 
-  @protected
   _MenuAnchorState get _root {
     _MenuAnchorState anchor = this;
     while (anchor._parent != null) {

@@ -40,7 +40,9 @@ import 'semantics.dart';
 // TODO(davidhicks980): Accelerators are not used on Apple platforms -- exclude
 // them from the library?
 
-typedef MenuParts = ({
+
+/// Record that groups together the styles of various parts of a menu item.
+typedef MenuPartsStyle = ({
   TextStyle? leadingIconStyle,
   TextStyle? leadingTextStyle,
   TextStyle? subtitleStyle,
@@ -325,7 +327,6 @@ void main() {
     testWidgets('hasLeading aligns sibling CupertinoMenuItems',
         (WidgetTester tester) async {
       final GlobalKey itemKey = GlobalKey();
-
       await tester.pumpWidget(buildApp(<Widget>[
         CupertinoMenuItem(key: itemKey, child: TestItem.item0.text),
         const _DebugCupertinoMenuEntryMixin(),
@@ -339,8 +340,7 @@ void main() {
         isFalse,
       );
 
-      final Offset offsetWithoutLeading =
-          tester.getTopLeft(TestItem.item0.findText);
+      final Offset offsetWithoutLeading = tester.getTopLeft(TestItem.item0.findText);
 
       await tester.pumpWidget(buildApp(<Widget>[
         CupertinoMenuItem(key: itemKey, child: TestItem.item0.text),
@@ -366,8 +366,9 @@ void main() {
       await tester.pumpWidget(
         const CupertinoApp(
           home: Align(
-              alignment: AlignmentDirectional.topStart,
-              child: CupertinoLargeMenuDivider()),
+            alignment: AlignmentDirectional.topStart,
+            child: CupertinoLargeMenuDivider(),
+          ),
         ),
       );
 
@@ -392,6 +393,7 @@ void main() {
           ),
         ),
       );
+
       controller.open();
       await tester.pumpAndSettle();
 
@@ -426,6 +428,7 @@ void main() {
             matching: find.byType(Container),
           )
           .evaluate();
+
       expect(
         (containerFinder.first.widget as Container).color,
         isSameColorAs(const Color.fromRGBO(0, 0, 0, 0.08)),
@@ -449,6 +452,7 @@ void main() {
           ),
         ),
       );
+
       expect(
         (containerFinder.first.widget as Container).color,
         isSameColorAs(const Color.fromRGBO(0, 0, 0, 0.16)),
@@ -470,8 +474,10 @@ void main() {
           ),
         ),
       );
+
       controller.open();
       await tester.pumpAndSettle();
+
       expect(find.byType(CupertinoLargeMenuDivider), findsOneWidget);
       expect(find.byType(CupertinoMenuDivider), findsNothing);
     });
@@ -515,7 +521,7 @@ void main() {
         controller.open();
         await tester.pumpAndSettle();
 
-        MenuParts findParts({bool hideTrailing = false}) {
+        MenuPartsStyle findParts({bool hideTrailing = false}) {
           return (
             leadingIconStyle:
               findDescendentTextStyle(
@@ -534,7 +540,9 @@ void main() {
           );
         }
 
-        MenuParts parts = findParts();
+        MenuPartsStyle parts = findParts();
+
+        // Helper function to match the default style of the text.
         void matchDefaultStyle(TextStyle style, Finder finder) {
           expect(style.fontSize, 17);
           expect(style.fontFamily, 'SF Pro Text');
@@ -598,6 +606,7 @@ void main() {
           ],
         ));
         await tester.pumpAndSettle();
+
         parts = findParts();
         expect(parts.leadingIconStyle?.color, isSameColorAs(titleColor.color));
         expect(parts.leadingTextStyle?.color, isSameColorAs(titleColor.color));
@@ -607,37 +616,54 @@ void main() {
             isSameColorAs(subtitleColor.color));
 
         /* THEME OVERRIDE AND MEDIA QUERY */
-        await tester.pumpWidget(buildTestApp(
-          mediaQuery: const MediaQueryData(
-              boldText: true, textScaler: TextScaler.linear(1.1)),
-          theme: const CupertinoThemeData(brightness: Brightness.dark),
-          children: <Widget>[
-            CupertinoMenuItem(
-              isDefaultAction: true,
-              subtitle: const Text('subtitle',
-                  style:
-                      TextStyle(inherit: false, color: CupertinoColors.black)),
-              leading: const Stack(children: <Widget>[
-                Icon(CupertinoIcons.left_chevron, color: CupertinoColors.black),
-                Text(
-                  'leading',
-                  style: TextStyle(color: CupertinoColors.black),
-                )
-              ]),
-              trailing: const Stack(children: <Widget>[
-                Icon(CupertinoIcons.right_chevron,
-                    color: CupertinoColors.black),
-                Text('trailing', style: TextStyle(color: CupertinoColors.black))
-              ]),
-              child: Text(
-                TestItem.item0.label,
-                style:
-                    const TextStyle(color: CupertinoColors.lightBackgroundGray),
-              ),
-              onPressed: () {},
+        await tester.pumpWidget(
+          buildTestApp(
+            mediaQuery: const MediaQueryData(
+              boldText: true,
+              textScaler: TextScaler.linear(1.1),
             ),
-          ],
-        ));
+            theme: const CupertinoThemeData(brightness: Brightness.dark),
+            children: <Widget>[
+              CupertinoMenuItem(
+                isDefaultAction: true,
+                subtitle: const Text(
+                  'subtitle',
+                  style: TextStyle(
+                    inherit: false,
+                    color: CupertinoColors.black,
+                  ),
+                ),
+                leading: const Stack(children: <Widget>[
+                  Icon(
+                    CupertinoIcons.left_chevron,
+                    color: CupertinoColors.black,
+                  ),
+                  Text(
+                    'leading',
+                    style: TextStyle(color: CupertinoColors.black),
+                  )
+                ]),
+                trailing: const Stack(children: <Widget>[
+                  Icon(
+                    CupertinoIcons.right_chevron,
+                    color: CupertinoColors.black,
+                  ),
+                  Text(
+                    'trailing',
+                    style: TextStyle(color: CupertinoColors.black),
+                  )
+                ]),
+                child: Text(
+                  TestItem.item0.label,
+                  style: const TextStyle(
+                    color: CupertinoColors.lightBackgroundGray,
+                  ),
+                ),
+                onPressed: () {},
+              ),
+            ],
+          ),
+        );
 
         await tester.pumpAndSettle();
         parts = findParts();
@@ -655,12 +681,10 @@ void main() {
         expect(parts.trailingTextStyle!.color,
             isSameColorAs(CupertinoColors.black));
 
-        expect(
-            parts.subtitleStyle!.color, isSameColorAs(CupertinoColors.black));
+        expect(parts.subtitleStyle!.color, isSameColorAs(CupertinoColors.black));
         expect(parts.subtitleStyle!.fontWeight, FontWeight.bold);
 
-        expect(parts.titleStyle!.color,
-            isSameColorAs(CupertinoColors.lightBackgroundGray));
+        expect(parts.titleStyle!.color, isSameColorAs(CupertinoColors.lightBackgroundGray));
         expect(parts.titleStyle!.fontWeight, FontWeight.bold);
 
         /* FONT SCALING > 1.25 */
@@ -683,14 +707,8 @@ void main() {
           ],
         ));
 
-        expect(
-          findDescendentRichText(tester, TestItem.item0.findText)?.maxLines,
-          100,
-        );
-        expect(
-          findDescendentRichText(tester, find.text('subtitle'))?.maxLines,
-          100,
-        );
+        expect(findDescendentRichText(tester, TestItem.item0.findText)?.maxLines, 100);
+        expect(findDescendentRichText(tester, find.text('subtitle'))?.maxLines, 100);
 
         expect(find.text('leading'), findsOne);
         expect(find.byIcon(CupertinoIcons.left_chevron), findsOne);
@@ -720,6 +738,7 @@ void main() {
 
         controller.open();
         await tester.pumpAndSettle();
+
         expect(
           findDescendentTextStyle(
             tester,
@@ -777,6 +796,7 @@ void main() {
         ));
 
         await tester.pumpAndSettle();
+
         expect(
           findDescendentTextStyle(
             tester,
@@ -821,6 +841,7 @@ void main() {
 
         controller.open();
         await tester.pumpAndSettle();
+
         expect(
           findDescendentTextStyle(tester, TestItem.item0.findText)?.fontWeight,
           FontWeight.bold,
@@ -845,6 +866,7 @@ void main() {
 
         controller.open();
         await tester.pumpAndSettle();
+
         expect(find.byType(CupertinoMenuDivider), findsNWidgets(2));
       });
 
@@ -864,6 +886,7 @@ void main() {
         });
 
         await gesture.addPointer(location: Offset.zero);
+
         addTearDown(gesture.removePointer);
         addTearDown(focusNode.dispose);
 
@@ -885,6 +908,7 @@ void main() {
                 ),
               ]),
         );
+
         controller.open();
         await tester.pumpAndSettle();
 
@@ -898,9 +922,8 @@ void main() {
 
         // Test press
         await gesture.down(tester.getCenter(TestItem.item0.findWidget));
-        expect(
-            findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
 
+        expect(findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
         expect(
           findDescendentTextStyle(tester, find.text(TestItem.item0.label))
               ?.color,
@@ -913,64 +936,63 @@ void main() {
 
         expect(controller.isOpen, isTrue);
         expect(TestItem.item0.findWidget, findsOneWidget);
-        expect(
-            findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
         expect(interactions, 0);
       });
 
       testWidgets('hover color', (WidgetTester tester) async {
         const CupertinoDynamicColor customPressedColor =
-            CupertinoDynamicColor.withBrightness(
-          color: Color.fromRGBO(0, 255, 0, 1),
-          darkColor: Color.fromRGBO(0, 0, 255, 1),
-        );
+          CupertinoDynamicColor.withBrightness(
+              color: Color.fromRGBO(0, 255, 0, 1),
+              darkColor: Color.fromRGBO(0, 0, 255, 1),
+            );
         const CupertinoDynamicColor customHoveredColor =
-            CupertinoDynamicColor.withBrightness(
-          color: Color.fromRGBO(75, 0, 0, 1),
-          darkColor: Color.fromRGBO(150, 0, 0, 1),
-        );
+          CupertinoDynamicColor.withBrightness(
+              color: Color.fromRGBO(75, 0, 0, 1),
+              darkColor: Color.fromRGBO(150, 0, 0, 1),
+            );
         await tester.pumpWidget(buildTestApp(
-            theme: const CupertinoThemeData(brightness: Brightness.dark),
-            children: <Widget>[
-              CupertinoMenuItem(
-                child: TestItem.item0.text,
-                onPressed: () {},
-              ),
-              CupertinoMenuItem(
-                  onPressed: () {},
-                  pressedColor: customPressedColor,
-                  hoveredColor: customHoveredColor,
-                  child: TestItem.item1.text),
-              CupertinoMenuItem(
-                  onPressed: () {},
-                  pressedColor: customPressedColor,
-                  child: TestItem.item2.text),
-              CupertinoMenuItem(child: TestItem.item3.text),
-            ]));
+          theme: const CupertinoThemeData(brightness: Brightness.dark),
+          children: <Widget>[
+            CupertinoMenuItem(
+              child: TestItem.item0.text,
+              onPressed: () {},
+            ),
+            CupertinoMenuItem(
+              onPressed: () {},
+              pressedColor: customPressedColor,
+              hoveredColor: customHoveredColor,
+              child: TestItem.item1.text,
+            ),
+            CupertinoMenuItem(
+              onPressed: () {},
+              pressedColor: customPressedColor,
+              child: TestItem.item2.text,
+            ),
+            CupertinoMenuItem(child: TestItem.item3.text),
+          ],
+        ));
         await tester.tap(find.byType(CupertinoMenuAnchor));
         await tester.pumpAndSettle();
         final TestGesture gesture = await tester.createGesture(
           kind: PointerDeviceKind.mouse,
           pointer: 1,
         );
-
         await gesture.addPointer(location: Offset.zero);
+
         addTearDown(() => gesture.removePointer());
 
         // None hovered
-        expect(
-            findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item1.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item2.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item3.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item1.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item2.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item3.findWidget), findsNothing);
 
         // Enabled button
         // Pressed color @ 5% opacity is used when hovered color is not specified
         await gesture.moveTo(tester.getCenter(TestItem.item0.findWidget));
         await tester.pumpAndSettle();
+
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item0.findWidget),
           isSameColorAs(
@@ -982,6 +1004,7 @@ void main() {
         // Specified hovered color takes priority over pressed color
         await gesture.moveTo(tester.getCenter(TestItem.item1.findWidget));
         await tester.pumpAndSettle();
+
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item1.findWidget),
           isSameColorAs(customHoveredColor.darkColor),
@@ -991,39 +1014,34 @@ void main() {
         // Pressed color @ 5% opacity is used when hovered color is not specified
         await gesture.moveTo(tester.getCenter(TestItem.item2.findWidget));
         await tester.pumpAndSettle();
+
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item2.findWidget),
-          isSameColorAs(
-            customPressedColor.darkColor.withOpacity(0.05),
-          ),
+          isSameColorAs(customPressedColor.darkColor.withOpacity(0.05)),
         );
 
         // Disabled button
         await gesture.moveTo(tester.getCenter(TestItem.item3.findWidget));
         await tester.pumpAndSettle();
-        expect(
-            findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item1.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item2.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item3.findWidget), findsNothing);
+
+        expect(findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item1.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item2.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item3.findWidget), findsNothing);
       });
 
       testWidgets('focus color', (WidgetTester tester) async {
         const CupertinoDynamicColor customPressedColor =
-            CupertinoDynamicColor.withBrightness(
-          color: Color.fromRGBO(0, 255, 0, 1),
-          darkColor: Color.fromRGBO(0, 0, 255, 1),
-        );
+        CupertinoDynamicColor.withBrightness(
+            color: Color.fromRGBO(0, 255, 0, 1),
+            darkColor: Color.fromRGBO(0, 0, 255, 1),
+          );
         const CupertinoDynamicColor customFocusColor =
-            CupertinoDynamicColor.withBrightness(
-          color: Color.fromRGBO(75, 0, 0, 1),
-          darkColor: Color.fromRGBO(150, 0, 0, 1),
-        );
-        final FocusNode focusNode =
-            FocusNode(debugLabel: 'TestNode ${TestItem.item1}');
+        CupertinoDynamicColor.withBrightness(
+            color: Color.fromRGBO(75, 0, 0, 1),
+            darkColor: Color.fromRGBO(150, 0, 0, 1),
+          );
+        final FocusNode focusNode = FocusNode(debugLabel: 'TestNode ${TestItem.item1}');
         addTearDown(focusNode.dispose);
         await tester.pumpWidget(buildTestApp(
             theme: const CupertinoThemeData(brightness: Brightness.dark),
@@ -1062,23 +1080,19 @@ void main() {
         addTearDown(() => gesture.removePointer());
 
         // None hovered
-        expect(
-            findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item1.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item2.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item3.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item1.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item2.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item3.findWidget), findsNothing);
 
         // Enabled button
         // Pressed color @ 5% opacity is used when hovered color is not specified
         await gesture.moveTo(tester.getCenter(TestItem.item0.findWidget));
         await tester.pumpAndSettle();
+
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item0.findWidget),
-          isSameColorAs(
-            CupertinoMenuItem.defaultPressedColor.darkColor.withOpacity(0.075),
+          isSameColorAs(CupertinoMenuItem.defaultPressedColor.darkColor.withOpacity(0.075),
           ),
         );
 
@@ -1086,6 +1100,7 @@ void main() {
         // Specified hovered color takes priority over pressed color
         await gesture.moveTo(tester.getCenter(TestItem.item1.findWidget));
         await tester.pumpAndSettle();
+
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item1.findWidget),
           isSameColorAs(customFocusColor.darkColor),
@@ -1095,50 +1110,45 @@ void main() {
         // Pressed color @ 5% opacity is used when hovered color is not specified
         await gesture.moveTo(tester.getCenter(TestItem.item2.findWidget));
         await tester.pumpAndSettle();
+
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item2.findWidget),
-          isSameColorAs(
-            customPressedColor.darkColor.withOpacity(0.075),
+          isSameColorAs(customPressedColor.darkColor.withOpacity(0.075),
           ),
         );
 
         // Disabled button
         await gesture.moveTo(tester.getCenter(TestItem.item3.findWidget));
         await tester.pumpAndSettle();
-        expect(
-            findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item1.findWidget), findsNothing);
+
+        expect(findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item1.findWidget), findsNothing);
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item2.findWidget),
-          isSameColorAs(
-            customPressedColor.darkColor.withOpacity(0.075),
+          isSameColorAs(customPressedColor.darkColor.withOpacity(0.075),
           ),
         );
-        expect(
-            findDescendentDecoration(TestItem.item3.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item3.findWidget), findsNothing);
 
         // Programmatic focus
         focusNode.requestFocus();
         await tester.pumpAndSettle();
-        expect(
-            findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
+
+        expect(findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item1.findWidget),
           isSameColorAs(customFocusColor.darkColor),
         );
-        expect(
-            findDescendentDecoration(TestItem.item2.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item3.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item2.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item3.findWidget), findsNothing);
       });
 
       testWidgets('pressed color', (WidgetTester tester) async {
         const CupertinoDynamicColor customPressedColor =
-            CupertinoDynamicColor.withBrightness(
-          color: Color.fromRGBO(0, 255, 0, 1),
-          darkColor: Color.fromRGBO(0, 0, 255, 1),
-        );
+        CupertinoDynamicColor.withBrightness(
+            color: Color.fromRGBO(0, 255, 0, 1),
+            darkColor: Color.fromRGBO(0, 0, 255, 1),
+          );
 
         // ignore: prefer_final_locals
         int pressedCount = 0;
@@ -1165,11 +1175,14 @@ void main() {
                 child: TestItem.item0.text,
               ),
               CupertinoMenuItem(
-                  onPressed: () {},
-                  pressedColor: customPressedColor,
-                  child: TestItem.item1.text),
+                onPressed: () {},
+                pressedColor: customPressedColor,
+                child: TestItem.item1.text,
+              ),
               CupertinoMenuItem(
-                  pressedColor: customPressedColor, child: TestItem.item2.text),
+                pressedColor: customPressedColor,
+                child: TestItem.item2.text,
+              ),
               CupertinoMenuItem(child: TestItem.item3.text),
             ]));
 
@@ -1177,27 +1190,20 @@ void main() {
         await tester.pumpAndSettle();
 
         // None hovered
-        expect(
-            findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item1.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item2.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item3.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item1.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item2.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item3.findWidget), findsNothing);
 
-        // Pressed button with default color
-        // TODO(davidhicks980): This test fails if the pan is not started over an
-        // inert widget, but works outside of the test. I could not identify the cause.
         await gesture.down(tester.getCenter(
           find.byType(CupertinoLargeMenuDivider),
           warnIfMissed: true,
         ));
         await tester.pump();
-
         await gesture.moveTo(tester.getCenter(TestItem.item0.findWidget));
         await tester.pump();
 
+        // Pressed button with default color
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item0.findWidget),
           isSameColorAs(CupertinoMenuItem.defaultPressedColor.darkColor),
@@ -1213,31 +1219,26 @@ void main() {
         );
 
         // Item0 should not be pressed
-        expect(
-            findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
 
         // Disabled with custom pressedColor -- no effect
         await gesture.moveTo(tester.getCenter(TestItem.item2.findWidget));
         await tester.pump();
-        expect(
-            findDescendentDecoration(TestItem.item2.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item2.findWidget), findsNothing);
 
         // Disabled button
         await gesture.moveTo(tester.getCenter(TestItem.item3.findWidget));
         await tester.pump();
 
-        expect(
-            findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item1.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item2.findWidget), findsNothing);
-        expect(
-            findDescendentDecoration(TestItem.item3.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item1.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item2.findWidget), findsNothing);
+        expect(findDescendentDecoration(TestItem.item3.findWidget), findsNothing);
 
         // Moving back over item0 should cause item0 to fill again
         await gesture.moveTo(tester.getCenter(TestItem.item0.findWidget));
         await tester.pump();
+
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item0.findWidget),
           isSameColorAs(CupertinoMenuItem.defaultPressedColor.darkColor),
@@ -1249,16 +1250,15 @@ void main() {
         // On mouse up, should be hovered but not pressed
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item0.findWidget),
-          isSameColorAs(CupertinoMenuItem.defaultPressedColor.darkColor
-              .withOpacity(0.05)),
+          isSameColorAs(CupertinoMenuItem.defaultPressedColor.darkColor.withOpacity(0.05)),
         );
         expect(pressedCount, 1);
 
-        await gesture
-            .down(tester.getCenter(find.byType(CupertinoLargeMenuDivider)));
+        await gesture.down(tester.getCenter(find.byType(CupertinoLargeMenuDivider)));
         await tester.pump();
         await gesture.moveTo(tester.getCenter(TestItem.item0.findWidget));
         await tester.pump();
+
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item0.findWidget),
           isSameColorAs(CupertinoMenuItem.defaultPressedColor.darkColor),
@@ -1270,13 +1270,13 @@ void main() {
         expect(pressedCount, 2);
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item0.findWidget),
-          isSameColorAs(CupertinoMenuItem.defaultPressedColor.darkColor
-              .withOpacity(0.05)),
+          isSameColorAs(CupertinoMenuItem.defaultPressedColor.darkColor.withOpacity(0.05)),
         );
 
         // Moving back over item1 should cause it to fill again
         await gesture.moveTo(tester.getCenter(TestItem.item1.findWidget));
         await tester.pump();
+
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item1.findWidget),
           isSameColorAs(customPressedColor.darkColor),
@@ -1302,9 +1302,10 @@ void main() {
         );
 
         final TestGesture gesture = await tester.createGesture(
-            kind: PointerDeviceKind.mouse, pointer: 1);
-        await gesture.addPointer(
-            location: tester.getCenter(TestItem.item0.findWidget));
+          kind: PointerDeviceKind.mouse,
+          pointer: 1,
+        );
+        await gesture.addPointer(location: tester.getCenter(TestItem.item0.findWidget));
         addTearDown(gesture.removePointer);
 
         await tester.pump();
@@ -1384,11 +1385,11 @@ void main() {
 
         controller.open();
         await tester.pumpAndSettle();
+
         expect(
           tester.getRect(TestItem.item0.findText),
           rectEquals(const Rect.fromLTRB(307.0, 77.6, 406.5, 98.6)),
         );
-
         expect(
           tester.getRect(find.text(superLongText)),
           rectEquals(const Rect.fromLTRB(307.0, 141.6, 509.0, 183.6)),
@@ -1415,9 +1416,9 @@ void main() {
         );
 
         await tester.pumpAndSettle();
+
         expect(tester.getRect(TestItem.item0.findText),
             rectEquals(const Rect.fromLTRB(261.5, 20.5, 391.6, 48.5)));
-
         expect(tester.getRect(find.text(superLongText)),
             rectEquals(const Rect.fromLTRB(261.5, 99.6, 556.8, 2899.6)));
       });
@@ -1446,11 +1447,11 @@ void main() {
 
         controller.open();
         await tester.pumpAndSettle();
+
         expect(
           tester.getRect(TestItem.item0.findText),
           rectEquals(const Rect.fromLTRB(393.5, 77.6, 493.0, 98.6)),
         );
-
         expect(
           tester.getRect(find.text(superLongText)),
           rectEquals(const Rect.fromLTRB(291.0, 141.6, 493.0, 183.6)),
@@ -1478,16 +1479,17 @@ void main() {
         );
 
         await tester.pumpAndSettle();
+
         expect(
           tester.getRect(TestItem.item0.findText),
           rectEquals(const Rect.fromLTRB(408.4, 20.5, 538.5, 48.5)),
         );
-
         expect(
           tester.getRect(find.text(superLongText)),
           rectEquals(const Rect.fromLTRB(243.2, 99.6, 538.5, 2899.6)),
         );
       });
+
       testWidgets('leading layout LTR', (WidgetTester tester) async {
         await tester.pumpWidget(
           buildTestApp(
@@ -1516,7 +1518,6 @@ void main() {
           tester.getRect(find.text('leading')),
           rectEquals(const Rect.fromLTRB(275.0, 141.6, 295.0, 183.6)),
         );
-
         expect(
           tester.getRect(find.byIcon(CupertinoIcons.left_chevron)),
           rectEquals(const Rect.fromLTRB(281.4, 87.6, 302.4, 108.6)),
@@ -1548,7 +1549,6 @@ void main() {
           tester.getRect(find.text('leading')),
           rectEquals(const Rect.fromLTRB(275.0, 141.6, 325.0, 183.6)),
         );
-
         expect(
           tester.getRect(find.byIcon(CupertinoIcons.left_chevron)),
           rectEquals(const Rect.fromLTRB(281.4, 87.6, 302.4, 108.6)),
@@ -1582,7 +1582,6 @@ void main() {
           tester.getRect(find.text('leading')),
           rectEquals(const Rect.fromLTRB(275.0, 141.6, 295.0, 183.6)),
         );
-
         expect(
           tester.getRect(find.byIcon(CupertinoIcons.left_chevron)),
           rectEquals(const Rect.fromLTRB(281.4, 87.6, 302.4, 108.6)),
@@ -1614,7 +1613,6 @@ void main() {
           tester.getRect(find.text('leading')),
           rectEquals(const Rect.fromLTRB(275.0, 141.6, 325.0, 183.6)),
         );
-
         expect(
           tester.getRect(find.byIcon(CupertinoIcons.left_chevron)),
           rectEquals(const Rect.fromLTRB(281.4, 87.6, 302.4, 108.6)),
@@ -1647,8 +1645,10 @@ void main() {
         final Rect a1 = tester.getRect(TestItem.item0.findText);
         final Rect a2 = tester.getRect(TestItem.item1.findText);
         final Rect a3 = tester.getRect(TestItem.item2.findText);
+
         expect(a1.left, a2.left);
         expect(a1.left - a3.left, 16 - 3);
+
         await tester.pumpWidget(
           buildTestApp(
             children: <Widget>[
@@ -1673,6 +1673,7 @@ void main() {
         final Rect b1 = tester.getRect(TestItem.item0.findText);
         final Rect b2 = tester.getRect(TestItem.item1.findText);
         final Rect b3 = tester.getRect(TestItem.item2.findText);
+
         expect(b1.left, b2.left);
         expect(b1.left - b3.left, 32 - 3);
         expect(b1.left - a1.left, 32 - 16);
@@ -1703,10 +1704,10 @@ void main() {
 
         controller.open();
         await tester.pumpAndSettle();
-
         final Rect a1 = tester.getRect(TestItem.item0.findText);
         final Rect a2 = tester.getRect(TestItem.item1.findText);
         final Rect a3 = tester.getRect(TestItem.item2.findText);
+
         expect(a1.right, a2.right);
         expect(a1.right - a3.right, -16 + 3);
 
@@ -1738,6 +1739,7 @@ void main() {
         final Rect b1 = tester.getRect(TestItem.item0.findText);
         final Rect b2 = tester.getRect(TestItem.item1.findText);
         final Rect b3 = tester.getRect(TestItem.item2.findText);
+
         expect(b1.right, b2.right);
         expect(b1.right - b3.right, -32 + 3);
         expect(b1.right - a1.right, -32 + 16);
@@ -1797,7 +1799,6 @@ void main() {
 
         expect(tester.getRect(find.text('trailing')),
             rectEquals(const Rect.fromLTRB(475.0, 141.6, 525.0, 183.6)));
-
         expect(tester.getRect(find.byIcon(CupertinoIcons.right_chevron)),
             rectEquals(const Rect.fromLTRB(489.4, 87.6, 510.4, 108.6)));
       });
@@ -1828,7 +1829,6 @@ void main() {
 
         expect(tester.getRect(find.text('trailing')),
             rectEquals(const Rect.fromLTRB(275.0, 141.6, 295.0, 183.6)));
-
         expect(tester.getRect(find.byIcon(CupertinoIcons.right_chevron)),
             rectEquals(const Rect.fromLTRB(289.6, 87.6, 310.6, 108.6)));
 
@@ -1857,7 +1857,6 @@ void main() {
 
         expect(tester.getRect(find.text('trailing')),
             rectEquals(const Rect.fromLTRB(275.0, 141.6, 325.0, 183.6)));
-
         expect(tester.getRect(find.byIcon(CupertinoIcons.right_chevron)),
             rectEquals(const Rect.fromLTRB(289.6, 87.6, 310.6, 108.6)));
       });
@@ -2011,7 +2010,6 @@ void main() {
           findConstraints(TestItem.item1.findWidget),
           constraintsMoreOrLess(const BoxConstraints(minHeight: 43.7)),
         );
-
         expect(tester.getRect(TestItem.item1.findWidget),
             rectEquals(const Rect.fromLTRB(275.0, 8.0, 525.0, 71.7)));
       });
@@ -2129,8 +2127,7 @@ void main() {
         await tester.pumpAndSettle();
 
         BoxConstraints getConstraints(Finder finder) {
-          return (find
-                  .descendant(
+          return (find.descendant(
                     of: finder,
                     matching: find.byType(ConstrainedBox),
                   )
@@ -2155,6 +2152,7 @@ void main() {
         expect(tester.getRect(TestItem.item1.findWidget),
             rectEquals(const Rect.fromLTRB(275.0, 8.0, 525.0, 208.0)));
       });
+
       testWidgets('vertical padding', (WidgetTester tester) async {
         EdgeInsetsGeometry getEdgeInsets(Finder finder) {
           return (find
@@ -2189,9 +2187,11 @@ void main() {
         // Because one physical pixel is subtracted from the total vertical
         // padding, the vertical padding is 11.3 per side instead of 11.5.
         expect(
-            getEdgeInsets(TestItem.item0.findWidget),
-            edgeInsetsDirectionalMoreOrLess(
-                const EdgeInsetsDirectional.fromSTEB(0.0, 11.3, 0.0, 11.3)));
+          getEdgeInsets(TestItem.item0.findWidget),
+          edgeInsetsDirectionalMoreOrLess(
+            const EdgeInsetsDirectional.fromSTEB(0.0, 11.3, 0.0, 11.3),
+          ),
+        );
         expect(
           tester.getSize(TestItem.item0.findWidget),
           within(distance: 0.1, from: const Size(250, 43.7)),
@@ -2236,7 +2236,6 @@ void main() {
             const EdgeInsetsDirectional.fromSTEB(0.0, 5.0, 0.0, 5.0),
           ),
         );
-
         expect(
           tester.getSize(TestItem.item0.findWidget),
           within(distance: 0.05, from: const Size(250, 43.7)),
@@ -2285,10 +2284,8 @@ void main() {
         );
         controller.open();
         await tester.pumpAndSettle();
-        final Rect leading =
-            tester.getRect(find.byIcon(CupertinoIcons.left_chevron));
-        final Rect trailing =
-            tester.getRect(find.byIcon(CupertinoIcons.right_chevron));
+        final Rect leading = tester.getRect(find.byIcon(CupertinoIcons.left_chevron));
+        final Rect trailing = tester.getRect(find.byIcon(CupertinoIcons.right_chevron));
         final Rect subtitle = tester.getRect(find.text('subtitle'));
         final Rect child = tester.getRect(TestItem.item0.findText);
         await tester.pumpWidget(
@@ -2307,12 +2304,11 @@ void main() {
             ),
           ),
         );
-        final Rect leading2 =
-            tester.getRect(find.byIcon(CupertinoIcons.left_chevron));
-        final Rect trailing2 =
-            tester.getRect(find.byIcon(CupertinoIcons.right_chevron));
+        final Rect leading2 = tester.getRect(find.byIcon(CupertinoIcons.left_chevron));
+        final Rect trailing2 = tester.getRect(find.byIcon(CupertinoIcons.right_chevron));
         final Rect subtitle2 = tester.getRect(find.text('subtitle'));
         final Rect child2 = tester.getRect(TestItem.item0.findText);
+
         // Default padding subtracts 1 physical pixel from the total vertical
         // padding. Otherwise, the padding vertical padding would be 11.5 per side.
         expect(
@@ -2323,7 +2319,6 @@ void main() {
           tester.getSize(TestItem.item0.findWidget),
           within(distance: 0.05, from: const Size(250, 43.7)),
         );
-
         expect(leading2.left - leading.left, 7);
         expect(trailing2.right - trailing.right, -13);
         expect(subtitle2.left - subtitle.left, 7);
@@ -2365,10 +2360,8 @@ void main() {
         );
         controller.open();
         await tester.pumpAndSettle();
-        final Rect leading =
-            tester.getRect(find.byIcon(CupertinoIcons.left_chevron));
-        final Rect trailing =
-            tester.getRect(find.byIcon(CupertinoIcons.right_chevron));
+        final Rect leading = tester.getRect(find.byIcon(CupertinoIcons.left_chevron));
+        final Rect trailing = tester.getRect(find.byIcon(CupertinoIcons.right_chevron));
         final Rect subtitle = tester.getRect(find.text('subtitle'));
         final Rect child = tester.getRect(TestItem.item0.findText);
 
@@ -2392,22 +2385,25 @@ void main() {
             ),
           ),
         );
-        final Rect leading2 =
-            tester.getRect(find.byIcon(CupertinoIcons.left_chevron));
-        final Rect trailing2 =
-            tester.getRect(find.byIcon(CupertinoIcons.right_chevron));
+        final Rect leading2 = tester.getRect(find.byIcon(CupertinoIcons.left_chevron));
+        final Rect trailing2 = tester.getRect(find.byIcon(CupertinoIcons.right_chevron));
         final Rect subtitle2 = tester.getRect(find.text('subtitle'));
         final Rect child2 = tester.getRect(TestItem.item0.findText);
 
         expect(
-            findEdgeInsets(TestItem.item0.findWidget),
-            edgeInsetsDirectionalMoreOrLess(
-                const EdgeInsetsDirectional.only(start: 7, end: 13)));
+          findEdgeInsets(TestItem.item0.findWidget),
+          edgeInsetsDirectionalMoreOrLess(
+            const EdgeInsetsDirectional.only(
+              start: 7,
+              end: 13,
+            ),
+          ),
+        );
+
         expect(
           tester.getSize(TestItem.item0.findWidget),
           within(distance: 0.05, from: const Size(250, 43.7)),
         );
-
         expect(leading2.right - leading.right, moreOrLessEquals(-7));
         expect(trailing2.left - trailing.left, moreOrLessEquals(13));
         expect(subtitle2.right - subtitle.right, moreOrLessEquals(-7));
@@ -2533,6 +2529,7 @@ void main() {
             ],
           ),
         );
+
         // true -- move focus to the first item
         await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
         await tester.pump();
@@ -2747,8 +2744,7 @@ void main() {
         controller.open();
         await tester.pumpAndSettle();
 
-        final Offset startPosition =
-            tester.getCenter(find.byType(CupertinoLargeMenuDivider));
+        final Offset startPosition = tester.getCenter(find.byType(CupertinoLargeMenuDivider));
         await gesture.down(startPosition);
         await tester.pumpAndSettle();
 
@@ -2881,12 +2877,15 @@ void main() {
 
         await tester.tap(find.byType(CupertinoMenuAnchor));
         await tester.pump();
+
         expect(find.byType(CupertinoMenuItem), findsOneWidget);
+
         await tester.pumpAndSettle();
 
         // Taps the CupertinoMenuItem which should close the menu
         await tester.tap(TestItem.item0.findWidget);
         await tester.pumpAndSettle();
+
         expect(find.byType(CupertinoMenuItem), findsNothing);
 
         await tester.pumpWidget(
@@ -2905,12 +2904,15 @@ void main() {
 
         await tester.tap(find.byType(CupertinoMenuAnchor));
         await tester.pump();
+
         expect(find.byType(CupertinoMenuItem), findsOneWidget);
+
         await tester.pumpAndSettle();
 
         // Taps the CupertinoMenuItem which shouldn't close the menu
         await tester.tap(TestItem.item0.findWidget);
         await tester.pumpAndSettle();
+
         expect(find.byType(CupertinoMenuItem), findsOneWidget);
       });
       testWidgets('Shortcut mnemonics are displayed',
@@ -2923,17 +2925,21 @@ void main() {
                 menuChildren: createTestItems(
                   shortcuts: <TestItem, MenuSerializableShortcut>{
                     TestItem.item0: const SingleActivator(
-                        LogicalKeyboardKey.keyA,
-                        control: true),
+                      LogicalKeyboardKey.keyA,
+                      control: true,
+                    ),
                     TestItem.item1: const SingleActivator(
-                        LogicalKeyboardKey.keyB,
-                        shift: true),
+                      LogicalKeyboardKey.keyB,
+                      shift: true,
+                    ),
                     TestItem.item2: const SingleActivator(
-                        LogicalKeyboardKey.keyC,
-                        alt: true),
+                      LogicalKeyboardKey.keyC,
+                      alt: true,
+                    ),
                     TestItem.item3: const SingleActivator(
-                        LogicalKeyboardKey.keyD,
-                        meta: true),
+                      LogicalKeyboardKey.keyD,
+                      meta: true,
+                    ),
                   },
                 ),
               ),
@@ -3129,9 +3135,11 @@ List<Widget> createTestItems({
     cupertinoMenuItemButton(TestItem.item1),
     const CupertinoLargeMenuDivider(),
     cupertinoMenuItemButton(TestItem.item2),
-    cupertinoMenuItemButton(TestItem.item3,
-        leadingIcon: const Icon(Icons.add),
-        trailingIcon: const Icon(Icons.add),),
+    cupertinoMenuItemButton(
+      TestItem.item3,
+      leadingIcon: const Icon(Icons.add),
+      trailingIcon: const Icon(Icons.add),
+    ),
     cupertinoMenuItemButton(TestItem.item4),
     const CupertinoLargeMenuDivider(),
     cupertinoMenuItemButton(TestItem.item5Disabled, enabled: false),
@@ -3196,7 +3204,7 @@ Widget _buildAnchor(
   Widget? child,
 ) {
   return ConstrainedBox(
-    constraints: const BoxConstraints.tightFor(width: 100, height: 48),
+    constraints: const BoxConstraints.tightFor(width: 48, height: 48),
     child: Material(
         child: InkWell(
       onTap: () {

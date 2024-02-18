@@ -1,10 +1,10 @@
-import 'dart:math';
-import 'dart:ui';
+
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart'  hide  MenuAcceleratorLabel, MenuAnchor, MenuBar, MenuController, MenuItemButton, SubmenuButton;
-import 'cupertino_menu.0.dart';
-import 'test_0.dart';
+import 'cupertino_menu_anchor.0.dart';
+import 'cupertino_menu_anchor.1.dart';
+import 'cupertino_menu_anchor.2.dart';
 // import 'menu.dart';
 // import 'test_anchor.dart';
 
@@ -29,6 +29,7 @@ class _MainState extends State<Main> with SingleTickerProviderStateMixin {
   );
 
   final Alignment _alignment = Alignment.topLeft;
+  int _example = 0;
 
   @override
   void dispose() {
@@ -38,13 +39,29 @@ class _MainState extends State<Main> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return const CupertinoApp(
-      localizationsDelegates: <LocalizationsDelegate>[
-        DefaultCupertinoLocalizations.delegate,
-        DefaultMaterialLocalizations.delegate,
-        DefaultWidgetsLocalizations.delegate,
-      ],
-      home: CupertinoMenuApp(),
+    return   Material(
+      child: Directionality(
+        textDirection: TextDirection.rtl,
+        child: Stack(
+            children: <Widget>[
+              switch (_example) {
+                0 => const CupertinoMenuApp(),
+                1 => const ContextMenuApp(),
+                2 => const CupertinoNestedApp(),
+                _ => const CupertinoMenuApp(),
+              },
+              Align(
+                alignment: const Alignment(0.5, 0.5),
+                child: TextButton(onPressed: () {
+                  setState(() {
+                  _example = _example == 2 ? 0 : _example + 1;
+
+                  });
+                }, child: const Text('Next'),),
+              )
+            ],
+        ),
+      ),
     );
 
     // CupertinoApp(
