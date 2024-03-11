@@ -23,6 +23,6 @@
     <key>MinimumOSVersion</key>
     <string>11.0</string>
     <key>FLTEnableImpeller</key>
-    <false />
+    <true />
   </dict>
 </plist>

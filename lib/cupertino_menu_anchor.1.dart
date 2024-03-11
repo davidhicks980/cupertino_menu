@@ -1,10 +1,10 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Flutter code sample for [MenuAnchor].
-// void main() => runApp(const ContextMenuApp());
+/// Flutter code sample for a [CupertinoMenuAnchor] that shows a menu when a
+/// button is pressed.
+void main() => runApp(const CupertinoMenuApp());
 
 /// An enhanced enum to define the available menus and their shortcuts.
 ///
@@ -29,21 +29,19 @@ enum MenuEntry {
   final MenuSerializableShortcut? shortcut;
 }
 
-class MyContextMenu extends StatefulWidget {
-  const MyContextMenu({super.key, required this.message});
+class Menu extends StatefulWidget {
+  const Menu({super.key, required this.message});
 
   final String message;
 
   @override
-  State<MyContextMenu> createState() => _MyContextMenuState();
+  State<Menu> createState() => _MenuState();
 }
 
-class _MyContextMenuState extends State<MyContextMenu> {
+class _MenuState extends State<Menu> {
   MenuEntry? _lastSelection;
   final FocusNode _buttonFocusNode = FocusNode(debugLabel: 'Menu Button');
-  final CupertinoMenuController _menuController = CupertinoMenuController();
   ShortcutRegistryEntry? _shortcutsEntry;
-  bool _menuWasEnabled = false;
 
   Color get backgroundColor => _backgroundColor;
   Color _backgroundColor = Colors.red;
@@ -63,12 +61,6 @@ class _MyContextMenuState extends State<MyContextMenu> {
         _showingMessage = value;
       });
     }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _disableContextMenu();
   }
 
   @override
@@ -95,42 +87,16 @@ class _MyContextMenuState extends State<MyContextMenu> {
   void dispose() {
     _shortcutsEntry?.dispose();
     _buttonFocusNode.dispose();
-    _reenableContextMenu();
     super.dispose();
-  }
-
-  Future<void> _disableContextMenu() async {
-    if (!kIsWeb) {
-      // Does nothing on non-web platforms.
-      return;
-    }
-    _menuWasEnabled = BrowserContextMenu.enabled;
-    if (_menuWasEnabled) {
-      await BrowserContextMenu.disableContextMenu();
-    }
-  }
-
-  void _reenableContextMenu() {
-    if (!kIsWeb) {
-      // Does nothing on non-web platforms.
-      return;
-    }
-    if (_menuWasEnabled && !BrowserContextMenu.enabled) {
-      BrowserContextMenu.enableContextMenu();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(50),
-      child: GestureDetector(
-        onTapDown: _handleTapDown,
-        onSecondaryTapDown: _handleSecondaryTapDown,
-        child: CupertinoMenuAnchor(
-          enablePan: false,
-          menuAlignment: Alignment.topLeft,
-          controller: _menuController,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        CupertinoMenuAnchor(
+          childFocusNode: _buttonFocusNode,
           menuChildren: <Widget>[
             CupertinoMenuItem(
               child: Text(MenuEntry.about.label),
@@ -164,17 +130,32 @@ class _MyContextMenuState extends State<MyContextMenu> {
               child: Text(MenuEntry.colorBlue.label),
             ),
           ],
+          builder: (
+            BuildContext context,
+            CupertinoMenuController controller,
+            Widget? child,
+          ) {
+            return TextButton(
+              focusNode: _buttonFocusNode,
+              onPressed: () {
+                if (controller.menuStatus
+                    case MenuStatus.opening || MenuStatus.opened) {
+                  controller.close();
+                } else {
+                  controller.open();
+                }
+              },
+              child: const Text('OPEN MENU'),
+            );
+          },
+        ),
+        Expanded(
           child: Container(
             alignment: Alignment.center,
             color: backgroundColor,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Text(
-                      'Right-click anywhere on the background to show the menu.'),
-                ),
                 Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Text(
@@ -189,7 +170,7 @@ class _MyContextMenuState extends State<MyContextMenu> {
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -197,6 +178,7 @@ class _MyContextMenuState extends State<MyContextMenu> {
     setState(() {
       _lastSelection = selection;
     });
+
     switch (selection) {
       case MenuEntry.about:
         showAboutDialog(
@@ -204,8 +186,8 @@ class _MyContextMenuState extends State<MyContextMenu> {
           applicationName: 'MenuBar Sample',
           applicationVersion: '1.0.0',
         );
-      case MenuEntry.showMessage:
       case MenuEntry.hideMessage:
+      case MenuEntry.showMessage:
         showingMessage = !showingMessage;
       case MenuEntry.colorMenu:
         break;
@@ -217,48 +199,22 @@ class _MyContextMenuState extends State<MyContextMenu> {
         backgroundColor = Colors.blue;
     }
   }
-
-  void _handleSecondaryTapDown(TapDownDetails details) {
-    _menuController.open(position: details.localPosition);
-  }
-
-  void _handleTapDown(TapDownDetails details) {
-    switch (defaultTargetPlatform) {
-      case TargetPlatform.android:
-      case TargetPlatform.fuchsia:
-      case TargetPlatform.linux:
-      case TargetPlatform.windows:
-        // Don't open the menu on these platforms with a Ctrl-tap (or a
-        // tap).
-        break;
-      case TargetPlatform.iOS:
-      case TargetPlatform.macOS:
-        // Only open the menu on these platforms if the control button is down
-        // when the tap occurs.
-        if (HardwareKeyboard.instance.logicalKeysPressed
-                .contains(LogicalKeyboardKey.controlLeft) ||
-            HardwareKeyboard.instance.logicalKeysPressed
-                .contains(LogicalKeyboardKey.controlRight)) {
-          _menuController.open(position: details.localPosition);
-        }
-    }
-  }
 }
 
-class ContextMenuApp extends StatelessWidget {
-  const ContextMenuApp({super.key});
-
+class CupertinoMenuApp extends StatelessWidget {
+  const CupertinoMenuApp({super.key});
   static const String kMessage = '"Talk less. Smile more." - A. Burr';
 
   @override
   Widget build(BuildContext context) {
-    return const CupertinoApp(
+    return  const CupertinoApp(
       localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-        // Shortcuts require a MaterialLocalizations widget.
         DefaultMaterialLocalizations.delegate,
       ],
       home: CupertinoPageScaffold(
-        child: MyContextMenu(message: kMessage),
+        child: SafeArea(
+          child: Menu(message: kMessage),
+        ),
       ),
     );
   }

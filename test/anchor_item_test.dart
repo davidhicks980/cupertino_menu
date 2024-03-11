@@ -2,47 +2,22 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 
-import 'package:example/menu.dart';
-import 'package:example/menu_item.dart';
-import 'package:example/test_anchor.dart';
-import 'package:flutter/cupertino.dart'
-    show
-        CupertinoApp,
-        CupertinoColors,
-        CupertinoDynamicColor,
-        CupertinoIcons,
-        CupertinoPageScaffold,
-        CupertinoTheme,
-        CupertinoThemeData;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart'
-    hide
-        CheckboxMenuButton,
-        MenuAcceleratorLabel,
-        MenuAnchor,
-        MenuBar,
-        MenuController,
-        MenuItemButton,
-        RadioMenuButton,
-        SubmenuButton;
+import 'package:flutter/material.dart' show DefaultMaterialLocalizations, InkWell, Material, MenuAcceleratorLabel;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/src/material/material_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:vector_math/vector_math_64.dart';
 
 import 'semantics.dart';
 
-// TODO(davidhicks980): Accelerators are not used on Apple platforms -- exclude
-// them from the library?
-
-
 /// Record that groups together the styles of various parts of a menu item.
-typedef MenuPartsStyle = ({
+typedef _MenuPartsStyle = ({
   TextStyle? leadingIconStyle,
   TextStyle? leadingTextStyle,
   TextStyle? subtitleStyle,
@@ -53,9 +28,6 @@ typedef MenuPartsStyle = ({
 
 void main() {
   late CupertinoMenuController controller;
-  final List<TestItem> selected = <TestItem>[];
-  final List<TestItem> opened = <TestItem>[];
-  final List<TestItem> closed = <TestItem>[];
   Matcher rectEquals(Rect rect) => rectMoreOrLessEquals(rect, epsilon: 0.1);
   Matcher edgeInsetsDirectionalMoreOrLess(
     EdgeInsetsDirectional edgeInsets, {
@@ -159,6 +131,11 @@ void main() {
         widget.runtimeType.toString() == '_CupertinoMenuItemLabel');
   }
 
+  Finder findCupertinoMenuDividers() {
+    return find.byWidgetPredicate((Widget widget) =>
+        widget.runtimeType.toString() == '_CupertinoMenuDivider');
+  }
+
   // Finds the mnemonic associated with the menu item that has the given label.
   Finder findMnemonic(String label) {
     return find
@@ -253,7 +230,7 @@ void main() {
 
       Finder findAncestorDivider(Finder finder) => find.ancestor(
             of: finder,
-            matching: find.byType(CupertinoMenuDivider),
+            matching: findCupertinoMenuDividers()
           );
 
       await tester.pumpWidget(buildApp(<Widget>[
@@ -479,7 +456,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(CupertinoLargeMenuDivider), findsOneWidget);
-      expect(find.byType(CupertinoMenuDivider), findsNothing);
+      expect(findCupertinoMenuDividers(), findsNothing);
     });
   });
 
@@ -521,7 +498,7 @@ void main() {
         controller.open();
         await tester.pumpAndSettle();
 
-        MenuPartsStyle findParts({bool hideTrailing = false}) {
+        _MenuPartsStyle findParts({bool hideTrailing = false}) {
           return (
             leadingIconStyle:
               findDescendentTextStyle(
@@ -540,7 +517,7 @@ void main() {
           );
         }
 
-        MenuPartsStyle parts = findParts();
+        _MenuPartsStyle parts = findParts();
 
         // Helper function to match the default style of the text.
         void matchDefaultStyle(TextStyle style, Finder finder) {
@@ -844,7 +821,7 @@ void main() {
 
         expect(
           findDescendentTextStyle(tester, TestItem.item0.findText)?.fontWeight,
-          FontWeight.bold,
+          FontWeight.w600,
         );
       });
 
@@ -867,7 +844,8 @@ void main() {
         controller.open();
         await tester.pumpAndSettle();
 
-        expect(find.byType(CupertinoMenuDivider), findsNWidgets(2));
+
+        expect(findCupertinoMenuDividers(), findsNWidgets(2));
       });
 
       testWidgets('disabled items should not interact',
@@ -2918,7 +2896,10 @@ void main() {
       testWidgets('Shortcut mnemonics are displayed',
           (WidgetTester tester) async {
         await tester.pumpWidget(
-          MaterialApp(
+          CupertinoApp(
+            localizationsDelegates: const <LocalizationsDelegate<MaterialLocalizations>>[
+              DefaultMaterialLocalizations.delegate,
+            ],
             home: Center(
               child: CupertinoMenuAnchor(
                 controller: controller,
@@ -2990,7 +2971,10 @@ void main() {
         }
 
         await tester.pumpWidget(
-          MaterialApp(
+          CupertinoApp(
+            localizationsDelegates: const <LocalizationsDelegate<MaterialLocalizations>>[
+              DefaultMaterialLocalizations.delegate,
+            ],
             home: Center(
               child: CupertinoMenuAnchor(
                 controller: controller,
@@ -3023,7 +3007,10 @@ void main() {
 
         // Try some weirder ones.
         await tester.pumpWidget(
-          MaterialApp(
+          CupertinoApp(
+            localizationsDelegates: const <LocalizationsDelegate<MaterialLocalizations>>[
+              DefaultMaterialLocalizations.delegate,
+            ],
             home: Center(
               child: CupertinoMenuAnchor(
                 controller: controller,
@@ -3131,14 +3118,14 @@ List<Widget> createTestItems({
   }
 
   final List<Widget> result = <Widget>[
-    cupertinoMenuItemButton(TestItem.item0, leadingIcon: const Icon(Icons.add)),
+    cupertinoMenuItemButton(TestItem.item0, leadingIcon: const Icon(CupertinoIcons.add)),
     cupertinoMenuItemButton(TestItem.item1),
     const CupertinoLargeMenuDivider(),
     cupertinoMenuItemButton(TestItem.item2),
     cupertinoMenuItemButton(
       TestItem.item3,
-      leadingIcon: const Icon(Icons.add),
-      trailingIcon: const Icon(Icons.add),
+      leadingIcon: const Icon(CupertinoIcons.add),
+      trailingIcon: const Icon(CupertinoIcons.add),
     ),
     cupertinoMenuItemButton(TestItem.item4),
     const CupertinoLargeMenuDivider(),
@@ -3200,7 +3187,7 @@ class _DebugCupertinoMenuEntryMixin extends StatelessWidget
 // CupertinoButton to avoid flaky tests in the future.
 Widget _buildAnchor(
   BuildContext context,
-  MenuController controller,
+  CupertinoMenuController controller,
   Widget? child,
 ) {
   return ConstrainedBox(

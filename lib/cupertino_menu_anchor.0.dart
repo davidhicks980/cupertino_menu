@@ -1,222 +1,131 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
-/// Flutter code sample for [MenuAnchor].
+/// Flutter code sample for a [CupertinoMenuAnchor] that shows a basic menu.
+void main() => runApp(const CupertinoSimpleMenuApp());
 
-void main() => runApp(const CupertinoMenuApp());
-
-/// An enhanced enum to define the available menus and their shortcuts.
-///
-/// Using an enum for menu definition is not required, but this illustrates how
-/// they could be used for simple menu systems.
-enum MenuEntry {
-  about('About'),
-  showMessage(
-      'Show Message', SingleActivator(LogicalKeyboardKey.keyS, control: true)),
-  hideMessage(
-      'Hide Message', SingleActivator(LogicalKeyboardKey.keyS, control: true)),
-  colorMenu('Color Menu'),
-  colorRed('Red Background',
-      SingleActivator(LogicalKeyboardKey.keyR, control: true)),
-  colorGreen('Green Background',
-      SingleActivator(LogicalKeyboardKey.keyG, control: true)),
-  colorBlue('Blue Background',
-      SingleActivator(LogicalKeyboardKey.keyB, control: true));
-
-  const MenuEntry(this.label, [this.shortcut]);
-  final String label;
-  final MenuSerializableShortcut? shortcut;
-}
-
-class MyMenu extends StatefulWidget {
-  const MyMenu({super.key, required this.message});
-
-  final String message;
+class CupertinoSimpleMenuApp extends StatelessWidget {
+  const CupertinoSimpleMenuApp({super.key});
 
   @override
-  State<MyMenu> createState() => _MyMenuState();
+  Widget build(BuildContext context) {
+    return const CupertinoApp(
+      localizationsDelegates: <LocalizationsDelegate<MaterialLocalizations>>[
+        DefaultMaterialLocalizations.delegate,
+      ],
+      home: Material(
+        child: CupertinoPageScaffold(
+          navigationBar:
+              CupertinoNavigationBar(middle: Text('CupertinoMenuAnchor Example')),
+          child: SafeArea(
+            child: MenuExample(),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _MyMenuState extends State<MyMenu> {
-  MenuEntry? _lastSelection;
+class MenuExample extends StatefulWidget {
+  const MenuExample({super.key});
+
+  @override
+  State<MenuExample> createState() => _MenuExampleState();
+}
+
+class _MenuExampleState extends State<MenuExample> {
+  // Optional: Create a focus node to control the menu button.
   final FocusNode _buttonFocusNode = FocusNode(debugLabel: 'Menu Button');
-  ShortcutRegistryEntry? _shortcutsEntry;
-
-  Color get backgroundColor => _backgroundColor;
-  Color _backgroundColor = Colors.red;
-  set backgroundColor(Color value) {
-    if (_backgroundColor != value) {
-      setState(() {
-        _backgroundColor = value;
-      });
-    }
-  }
-
-  bool get showingMessage => _showingMessage;
-  bool _showingMessage = false;
-  set showingMessage(bool value) {
-    if (_showingMessage != value) {
-      setState(() {
-        _showingMessage = value;
-      });
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Dispose of any previously registered shortcuts, since they are about to
-    // be replaced.
-    _shortcutsEntry?.dispose();
-    // Collect the shortcuts from the different menu selections so that they can
-    // be registered to apply to the entire app. Menus don't register their
-    // shortcuts, they only display the shortcut hint text.
-    final Map<ShortcutActivator, Intent> shortcuts =
-        <ShortcutActivator, Intent>{
-      for (final MenuEntry item in MenuEntry.values)
-        if (item.shortcut != null)
-          item.shortcut!: VoidCallbackIntent(() => _activate(item)),
-    };
-    // Register the shortcuts with the ShortcutRegistry so that they are
-    // available to the entire application.
-    _shortcutsEntry = ShortcutRegistry.of(context).addAll(shortcuts);
-  }
+  String _pressedItem = '';
 
   @override
   void dispose() {
-    _shortcutsEntry?.dispose();
     _buttonFocusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        CupertinoMenuAnchor(
-          childFocusNode: _buttonFocusNode,
-          menuChildren: <Widget>[
-            CupertinoMenuItem(
-              child: Text(MenuEntry.about.label),
-              onPressed: () => _activate(MenuEntry.about),
-            ),
-            if (_showingMessage)
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          CupertinoMenuAnchor(
+            childFocusNode: _buttonFocusNode,
+            menuChildren: <Widget>[
+              // Doesn't close the menu when pressed.
               CupertinoMenuItem(
-                onPressed: () => _activate(MenuEntry.hideMessage),
-                shortcut: MenuEntry.hideMessage.shortcut,
-                child: Text(MenuEntry.hideMessage.label),
+                onPressed: () {
+                  setState(() {
+                    _pressedItem = 'Regular Item';
+                  });
+                },
+                subtitle: const Text('Subtitle'),
+                child: const Text('Regular Item'),
               ),
-            if (!_showingMessage)
               CupertinoMenuItem(
-                onPressed: () => _activate(MenuEntry.showMessage),
-                shortcut: MenuEntry.showMessage.shortcut,
-                child: Text(MenuEntry.showMessage.label),
-              ),
-            CupertinoMenuItem(
-              onPressed: () => _activate(MenuEntry.colorRed),
-              shortcut: MenuEntry.colorRed.shortcut,
-              child: Text(MenuEntry.colorRed.label),
-            ),
-            CupertinoMenuItem(
-              onPressed: () => _activate(MenuEntry.colorGreen),
-              shortcut: MenuEntry.colorGreen.shortcut,
-              child: Text(MenuEntry.colorGreen.label),
-            ),
-            CupertinoMenuItem(
-              onPressed: () => _activate(MenuEntry.colorBlue),
-              shortcut: MenuEntry.colorBlue.shortcut,
-              child: Text(MenuEntry.colorBlue.label),
-            ),
-          ],
-          builder: (
-            BuildContext context,
-            CupertinoMenuController controller,
-            Widget? child,
-          ) {
-            return TextButton(
-              focusNode: _buttonFocusNode,
-              onPressed: () {
-                if (controller.menuStatus
-                    case MenuStatus.opening || MenuStatus.opened) {
-                  controller.close();
-                } else {
-                  controller.open();
-                }
-              },
-              child: const Text('OPEN MENU'),
-            );
-          },
-        ),
-        Expanded(
-          child: Container(
-            alignment: Alignment.center,
-            color: backgroundColor,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Text(
-                    showingMessage ? widget.message : '',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
+                onPressed: () {
+                  setState(() {
+                    _pressedItem = 'Colorful Item';
+                  });
+                },
+                hoveredColor: const CupertinoDynamicColor.withBrightness(
+                  color: Color(0xFF880000),
+                  darkColor: Color(0xFFAA0000),
                 ),
-                Text(_lastSelection != null
-                    ? 'Last Selected: ${_lastSelection!.label}'
-                    : ''),
-              ],
-            ),
+                focusedColor: const Color(0xFF0000AA),
+                pressedColor: const Color(0xFF006600),
+                child: const Text('Colorful Item'),
+              ),
+              CupertinoMenuItem(
+                trailing: const Icon(CupertinoIcons.add),
+                isDefaultAction: true,
+                onPressed: () {
+                  setState(() {
+                    _pressedItem = 'Default Item';
+                  });
+                },
+                child: const Text('Default Item'),
+              ),
+              CupertinoMenuItem(
+                trailing: const Icon(CupertinoIcons.delete),
+                isDestructiveAction: true,
+                child: const Text('Destructive Item'),
+                onPressed: () {
+                  setState(() {
+                    _pressedItem = 'Destructive Item';
+                  });
+                },
+              )
+            ],
+            builder: (
+              BuildContext context,
+              CupertinoMenuController controller,
+              Widget? child,
+            ) {
+              return TextButton(
+                focusNode: _buttonFocusNode,
+                onPressed: () {
+                  if (controller.menuStatus
+                      case MenuStatus.opening || MenuStatus.opened) {
+                    controller.close();
+                  } else {
+                    controller.open();
+                  }
+                },
+                child: const Text('OPEN MENU'),
+              );
+            },
           ),
-        ),
-      ],
-    );
-  }
-
-  void _activate(MenuEntry selection) {
-    setState(() {
-      _lastSelection = selection;
-    });
-
-    switch (selection) {
-      case MenuEntry.about:
-        showAboutDialog(
-          context: context,
-          applicationName: 'MenuBar Sample',
-          applicationVersion: '1.0.0',
-        );
-      case MenuEntry.hideMessage:
-      case MenuEntry.showMessage:
-        showingMessage = !showingMessage;
-      case MenuEntry.colorMenu:
-        break;
-      case MenuEntry.colorRed:
-        backgroundColor = Colors.red;
-      case MenuEntry.colorGreen:
-        backgroundColor = Colors.green;
-      case MenuEntry.colorBlue:
-        backgroundColor = Colors.blue;
-    }
-  }
-}
-
-class CupertinoMenuApp extends StatelessWidget {
-  const CupertinoMenuApp({super.key});
-
-  static const String kMessage = '"Talk less. Smile more." - A. Burr';
-
-  @override
-  Widget build(BuildContext context) {
-    return  const CupertinoApp(
-      localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-        DefaultMaterialLocalizations.delegate,
-      ],
-      home: CupertinoPageScaffold(
-        child: SafeArea(
-          child: MyMenu(message: kMessage),
-        ),
+          if (_pressedItem.isNotEmpty)
+            Text(
+              'You Pressed: $_pressedItem',
+              style: CupertinoTheme.of(context).textTheme.textStyle,
+            ),
+        ],
       ),
     );
   }
 }
+
+

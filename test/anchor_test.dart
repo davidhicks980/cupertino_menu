@@ -2,40 +2,25 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:async';
-import 'dart:math' as math;
 import 'dart:ui';
 
-import 'package:example/menu.dart';
-import 'package:example/menu_item.dart';
-import 'package:example/test_anchor.dart';
-import 'package:flutter/cupertino.dart'
-    show
-        CupertinoApp,
-        CupertinoColors,
-        CupertinoDynamicColor,
-        CupertinoIcons,
-        CupertinoPageScaffold,
-        CupertinoScrollbar,
-        CupertinoTheme,
-        CupertinoThemeData;
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart'
-    hide
-        CheckboxMenuButton,
-        MenuAcceleratorLabel,
-        MenuAnchor,
-        MenuBar,
-        MenuController,
-        MenuItemButton,
-        RadioMenuButton,
-        SubmenuButton;
+    show
+        ElevatedButton,
+        FilledButton,
+        InkWell,
+        Material,
+        MaterialApp,
+        MenuButtonThemeData,
+        TextButton,
+        ThemeData;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'semantics.dart';
 
 void main() {
   late CupertinoMenuController controller;
@@ -137,8 +122,11 @@ void main() {
                   onClose: onClose,
                   menuChildren:
                       children ?? createTestMenus(onPressed: onPressed),
-                  builder: (BuildContext context,
-                      CupertinoMenuController controller, Widget? child) {
+                  builder: (
+                    BuildContext context,
+                    CupertinoMenuController controller,
+                    Widget? child,
+                  ) {
                     return ElevatedButton(
                       focusNode: focusNode,
                       onPressed: () {
@@ -192,8 +180,8 @@ void main() {
                 child: TestMenu.item1.text,
               ),
               CupertinoMenuItem(
-                leading: const Icon(Icons.send),
-                trailing: const Icon(Icons.mail),
+                leading: const Icon(CupertinoIcons.ant),
+                trailing: const Icon(CupertinoIcons.mail),
                 child: TestMenu.item2.text,
               ),
               CupertinoMenuItem(
@@ -303,8 +291,8 @@ void main() {
                 child: TestMenu.item1.text,
               ),
               CupertinoMenuItem(
-                leading: const Icon(Icons.send),
-                trailing: const Icon(Icons.mail),
+                leading: const Icon(CupertinoIcons.ant),
+                trailing: const Icon(CupertinoIcons.mail),
                 child: TestMenu.item2.text,
               ),
               CupertinoMenuItem(
@@ -418,8 +406,8 @@ void main() {
                 child: TestMenu.item1.text,
               ),
               CupertinoMenuItem(
-                leading: const Icon(Icons.send),
-                trailing: const Icon(Icons.mail),
+                leading: const Icon(CupertinoIcons.ant),
+                trailing: const Icon(CupertinoIcons.mail),
                 child: TestMenu.item2.text,
               ),
               CupertinoMenuItem(
@@ -857,12 +845,11 @@ void main() {
       await gesture.down(startPosition);
       await tester.pump();
       final Rect rect = tester.getRect(
-        find
-            .descendant(
-              of: findMenuPanel(),
-              matching: find.byType(CustomScrollView),
-            )
-            .first,
+        find.descendant(
+          of: findMenuPanel(),
+          matching: find.byType(CustomScrollView),
+        )
+        .first,
       );
 
       double getScale() => findMenuPanelWidget<ScaleTransition>(tester).scale.value;
@@ -887,7 +874,6 @@ void main() {
         (WidgetTester tester) async {
       await tester.pumpWidget(
         buildTestApp(
-          consumesOutsideTap: true,
           onPressed: onPressed,
           onOpen: onOpen,
           onClose: onClose,
@@ -1548,7 +1534,7 @@ void main() {
 
     testWidgets('panel clip behavior', (WidgetTester tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        CupertinoApp(
           home: Material(
             child: Center(
               child: CupertinoMenuAnchor(
@@ -2785,13 +2771,13 @@ List<Widget> createTestMenus({
   }
 
   final List<Widget> result = <Widget>[
-    cupertinoMenuItemButton(TestMenu.item0, leadingIcon: const Icon(Icons.add)),
+    cupertinoMenuItemButton(TestMenu.item0, leadingIcon: const Icon(CupertinoIcons.add)),
     cupertinoMenuItemButton(TestMenu.item1),
     const CupertinoLargeMenuDivider(),
     cupertinoMenuItemButton(TestMenu.item2),
     cupertinoMenuItemButton(TestMenu.item3,
-        leadingIcon: const Icon(Icons.add),
-        trailingIcon: const Icon(Icons.add)),
+        leadingIcon: const Icon(CupertinoIcons.add),
+        trailingIcon: const Icon(CupertinoIcons.add)),
     cupertinoMenuItemButton(TestMenu.item4),
     const CupertinoLargeMenuDivider(),
     cupertinoMenuItemButton(TestMenu.item5Disabled, enabled: false),
@@ -2801,22 +2787,20 @@ List<Widget> createTestMenus({
 }
 
 enum TestMenu {
-  item0('&Item 0'),
-  item1('I&tem 1'),
-  item2('It&em 2'),
-  item3('Ite&m 3'),
-  item4('I&tem 4'),
-  item5Disabled('Ite&m 5'),
-  item6('Ite&m 6'),
+  item0('Item 0'),
+  item1('Item 1'),
+  item2('Item 2'),
+  item3('Item 3'),
+  item4('Item 4'),
+  item5Disabled('Item 5'),
+  item6('Item 6'),
 
   anchorButton('Press Me'),
   outsideButton('Outside');
 
-  const TestMenu(this.acceleratorLabel);
-  final String acceleratorLabel;
+  const TestMenu(this.label);
   // Strip the accelerator markers.
-  String get label =>
-      MenuAcceleratorLabel.stripAcceleratorMarkers(acceleratorLabel);
+  final String label;
   Finder get findText => find.text(label);
   Finder get findMenuItem => find.widgetWithText(CupertinoMenuItem, label);
   Finder findAncestor<T>() {

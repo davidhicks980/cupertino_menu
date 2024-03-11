@@ -788,6 +788,7 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
 
   Widget _buildOverlay(
     BuildContext overlayContext,
+    List<Widget> menuChildren,
     FocusScopeNode menuFocusScopeNode,
     Offset? menuPosition,
     Object? tapRegionGroupId,

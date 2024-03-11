@@ -1,107 +1,166 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart'  hide  MenuAcceleratorLabel, MenuAnchor, MenuBar, MenuController, MenuItemButton, SubmenuButton;
-import 'cupertino_menu_anchor.0.dart';
-import 'cupertino_menu_anchor.1.dart';
-import 'cupertino_menu_anchor.2.dart';
-// import 'menu.dart';
-// import 'test_anchor.dart';
+import 'cupertino_menu.0.dart';
+import 'test_anchor.dart' as test;
 
 /// Flutter code sample for [MenuAnchor].
 
-void main() => runApp(const Main());
+void main() => runApp(const MenuApp());
 
-class Main extends StatefulWidget {
-  const Main({super.key});
+class MyCascadingMenu extends StatefulWidget {
+  const MyCascadingMenu({super.key});
 
   @override
-  State<Main> createState() => _MainState();
+  State<MyCascadingMenu> createState() => _MyCascadingMenuState();
 }
 
-class _MainState extends State<Main> with SingleTickerProviderStateMixin {
-  bool hide = false;
-  late final AnimationController animationController = AnimationController(
-    vsync: this,
-    duration: const Duration(
-      milliseconds: 1000,
-    ),
-  );
+class _MyCascadingMenuState extends State<MyCascadingMenu> {
+  final FocusNode _buttonFocusNode = FocusNode();
 
-  final Alignment _alignment = Alignment.topLeft;
-  int _example = 0;
+  bool _value = false;
 
-  @override
-  void dispose() {
-    animationController.dispose();
-    super.dispose();
+  bool _hide = false;
+
+  Widget buildMenu(int i) {
+    return test.SubmenuButton(
+      key: UniqueKey(),
+        menuChildren: <Widget>[
+          test.MenuItemButton(onPressed: () {}, child: Text('$i-1 ${" " * 30}')),
+          test.SubmenuButton(
+            menuChildren: <Widget>[
+              test.MenuItemButton(onPressed: () {}, child: Text('$i-2-1')),
+              test.SubmenuButton(
+                menuChildren: <Widget>[
+                  test.MenuItemButton(onPressed: () {}, child: Text('$i-2-2-1')),
+                  test.MenuItemButton(onPressed: () {}, child: Text('$i-2-2-2')),
+                ],
+                child: Text('$i-2-2'),
+              ),
+              test.SubmenuButton(
+                menuChildren: <Widget>[
+                  test.MenuItemButton(onPressed: () {}, child: Text('$i-2-3-1')),
+                  test.MenuItemButton(onPressed: () {}, child: Text('$i-2-3-2')),
+                ],
+                child: Text('$i-2-3'),
+              ),
+              test.MenuItemButton(onPressed: () {}, child: Text('$i-2-4')),
+              test.SubmenuButton(
+                menuChildren: <Widget>[
+                  test.MenuItemButton(onPressed: () {}, child: Text('$i-2-5-1')),
+                  test.MenuItemButton(onPressed: () {}, child: Text('$i-2-5-2')),
+                ],
+                child: Text('$i-2-5'),
+              ),
+            ],
+            child: Text('$i-2'),
+          ),
+          test.MenuItemButton(onPressed: () {}, child: Text('$i-3')),
+        ],
+        child: Text('$i                       '),
+      );
+  }
+  Widget buildOriginalMenu(int i) {
+    return SubmenuButton(
+      key: UniqueKey(),
+        menuChildren: <Widget>[
+          MenuItemButton(onPressed: () {}, child: Text('$i-1 ${" " * 30}')),
+          SubmenuButton(
+            menuChildren: <Widget>[
+              MenuItemButton(onPressed: () {}, child: Text('$i-2-1')),
+              SubmenuButton(
+                menuChildren: <Widget>[
+                  MenuItemButton(onPressed: () {}, child: Text('$i-2-2-1')),
+                  MenuItemButton(onPressed: () {}, child: Text('$i-2-2-2')),
+                ],
+                child: Text('$i-2-2'),
+              ),
+              SubmenuButton(
+                menuChildren: <Widget>[
+                  MenuItemButton(onPressed: () {}, child: Text('$i-2-3-1')),
+                  MenuItemButton(onPressed: () {}, child: Text('$i-2-3-2')),
+                ],
+                child: Text('$i-2-3'),
+              ),
+              MenuItemButton(onPressed: () {}, child: Text('$i-2-4')),
+              SubmenuButton(
+                menuChildren: <Widget>[
+                  MenuItemButton(onPressed: () {}, child: Text('$i-2-5-1')),
+                  MenuItemButton(onPressed: () {}, child: Text('$i-2-5-2')),
+                ],
+                child: Text('$i-2-5'),
+              ),
+            ],
+            child: Text('$i-2'),
+          ),
+          MenuItemButton(onPressed: () {}, child: Text('$i-3')),
+        ],
+        child: Text('$i                       '),
+      );
   }
 
   @override
   Widget build(BuildContext context) {
-    return   Material(
-      child: Directionality(
-        textDirection: TextDirection.rtl,
-        child: Stack(
-            children: <Widget>[
-              switch (_example) {
-                0 => const CupertinoMenuApp(),
-                1 => const ContextMenuApp(),
-                2 => const CupertinoNestedApp(),
-                _ => const CupertinoMenuApp(),
-              },
-              Align(
-                alignment: const Alignment(0.5, 0.5),
-                child: TextButton(onPressed: () {
-                  setState(() {
-                  _example = _example == 2 ? 0 : _example + 1;
+    return  Directionality(
+      textDirection: _value ? TextDirection.rtl: TextDirection.ltr,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Switch(value: _value, onChanged: (bool value){
+             setState(() {
+               _value = value;
+             });
+          }),
+          Switch(value: _hide, onChanged: (bool value){
+             setState(() {
+               _hide = value;
+             });
+          }),
+          buildMenu(0),
+          // buildOriginalMenu(0),
+          if(!_hide)
+          Expanded(
+            child: test.MenuBar(
+                children: <Widget>[
+                  buildMenu(1),
+                  buildMenu(2),
+                  buildMenu(3),
+                  buildMenu(4),
+                  buildMenu(5),
 
-                  });
-                }, child: const Text('Next'),),
-              )
-            ],
-        ),
+                ]
+            ),
+          ),
+          Expanded(
+            child: MenuBar(
+                children: <Widget>[
+                  buildOriginalMenu(1),
+                  buildOriginalMenu(2),
+                  buildOriginalMenu(3),
+                  buildOriginalMenu(4),
+                  buildOriginalMenu(5),
+
+                ]
+            ),
+          ),
+
+
+        ],
       ),
     );
-
-    // CupertinoApp(
-    //           home:   Center(
-    //             child: CupertinoMenuAnchor(
-    //                   backgroundColor: CupertinoColors.activeGreen.withOpacity(0.5),
-    //                   builder: _buildAnchor,
-    //                   onClose: () {
-    //                     print('closed');
-    //                   },
-    //                   menuChildren: createTestMenus2(
-    //                     onPressed: (TestMenu p0) {
-    //                       _alignment  = Alignment(Random().nextDouble(), Random().nextDouble());
-    //                       setState(() {
-
-    //                       });
-    //                     }
-    //                 ),
-    //             ),
-    //           ),
-    // );
-  //  return  ConstrainedBox(
-  //         constraints: const BoxConstraints.tightFor(width: 200, height: 200),
-  //    child: MaterialApp(
-  //           home: Directionality(
-  //             textDirection: TextDirection.rtl,
-  //             child:   CupertinoMenuAnchor(
-  //                     menuChildren: createTestMenus2(
-  //                       shortcuts: <TestMenu, MenuSerializableShortcut>{
-  //                         TestMenu.item0:  const CharacterActivator('m', control: true),
-  //                         TestMenu.item1:  const CharacterActivator('a', alt: true),
-  //                         TestMenu.matMenu5:  const CharacterActivator('b', meta: true),
-  //                       },
-  //                       onPressed: (TestMenu menu){},
-  //               ),
-  //             ),
-  //           ),
-  //         ),
-  //  );
   }
 }
 
+class MenuApp extends StatelessWidget {
+  const MenuApp({super.key});
 
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      theme: ThemeData(useMaterial3: true),
+      home: const Scaffold(
+        body: MyCascadingMenu(),
+      ),
+    );
+  }
+}
