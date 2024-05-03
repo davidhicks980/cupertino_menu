@@ -1182,7 +1182,12 @@ void main() {
       await tester.tap(find.byType(CupertinoMenuAnchor));
       await tester.pumpAndSettle();
 
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      if (isBrowser) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      } else {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      }
+
       expect(focusedMenu, equals(TestMenu.item0.debugFocusLabel));
 
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
@@ -1204,54 +1209,7 @@ void main() {
 
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       expect(focusedMenu, equals(TestMenu.item6.debugFocusLabel));
-    }, skip: isBrowser);
-
-    testWidgets('[web] keyboard directional LTR traversal works',
-        (WidgetTester tester) async {
-      await tester.pumpWidget(
-        CupertinoApp(
-          home: Align(
-            alignment: AlignmentDirectional.topStart,
-            child: CupertinoMenuAnchor(
-              builder: buildAnchor,
-              menuChildren: createTestMenus(
-                onPressed: onPressed,
-              ),
-            ),
-          ),
-        ),
-      );
-
-      listenForFocusChanges();
-
-      // Have to open a menu initially to start things going.
-      await tester.tap(find.byType(CupertinoMenuAnchor));
-      await tester.pumpAndSettle();
-
-      // On web, focus does not move to the menu when it is opened.
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-      expect(focusedMenu, equals(TestMenu.item0.debugFocusLabel));
-
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      expect(focusedMenu, equals(TestMenu.item1.debugFocusLabel));
-
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      expect(focusedMenu, equals(TestMenu.item2.debugFocusLabel));
-
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      expect(focusedMenu, equals(TestMenu.item3.debugFocusLabel));
-
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      expect(focusedMenu, equals(TestMenu.item4.debugFocusLabel));
-
-      /* 5 is disabled */
-
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      expect(focusedMenu, equals(TestMenu.item6.debugFocusLabel));
-
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      expect(focusedMenu, equals(TestMenu.item6.debugFocusLabel));
-    }, skip: !isBrowser);
+    });
 
     testWidgets('keyboard directional RTL traversal works',
         (WidgetTester tester) async {
@@ -1278,7 +1236,12 @@ void main() {
       await tester.tap(find.byType(CupertinoMenuAnchor));
       await tester.pumpAndSettle();
 
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      if (isBrowser) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      } else {
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      }
+
       expect(focusedMenu, equals(TestMenu.item0.debugFocusLabel));
 
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
@@ -1300,56 +1263,8 @@ void main() {
 
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
       expect(focusedMenu, equals(TestMenu.item6.debugFocusLabel));
-    }, skip: isBrowser);
+    });
 
-    testWidgets('[web] keyboard directional RTL traversal works',
-        (WidgetTester tester) async {
-      await tester.pumpWidget(
-        CupertinoApp(
-          home: Directionality(
-            textDirection: TextDirection.rtl,
-            child: Align(
-              alignment: AlignmentDirectional.topStart,
-              child: CupertinoMenuAnchor(
-                builder: buildAnchor,
-                menuChildren: createTestMenus(
-                  onPressed: onPressed,
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-
-      listenForFocusChanges();
-
-      // Have to open a menu initially to start things going.
-      await tester.tap(find.byType(CupertinoMenuAnchor));
-      await tester.pumpAndSettle();
-
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-      expect(focusedMenu, equals(TestMenu.item0.debugFocusLabel));
-
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      expect(focusedMenu, equals(TestMenu.item1.debugFocusLabel));
-
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      expect(focusedMenu, equals(TestMenu.item2.debugFocusLabel));
-
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      expect(focusedMenu, equals(TestMenu.item3.debugFocusLabel));
-
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      expect(focusedMenu, equals(TestMenu.item4.debugFocusLabel));
-
-      /* 5 is disabled */
-
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      expect(focusedMenu, equals(TestMenu.item6.debugFocusLabel));
-
-      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-      expect(focusedMenu, equals(TestMenu.item6.debugFocusLabel));
-    }, skip: !isBrowser);
 
     testWidgets('focus is returned to previous focus before invoking onPressed',
         (WidgetTester tester) async {

@@ -7,14 +7,11 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart' show DefaultMaterialLocalizations, InkWell, Material, MenuAcceleratorLabel;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/src/material/material_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'semantics.dart';
 
 /// Record that groups together the styles of various parts of a menu item.
 typedef _MenuPartsStyle = ({
@@ -158,26 +155,26 @@ void main() {
     void Function(TestItem item)? onPressed,
     void Function()? onOpen,
     void Function()? onClose,
-    CupertinoThemeData theme = const CupertinoThemeData(),
-    MediaQueryData mediaQuery = const MediaQueryData(),
+    CupertinoThemeData? theme,
+    bool? boldText,
+    TextScaler? textScaler,
   }) {
     final FocusNode focusNode = FocusNode();
     addTearDown(focusNode.dispose);
     return CupertinoApp(
-      home: MediaQuery(
-        data: mediaQuery,
-        child: CupertinoTheme(
-          data: theme,
-          child: Directionality(
-            textDirection: textDirection,
-            child: Column(
-              children: <Widget>[
-                GestureDetector(
-                    onTap: () {
-                      onPressed?.call(TestItem.outsideButton);
-                    },
-                    child: Text(TestItem.outsideButton.label)),
-                CupertinoMenuAnchor(
+      home: Directionality(
+        textDirection: textDirection,
+        child: Builder(builder: (BuildContext context) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              boldText: boldText,
+              textScaler: textScaler,
+            ),
+            child: CupertinoTheme(
+              data: theme ?? CupertinoTheme.of(context),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: CupertinoMenuAnchor(
                   childFocusNode: focusNode,
                   controller: controller,
                   alignmentOffset: alignmentOffset,
@@ -192,10 +189,10 @@ void main() {
                       ),
                   builder: _buildAnchor,
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
+          );
+        }),
       ),
     );
   }
@@ -464,16 +461,16 @@ void main() {
     group('Appearance', () {
       testWidgets('default style', (WidgetTester tester) async {
         const CupertinoDynamicColor titleColor =
-            CupertinoDynamicColor.withBrightness(
-          color: Color.fromRGBO(0, 0, 0, 0.96),
-          darkColor: Color.fromRGBO(255, 255, 255, 0.96),
-        );
+          CupertinoDynamicColor.withBrightness(
+              color: Color.fromRGBO(0, 0, 0, 0.96),
+              darkColor: Color.fromRGBO(255, 255, 255, 0.96),
+            );
 
         const CupertinoDynamicColor subtitleColor =
-            CupertinoDynamicColor.withBrightness(
-          color: Color.fromRGBO(0, 0, 0, 0.4),
-          darkColor: Color.fromRGBO(255, 255, 255, 0.4),
-        );
+          CupertinoDynamicColor.withBrightness(
+              color: Color.fromRGBO(0, 0, 0, 0.4),
+              darkColor: Color.fromRGBO(255, 255, 255, 0.4),
+            );
 
         /* TEST 1: DARK THEME */
         await tester.pumpWidget(buildTestApp(
@@ -497,6 +494,7 @@ void main() {
 
         controller.open();
         await tester.pumpAndSettle();
+
 
         _MenuPartsStyle findParts({bool hideTrailing = false}) {
           return (
@@ -536,32 +534,26 @@ void main() {
 
         expect(parts.leadingIconStyle?.fontSize, 21);
         expect(parts.leadingIconStyle?.height, 1);
-        expect(
-          parts.leadingIconStyle?.color,
-          isSameColorAs(titleColor.darkColor),
-        );
+        expect(parts.leadingIconStyle?.color, isSameColorAs(titleColor.darkColor));
+
         expect(parts.trailingIconStyle?.fontSize, 21);
         expect(parts.trailingIconStyle?.height, 1);
-        expect(
-          parts.trailingIconStyle?.color,
-          isSameColorAs(titleColor.darkColor),
-        );
+        expect(parts.trailingIconStyle?.color, isSameColorAs(titleColor.darkColor));
+
         matchDefaultStyle(parts.leadingTextStyle!, find.text('leading'));
         matchDefaultStyle(parts.trailingTextStyle!, find.text('trailing'));
         matchDefaultStyle(parts.titleStyle!, TestItem.item0.findText);
+
         expect(parts.subtitleStyle?.fontSize, 15);
         expect(parts.subtitleStyle?.fontFamily, 'SF Pro Text');
-        expect(parts.subtitleStyle?.fontFamilyFallback,
-            <String>['.AppleSystemUIFont']);
+        expect(parts.subtitleStyle?.fontFamilyFallback, <String>['.AppleSystemUIFont']);
         expect(parts.subtitleStyle?.decoration, TextDecoration.none);
         expect(parts.subtitleStyle?.overflow, TextOverflow.ellipsis);
         expect(parts.subtitleStyle?.letterSpacing, -0.21);
         expect(parts.subtitleStyle?.fontWeight, FontWeight.normal);
-        expect(parts.subtitleStyle?.foreground!.color,
-            isSameColorAs(subtitleColor.darkColor));
+        expect(parts.subtitleStyle?.foreground!.color, isSameColorAs(subtitleColor.darkColor));
         expect(parts.subtitleStyle?.textBaseline, TextBaseline.ideographic);
-        expect(
-            findDescendentRichText(tester, find.text('subtitle'))?.maxLines, 2);
+        expect(findDescendentRichText(tester, find.text('subtitle'))?.maxLines, 2);
 
         /* LIGHT THEME */
         await tester.pumpWidget(buildTestApp(
@@ -582,23 +574,20 @@ void main() {
             ),
           ],
         ));
-        await tester.pumpAndSettle();
 
+        await tester.pump();
         parts = findParts();
-        expect(parts.leadingIconStyle?.color, isSameColorAs(titleColor.color));
-        expect(parts.leadingTextStyle?.color, isSameColorAs(titleColor.color));
+        expect(parts.leadingIconStyle?.color,  isSameColorAs(titleColor.color));
+        expect(parts.leadingTextStyle?.color,  isSameColorAs(titleColor.color));
         expect(parts.trailingIconStyle?.color, isSameColorAs(titleColor.color));
         expect(parts.trailingTextStyle?.color, isSameColorAs(titleColor.color));
-        expect(parts.subtitleStyle?.foreground!.color,
-            isSameColorAs(subtitleColor.color));
+        expect(parts.subtitleStyle?.foreground!.color, isSameColorAs(subtitleColor.color));
 
         /* THEME OVERRIDE AND MEDIA QUERY */
         await tester.pumpWidget(
           buildTestApp(
-            mediaQuery: const MediaQueryData(
-              boldText: true,
-              textScaler: TextScaler.linear(1.1),
-            ),
+            boldText: true,
+            textScaler: const TextScaler.linear(1.1),
             theme: const CupertinoThemeData(brightness: Brightness.dark),
             children: <Widget>[
               CupertinoMenuItem(
@@ -642,31 +631,28 @@ void main() {
           ),
         );
 
-        await tester.pumpAndSettle();
+        await tester.pump();
+
         parts = findParts();
 
-        expect(parts.leadingIconStyle!.color,
-            isSameColorAs(CupertinoColors.black));
-        expect(parts.leadingIconStyle!.fontSize, 21 * math.sqrt(1.1));
 
-        expect(parts.trailingIconStyle!.color,
-            isSameColorAs(CupertinoColors.black));
+        expect(parts.leadingIconStyle!.fontSize,  21 * math.sqrt(1.1));
+        expect(parts.leadingIconStyle!.color,  isSameColorAs(CupertinoColors.black));
+        expect(parts.leadingTextStyle!.color,  isSameColorAs(CupertinoColors.black));
+
         expect(parts.trailingIconStyle!.fontSize, 21 * math.sqrt(1.1));
+        expect(parts.trailingIconStyle!.color,  isSameColorAs(CupertinoColors.black));
+        expect(parts.trailingTextStyle!.color,  isSameColorAs(CupertinoColors.black));
 
-        expect(parts.leadingTextStyle!.color,
-            isSameColorAs(CupertinoColors.black));
-        expect(parts.trailingTextStyle!.color,
-            isSameColorAs(CupertinoColors.black));
-
-        expect(parts.subtitleStyle!.color, isSameColorAs(CupertinoColors.black));
+        expect(parts.subtitleStyle!.color,      isSameColorAs(CupertinoColors.black));
         expect(parts.subtitleStyle!.fontWeight, FontWeight.bold);
 
-        expect(parts.titleStyle!.color, isSameColorAs(CupertinoColors.lightBackgroundGray));
-        expect(parts.titleStyle!.fontWeight, FontWeight.bold);
+        expect(parts.titleStyle!.color,         isSameColorAs(CupertinoColors.lightBackgroundGray));
+        expect(parts.titleStyle!.fontWeight,    FontWeight.bold);
 
         /* FONT SCALING > 1.25 */
         await tester.pumpWidget(buildTestApp(
-          mediaQuery: const MediaQueryData(textScaler: TextScaler.linear(1.3)),
+          textScaler: const TextScaler.linear(1.3),
           children: <Widget>[
             CupertinoMenuItem(
               subtitle: const Text('subtitle'),
@@ -684,13 +670,15 @@ void main() {
           ],
         ));
 
+        await tester.pump();
+
+
         expect(findDescendentRichText(tester, TestItem.item0.findText)?.maxLines, 100);
         expect(findDescendentRichText(tester, find.text('subtitle'))?.maxLines, 100);
 
         expect(find.text('leading'), findsOne);
-        expect(find.byIcon(CupertinoIcons.left_chevron), findsOne);
-
         expect(find.text('trailing'), findsNothing);
+        expect(find.byIcon(CupertinoIcons.left_chevron), findsOne);
         expect(find.byIcon(CupertinoIcons.right_chevron), findsNothing);
       });
 
@@ -1340,66 +1328,221 @@ void main() {
       });
     });
     group('Layout', () {
-      testWidgets('child layout LTR', (WidgetTester tester) async {
-        final String superLongText = 'super long text' * 1000;
+      testWidgets('layout ltr', (WidgetTester tester) async {
+        final UniqueKey leading = UniqueKey();
+        final UniqueKey trailing = UniqueKey();
+        final UniqueKey child = UniqueKey();
+        final UniqueKey subtitle = UniqueKey();
 
-        // Maxlines should be 2 when the TextScaler < 1.25.
         await tester.pumpWidget(
-          buildTestApp(
-            children: <Widget>[
-              CupertinoMenuItem(
-                leading: const Icon(CupertinoIcons.left_chevron),
-                trailing: const Icon(CupertinoIcons.right_chevron),
-                subtitle: const Text('subtitle'),
-                child: TestItem.item0.text,
-              ),
-              CupertinoMenuItem(
-                onPressed: () {},
-                child: Text(superLongText),
-              ),
-            ],
+          CupertinoApp(
+            home: CupertinoMenuAnchor(
+              controller: controller,
+              menuChildren: <CupertinoMenuItem>[
+                CupertinoMenuItem(
+                  onPressed: () {},
+                  subtitle: SizedBox(key: subtitle, height: 20, width: 20),
+                  leading: SizedBox(key: leading, height: 20, width: 20),
+                  trailing: SizedBox(key: trailing, height: 20, width: 20),
+                  child: SizedBox(key: child, height: 20, width: 20),
+                ),
+              ],
+            ),
           ),
         );
 
         controller.open();
         await tester.pumpAndSettle();
 
-        expect(
-          tester.getRect(TestItem.item0.findText),
-          rectEquals(const Rect.fromLTRB(307.0, 77.6, 406.5, 98.6)),
-        );
-        expect(
-          tester.getRect(find.text(superLongText)),
-          rectEquals(const Rect.fromLTRB(307.0, 141.6, 509.0, 183.6)),
-        );
+        expect(tester.getRect(find.byKey(leading)),
+            rectEquals(const Rect.fromLTRB(282.0, 550.2, 302.0, 570.2)));
+        expect(tester.getRect(find.byKey(child)),
+            rectEquals(const Rect.fromLTRB(307.0, 539.7, 327.0, 559.7)));
+        expect(tester.getRect(find.byKey(subtitle)),
+            rectEquals(const Rect.fromLTRB(307.0, 560.7, 327.0, 580.7)));
+        expect(tester.getRect(find.byKey(trailing)),
+            rectEquals(const Rect.fromLTRB(489.7, 550.2, 509.7, 570.2)));
+      });
 
-        // MaxLines should be 100 when the TextScaler > 1.25.
+      testWidgets('layout rtl', (WidgetTester tester) async {
+        final UniqueKey leading = UniqueKey();
+        final UniqueKey trailing = UniqueKey();
+        final UniqueKey child = UniqueKey();
+        final UniqueKey subtitle = UniqueKey();
+
         await tester.pumpWidget(
-          buildTestApp(
-            mediaQuery:
-                const MediaQueryData(textScaler: TextScaler.linear(1.3)),
-            children: <Widget>[
-              CupertinoMenuItem(
-                leading: const Icon(CupertinoIcons.left_chevron),
-                trailing: const Icon(CupertinoIcons.right_chevron),
-                subtitle: const Text('subtitle'),
-                child: TestItem.item0.text,
+          CupertinoApp(
+            home: Directionality(
+              textDirection: TextDirection.rtl,
+              child: CupertinoMenuAnchor(
+                  controller: controller,
+                  menuChildren:  <Widget>[
+                    CupertinoMenuItem(
+                      onPressed: () {},
+                      subtitle: SizedBox(key: subtitle, height: 20, width: 20),
+                      leading: SizedBox(key: leading, height: 20, width: 20),
+                      trailing: SizedBox(key: trailing, height: 20, width: 20),
+                      child: SizedBox(key: child, height: 20, width: 20),
+                    ),
+                  ],
               ),
-              CupertinoMenuItem(
-                onPressed: () {},
-                child: Text(superLongText),
-              ),
-            ],
+            ),
           ),
         );
 
+        controller.open();
         await tester.pumpAndSettle();
 
-        expect(tester.getRect(TestItem.item0.findText),
-            rectEquals(const Rect.fromLTRB(261.5, 20.5, 391.6, 48.5)));
-        expect(tester.getRect(find.text(superLongText)),
-            rectEquals(const Rect.fromLTRB(261.5, 99.6, 556.8, 2899.6)));
+        expect(tester.getRect(find.byKey(leading)),
+            rectEquals(const Rect.fromLTRB(498.0, 550.2, 518.0, 570.2)));
+        expect(tester.getRect(find.byKey(child)),
+            rectEquals(const Rect.fromLTRB(473.0, 539.7, 493.0, 559.7)));
+        expect(tester.getRect(find.byKey(subtitle)),
+            rectEquals(const Rect.fromLTRB(473.0, 560.7, 493.0, 580.7)));
+        expect(tester.getRect(find.byKey(trailing)),
+            rectEquals(const Rect.fromLTRB(290.3, 550.2, 310.3, 570.2)));
       });
+
+      testWidgets('applyInsetScaling can be set', (WidgetTester tester) async {
+        final UniqueKey leading = UniqueKey();
+        final UniqueKey trailing = UniqueKey();
+        final UniqueKey child = UniqueKey();
+        final UniqueKey subtitle = UniqueKey();
+
+        // applyInsetScaling, when true, increases the size of the padding,
+        // leading and trailing width, and the constraints by a factor of the
+        // square root of the textScaler. This behavior was observed on the iOS
+        // simulator.
+        await tester.pumpWidget(
+          CupertinoApp(
+            home: MediaQuery(
+              data: const MediaQueryData(
+                textScaler: TextScaler.linear(1.15),
+              ),
+              child: CupertinoMenuAnchor(
+                controller: controller,
+                menuChildren:  <Widget>[
+                  CupertinoMenuItem(
+                    onPressed: () {},
+                    subtitle: SizedBox(key: subtitle, height: 20, width: 20),
+                    leading: SizedBox(key: leading, height: 20, width: 20),
+                    trailing: SizedBox(key: trailing, height: 20, width: 20),
+                    child: SizedBox(key: child, height: 20, width: 20),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        controller.open();
+        await tester.pumpAndSettle();
+
+        // First, test with applyInsetScaling set to true (default)
+        expect(tester.getRect(find.byKey(leading)),
+            rectEquals(const Rect.fromLTRB(283.4, 549.7, 303.4, 569.7)));
+        expect(tester.getRect(find.byKey(child)),
+            rectEquals(const Rect.fromLTRB(309.3, 539.2, 329.3, 559.2)));
+        expect(tester.getRect(find.byKey(subtitle)),
+            rectEquals(const Rect.fromLTRB(309.3, 560.2, 329.3, 580.2)));
+        expect(tester.getRect(find.byKey(trailing)),
+            rectEquals(const Rect.fromLTRB(487.7, 549.7, 507.7, 569.7)));
+
+        await tester.pumpWidget(
+          CupertinoApp(
+            home: MediaQuery(
+              data: const MediaQueryData(
+                textScaler: TextScaler.linear(1.15),
+              ),
+              child: CupertinoMenuAnchor(
+                controller: controller,
+                menuChildren: <Widget>[
+                  CupertinoMenuItem(
+                    applyInsetScaling: false,
+                    leading: SizedBox(key: leading, height: 20, width: 20),
+                    trailing: SizedBox(key: trailing, height: 20, width: 20),
+                    subtitle: SizedBox(key: subtitle, height: 20, width: 20),
+                    child: SizedBox(key: child, height: 20, width: 20),
+                    onPressed: () {},
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        // Then, test with applyInsetScaling set to false.
+        expect(tester.getRect(find.byKey(leading)),
+            rectEquals(const Rect.fromLTRB(282.0, 550.5, 302.0, 570.5)));
+        expect(tester.getRect(find.byKey(child)),
+            rectEquals(const Rect.fromLTRB(307.0, 540.0, 327.0, 560.0)));
+        expect(tester.getRect(find.byKey(subtitle)),
+            rectEquals(const Rect.fromLTRB(307.0, 561.0, 327.0, 581.0)));
+        expect(tester.getRect(find.byKey(trailing)),
+            rectEquals(const Rect.fromLTRB(489.7, 550.5, 509.7, 570.5)));
+      });
+      testWidgets(
+        'child layout LTR',
+        (WidgetTester tester) async {
+          final String superLongText = 'super long text' * 1000;
+
+          // Maxlines should be 2 when the TextScaler < 1.25.
+          await tester.pumpWidget(
+            buildTestApp(
+              children: <Widget>[
+                CupertinoMenuItem(
+                  leading: const Icon(CupertinoIcons.left_chevron),
+                  trailing: const Icon(CupertinoIcons.right_chevron),
+                  subtitle: const Text('subtitle'),
+                  child: TestItem.item0.text,
+                ),
+                CupertinoMenuItem(
+                  onPressed: () {},
+                  child: Text(superLongText),
+                ),
+              ],
+            ),
+          );
+
+          controller.open();
+          await tester.pumpAndSettle();
+
+
+          expect(tester.getRect(TestItem.item0.findText),
+              rectEquals(const Rect.fromLTRB(40.0, 59.3, 139.5, 80.3)));
+          expect(tester.getRect(find.text(superLongText)),
+              rectEquals(const Rect.fromLTRB(40.0, 123.3, 242.0, 165.3)));
+
+          // MaxLines should be 100 when the TextScaler > 1.25.
+          await tester.pumpWidget(
+            buildTestApp(
+              textScaler: const TextScaler.linear(1.3),
+              children: <Widget>[
+                CupertinoMenuItem(
+                  leading: const Icon(CupertinoIcons.left_chevron),
+                  trailing: const Icon(CupertinoIcons.right_chevron),
+                  subtitle: const Text('subtitle'),
+                  child: TestItem.item0.text,
+                ),
+                CupertinoMenuItem(
+                  onPressed: () {},
+                  child: Text(superLongText),
+                ),
+              ],
+            ),
+          );
+
+          // Child animates when contents change.
+          await tester.pumpAndSettle();
+
+          expect(tester.getRect(TestItem.item0.findText),
+              rectEquals(const Rect.fromLTRB(44.5, 20.9, 174.6, 48.9)));
+          expect(tester.getRect(find.text(superLongText)),
+              rectEquals(const Rect.fromLTRB(44.5, 100.1, 339.8, 2900.1)));
+        },
+        // https://github.com/flutter/flutter/issues/99933
+        skip: isBrowser,
+      );
 
       testWidgets('child layout RTL', (WidgetTester tester) async {
         final String superLongText = 'super long text' * 1000;
@@ -1426,20 +1569,15 @@ void main() {
         controller.open();
         await tester.pumpAndSettle();
 
-        expect(
-          tester.getRect(TestItem.item0.findText),
-          rectEquals(const Rect.fromLTRB(393.5, 77.6, 493.0, 98.6)),
-        );
-        expect(
-          tester.getRect(find.text(superLongText)),
-          rectEquals(const Rect.fromLTRB(291.0, 141.6, 493.0, 183.6)),
-        );
+        expect(tester.getRect(TestItem.item0.findText),
+              rectEquals(const Rect.fromLTRB(126.5, 59.3, 226.0, 80.3)));
+        expect(tester.getRect(find.text(superLongText)),
+            rectEquals(const Rect.fromLTRB(24.0, 123.3, 226.0, 165.3)));
 
         // MaxLines should be 100 when the TextScaler > 1.25.
         await tester.pumpWidget(
           buildTestApp(
-            mediaQuery:
-                const MediaQueryData(textScaler: TextScaler.linear(1.3)),
+            textScaler: const TextScaler.linear(1.3),
             textDirection: TextDirection.rtl,
             children: <Widget>[
               CupertinoMenuItem(
@@ -1458,15 +1596,13 @@ void main() {
 
         await tester.pumpAndSettle();
 
-        expect(
-          tester.getRect(TestItem.item0.findText),
-          rectEquals(const Rect.fromLTRB(408.4, 20.5, 538.5, 48.5)),
-        );
-        expect(
-          tester.getRect(find.text(superLongText)),
-          rectEquals(const Rect.fromLTRB(243.2, 99.6, 538.5, 2899.6)),
-        );
-      });
+        expect(tester.getRect(TestItem.item0.findText),
+            rectEquals(const Rect.fromLTRB(191.4, 20.9, 321.5, 48.9)));
+        expect(tester.getRect(find.text(superLongText)),
+            rectEquals(const Rect.fromLTRB(26.2, 100.1, 321.5, 2900.1)));
+      },
+      // https://github.com/flutter/flutter/issues/99933
+      skip: isBrowser);
 
       testWidgets('leading layout LTR', (WidgetTester tester) async {
         await tester.pumpWidget(
@@ -1480,9 +1616,15 @@ void main() {
               ),
               CupertinoMenuItem(
                 onPressed: () {},
-                leadingWidth: 20,
                 leadingAlignment: AlignmentDirectional.bottomEnd,
                 leading: const Text('leading'),
+                child: TestItem.item1.text,
+              ),
+              CupertinoMenuItem(
+                onPressed: () {},
+                leadingWidth: 50,
+                leadingAlignment: AlignmentDirectional.topStart,
+                leading: const Text('leading50'),
                 child: TestItem.item1.text,
               ),
             ],
@@ -1492,51 +1634,21 @@ void main() {
         controller.open();
         await tester.pumpAndSettle();
 
-        expect(
-          tester.getRect(find.text('leading')),
-          rectEquals(const Rect.fromLTRB(275.0, 141.6, 295.0, 183.6)),
-        );
-        expect(
-          tester.getRect(find.byIcon(CupertinoIcons.left_chevron)),
-          rectEquals(const Rect.fromLTRB(281.4, 87.6, 302.4, 108.6)),
-        );
-
-        await tester.pumpWidget(
-          buildTestApp(
-            children: <Widget>[
-              CupertinoMenuItem(
-                leading: const Icon(CupertinoIcons.left_chevron),
-                trailing: const Icon(CupertinoIcons.right_chevron),
-                subtitle: const Text('subtitle'),
-                child: TestItem.item0.text,
-              ),
-              CupertinoMenuItem(
-                onPressed: () {},
-                leadingWidth: 50,
-                leadingAlignment: AlignmentDirectional.topStart,
-                leading: const Text('leading'),
-                child: TestItem.item1.text,
-              ),
-            ],
-          ),
-        );
-
-        await tester.pumpAndSettle();
-
-        expect(
-          tester.getRect(find.text('leading')),
-          rectEquals(const Rect.fromLTRB(275.0, 141.6, 325.0, 183.6)),
-        );
-        expect(
-          tester.getRect(find.byIcon(CupertinoIcons.left_chevron)),
-          rectEquals(const Rect.fromLTRB(281.4, 87.6, 302.4, 108.6)),
-        );
-      });
+        expect(tester.getRect(find.byIcon(CupertinoIcons.left_chevron)),
+            rectEquals(const Rect.fromLTRB(14.4, 69.3, 35.4, 90.3)));
+        expect(tester.getRect(find.text('leading')),
+            rectEquals(const Rect.fromLTRB(8.0, 123.3, 40.0, 165.3)));
+        expect(tester.getRect(find.text('leading50')),
+            rectEquals(const Rect.fromLTRB(8.0, 188.3, 58.0, 230.3)));
+      },
+      // https://github.com/flutter/flutter/issues/99933
+      skip: isBrowser);
       testWidgets('leading layout RTL', (WidgetTester tester) async {
         await tester.pumpWidget(
           buildTestApp(
+            textDirection: TextDirection.rtl,
             children: <Widget>[
-              CupertinoMenuItem(
+               CupertinoMenuItem(
                 leading: const Icon(CupertinoIcons.left_chevron),
                 trailing: const Icon(CupertinoIcons.right_chevron),
                 subtitle: const Text('subtitle'),
@@ -1544,9 +1656,15 @@ void main() {
               ),
               CupertinoMenuItem(
                 onPressed: () {},
-                leadingWidth: 20,
                 leadingAlignment: AlignmentDirectional.bottomEnd,
                 leading: const Text('leading'),
+                child: TestItem.item1.text,
+              ),
+              CupertinoMenuItem(
+                onPressed: () {},
+                leadingWidth: 50,
+                leadingAlignment: AlignmentDirectional.topStart,
+                leading: const Text('leading50'),
                 child: TestItem.item1.text,
               ),
             ],
@@ -1556,15 +1674,17 @@ void main() {
         controller.open();
         await tester.pumpAndSettle();
 
-        expect(
-          tester.getRect(find.text('leading')),
-          rectEquals(const Rect.fromLTRB(275.0, 141.6, 295.0, 183.6)),
-        );
-        expect(
-          tester.getRect(find.byIcon(CupertinoIcons.left_chevron)),
-          rectEquals(const Rect.fromLTRB(281.4, 87.6, 302.4, 108.6)),
-        );
+        expect(tester.getRect(find.byIcon(CupertinoIcons.left_chevron)),
+            rectEquals(const Rect.fromLTRB(230.6, 69.3, 251.6, 90.3)));
+        expect(tester.getRect(find.text('leading')),
+            rectEquals(const Rect.fromLTRB(226.0, 123.3, 258.0, 165.3)));
+        expect(tester.getRect(find.text('leading50')),
+            rectEquals(const Rect.fromLTRB(208.0, 188.3, 258.0, 230.3)));
+      },
+      // https://github.com/flutter/flutter/issues/99933
+      skip: isBrowser);
 
+      testWidgets('trailing layout LTR', (WidgetTester tester) async {
         await tester.pumpWidget(
           buildTestApp(
             children: <Widget>[
@@ -1576,26 +1696,313 @@ void main() {
               ),
               CupertinoMenuItem(
                 onPressed: () {},
-                leadingWidth: 50,
-                leadingAlignment: AlignmentDirectional.topStart,
-                leading: const Text('leading'),
+                trailingAlignment: AlignmentDirectional.bottomEnd,
+                trailing: const Text('trailing'),
+                child: TestItem.item1.text,
+              ),
+              CupertinoMenuItem(
+                onPressed: () {},
+                trailingWidth: 50,
+                trailingAlignment: AlignmentDirectional.topStart,
+                trailing: const Text('trailing50'),
                 child: TestItem.item1.text,
               ),
             ],
           ),
         );
 
+        controller.open();
         await tester.pumpAndSettle();
 
-        expect(
-          tester.getRect(find.text('leading')),
-          rectEquals(const Rect.fromLTRB(275.0, 141.6, 325.0, 183.6)),
+        expect(tester.getRect(find.byIcon(CupertinoIcons.right_chevron)),
+            rectEquals(const Rect.fromLTRB(222.4, 69.3, 243.4, 90.3)));
+        expect(tester.getRect(find.text('trailing')),
+            rectEquals(const Rect.fromLTRB(214.0, 123.3, 258.0, 165.3)));
+        expect(tester.getRect(find.text('trailing50')),
+            rectEquals(const Rect.fromLTRB(208.0, 188.3, 258.0, 230.3)));
+      },
+      // https://github.com/flutter/flutter/issues/99933
+      skip: isBrowser);
+      testWidgets('trailing layout RTL', (WidgetTester tester) async {
+         await tester.pumpWidget(
+          buildTestApp(
+            textDirection: TextDirection.rtl,
+            children: <Widget>[
+              CupertinoMenuItem(
+                leading: const Icon(CupertinoIcons.left_chevron),
+                trailing: const Icon(CupertinoIcons.right_chevron),
+                subtitle: const Text('subtitle'),
+                child: TestItem.item0.text,
+              ),
+              CupertinoMenuItem(
+                onPressed: () {},
+                trailingAlignment: AlignmentDirectional.bottomEnd,
+                trailing: const Text('trailing'),
+                child: TestItem.item1.text,
+              ),
+              CupertinoMenuItem(
+                onPressed: () {},
+                trailingWidth: 50,
+                trailingAlignment: AlignmentDirectional.topStart,
+                trailing: const Text('trailing50'),
+                child: TestItem.item1.text,
+              ),
+            ],
+          ),
         );
-        expect(
-          tester.getRect(find.byIcon(CupertinoIcons.left_chevron)),
-          rectEquals(const Rect.fromLTRB(281.4, 87.6, 302.4, 108.6)),
+
+        controller.open();
+        await tester.pumpAndSettle();
+
+        print(tester.getRect(find.byIcon(CupertinoIcons.right_chevron)));
+        print(tester.getRect(find.text('trailing')));
+        print(tester.getRect(find.text('trailing50')));
+
+
+        expect(tester.getRect(find.byIcon(CupertinoIcons.right_chevron)),
+            rectEquals(const Rect.fromLTRB(22.6, 69.3, 43.6, 90.3)));
+        expect(tester.getRect(find.text('trailing')),
+            rectEquals(const Rect.fromLTRB(8.0, 123.3, 52.0, 165.3)));
+        expect(tester.getRect(find.text('trailing50')),
+            rectEquals(const Rect.fromLTRB(8.0, 188.3, 58.0, 230.3)));
+      },
+      // https://github.com/flutter/flutter/issues/99933
+      skip: isBrowser);
+
+      testWidgets('subtitle layout LTR', (WidgetTester tester) async {
+        final String longSubtitle = 'subtitle' * 1000;
+
+        // When TextScaler <= 1.25, maxLines == 2
+        await tester.pumpWidget(buildTestApp(
+          children: <Widget>[
+            CupertinoMenuItem(
+              leading: const Icon(CupertinoIcons.left_chevron),
+              trailing: const Icon(CupertinoIcons.right_chevron),
+              subtitle: const Text('subtitle'),
+              child: TestItem.item0.text,
+            ),
+            CupertinoMenuItem(
+              onPressed: () {},
+              subtitle: Text(longSubtitle),
+              child: TestItem.item1.text,
+            ),
+          ],
+        ));
+
+        controller.open();
+        await tester.pumpAndSettle();
+
+        expect(tester.getRect(find.text('subtitle')),
+            rectEquals(const Rect.fromLTRB(40.0, 81.3, 158.3, 100.3)));
+        expect(tester.getRect(find.text(longSubtitle)),
+            rectEquals(const Rect.fromLTRB(40.0, 145.3, 242.0, 183.3)));
+
+        // When TextScaler > 1.25, maxLines == 100
+        await tester.pumpWidget(buildTestApp(
+          textScaler: const TextScaler.linear(1.3),
+          children: <Widget>[
+            CupertinoMenuItem(
+              leading: const Icon(CupertinoIcons.left_chevron),
+              trailing: const Icon(CupertinoIcons.right_chevron),
+              subtitle: const Text('subtitle'),
+              child: TestItem.item0.text,
+            ),
+            CupertinoMenuItem(
+              onPressed: () {},
+              subtitle: Text(longSubtitle),
+              child: TestItem.item1.text,
+            ),
+          ],
+        ));
+        await tester.pumpAndSettle();
+
+        expect(tester.getRect(find.text('subtitle')),
+            rectEquals(const Rect.fromLTRB(44.5, 49.9, 198.8, 73.9)));
+        expect(tester.getRect(find.text(longSubtitle)),
+            rectEquals(const Rect.fromLTRB(44.5, 129.1, 339.8, 2529.1)));
+      },
+      // https://github.com/flutter/flutter/issues/99933
+      skip: isBrowser);
+      testWidgets('subtitle layout RTL', (WidgetTester tester) async {
+        final String longSubtitle = 'subtitle' * 1000;
+
+        // When TextScaler <= 1.25, maxLines == 2
+        await tester.pumpWidget(buildTestApp(
+          textDirection: TextDirection.rtl,
+          children: <Widget>[
+            CupertinoMenuItem(
+              leading: const Icon(CupertinoIcons.left_chevron),
+              trailing: const Icon(CupertinoIcons.right_chevron),
+              subtitle: const Text('subtitle'),
+              child: TestItem.item0.text,
+            ),
+            CupertinoMenuItem(
+              onPressed: () {},
+              subtitle: Text(longSubtitle),
+              child: TestItem.item1.text,
+            ),
+          ],
+        ));
+        controller.open();
+        await tester.pumpAndSettle();
+
+        expect(tester.getRect(find.text('subtitle')),
+            rectEquals(const Rect.fromLTRB(107.7, 81.3, 226.0, 100.3)));
+        expect(tester.getRect(find.text(longSubtitle)),
+            rectEquals(const Rect.fromLTRB(24.0, 145.3, 226.0, 183.3)));
+
+        // When TextScaler > 1.25, maxLines == 100
+        await tester.pumpWidget(buildTestApp(
+          textDirection: TextDirection.rtl,
+          textScaler: const TextScaler.linear(1.3),
+          children: <Widget>[
+            CupertinoMenuItem(
+              leading: const Icon(CupertinoIcons.left_chevron),
+              trailing: const Icon(CupertinoIcons.right_chevron),
+              subtitle: const Text('subtitle'),
+              child: TestItem.item0.text,
+            ),
+            CupertinoMenuItem(
+              onPressed: () {},
+              subtitle: Text(longSubtitle),
+              child: TestItem.item1.text,
+            ),
+          ],
+        ));
+        await tester.pumpAndSettle();
+
+        expect(tester.getRect(find.text('subtitle')),
+            rectEquals(const Rect.fromLTRB(167.2, 49.9, 321.5, 73.9)));
+        expect(tester.getRect(find.text(longSubtitle)),
+            rectEquals(const Rect.fromLTRB(26.2, 129.1, 321.5, 2529.1)));
+      },
+      // https://github.com/flutter/flutter/issues/99933
+      skip: isBrowser);
+
+      testWidgets('default layout', (WidgetTester tester) async {
+        await tester.pumpWidget(
+          CupertinoApp(
+            home: Column(
+              children: <Widget>[
+                CupertinoMenuAnchor(
+                  controller: controller,
+                  menuChildren: <Widget>[
+                    CupertinoMenuItem(
+                      leading: const Icon(CupertinoIcons.left_chevron),
+                      trailing: const Icon(CupertinoIcons.right_chevron),
+                      subtitle: const Text('subtitle'),
+                      child: TestItem.item1.text,
+                      onPressed: () {},
+                    ),
+                  ],
+                ),
+                const Spacer(),
+                CupertinoMenuItem(
+                  onPressed: () {},
+                  leading: const Icon(CupertinoIcons.left_chevron),
+                  trailing: const Icon(CupertinoIcons.right_chevron),
+                  subtitle: const Text('subtitle'),
+                  child: TestItem.item0.text,
+                ),
+              ],
+            ),
+          ),
         );
+
+        controller.open();
+        await tester.pumpAndSettle();
+
+        // Standalone menu item has loose constraints with a minimum
+        // height of 44.
+        expect(findConstraints(TestItem.item0.findWidget),
+            constraintsMoreOrLess(const BoxConstraints(minHeight: 43.7)));
+        expect(tester.getRect(TestItem.item0.findWidget),
+            rectEquals(const Rect.fromLTRB(0.0, 536.3, 800.0, 600.0)));
+        expect(findConstraints(TestItem.item1.findWidget),
+            constraintsMoreOrLess(const BoxConstraints(minHeight: 43.7)));
+        expect(tester.getRect(TestItem.item1.findWidget),
+            rectEquals(const Rect.fromLTRB(275.0, 8.0, 525.0, 71.7)));
       });
+
+      testWidgets('custom constraints', (WidgetTester tester) async {
+        await tester.pumpWidget(
+          CupertinoApp(
+            home: Column(
+              children: <Widget>[
+                CupertinoMenuAnchor(
+                  controller: controller,
+                  menuChildren: <Widget>[
+                    CupertinoMenuItem(
+                      constraints: const BoxConstraints(
+                        minWidth: 50,
+                        minHeight: 150,
+                        maxWidth: 150,
+                        maxHeight: 200,
+                      ),
+                      leading: const Icon(CupertinoIcons.left_chevron),
+                      trailing: const Icon(CupertinoIcons.right_chevron),
+                      subtitle: const Text('subtitle'),
+                      child: TestItem.item1.text,
+                      onPressed: () {},
+                    ),
+                  ],
+                ),
+                CupertinoMenuItem(
+                  constraints: const BoxConstraints(
+                    minWidth: 50,
+                    minHeight: 150,
+                    maxWidth: 150,
+                    maxHeight: 200,
+                  ),
+                  onPressed: () {},
+                  leading: const Icon(CupertinoIcons.left_chevron),
+                  trailing: const Icon(CupertinoIcons.right_chevron),
+                  subtitle: const Text('subtitle'),
+                  child: TestItem.item0.text,
+                ),
+              ],
+            ),
+          ),
+        );
+
+        controller.open();
+        await tester.pumpAndSettle();
+
+        BoxConstraints getConstraints(Finder finder) {
+          return (find.descendant(
+                    of: finder,
+                    matching: find.byType(ConstrainedBox),
+                  )
+                  .evaluate()
+                  .first
+                  .widget as ConstrainedBox)
+              .constraints;
+        }
+
+        expect(
+            getConstraints(TestItem.item0.findWidget),
+            const BoxConstraints(
+              minHeight: 150.0,
+              maxHeight: 200,
+              minWidth: 50,
+              maxWidth: 150
+            ),
+        );
+        expect(
+            getConstraints(TestItem.item1.findWidget),
+            const BoxConstraints(
+              minHeight: 150.0,
+              maxHeight: 200,
+              minWidth: 50,
+              maxWidth: 150
+            ),
+        );
+        expect(tester.getRect(TestItem.item0.findWidget),
+            rectEquals(const Rect.fromLTRB(325.0, 0.0, 475.0, 200.0)));
+        expect(tester.getRect(TestItem.item1.findWidget),
+            rectEquals(const Rect.fromLTRB(275.0, 8.0, 525.0, 208.0)));
+      });
+
       testWidgets('hasLeading shift LTR', (WidgetTester tester) async {
         await tester.pumpWidget(
           buildTestApp(
@@ -1723,414 +2130,6 @@ void main() {
         expect(b1.right - a1.right, -32 + 16);
       });
 
-      testWidgets('trailing layout LTR', (WidgetTester tester) async {
-        await tester.pumpWidget(
-          buildTestApp(
-            children: <Widget>[
-              CupertinoMenuItem(
-                leading: const Icon(CupertinoIcons.left_chevron),
-                trailing: const Icon(CupertinoIcons.right_chevron),
-                subtitle: const Text('subtitle'),
-                child: TestItem.item0.text,
-              ),
-              CupertinoMenuItem(
-                onPressed: () {},
-                trailingWidth: 20,
-                trailingAlignment: AlignmentDirectional.bottomEnd,
-                trailing: const Text('trailing'),
-                child: TestItem.item1.text,
-              ),
-            ],
-          ),
-        );
-
-        controller.open();
-        await tester.pumpAndSettle();
-
-        expect(tester.getRect(find.text('trailing')),
-            rectEquals(const Rect.fromLTRB(505.0, 141.6, 525.0, 183.6)));
-
-        expect(tester.getRect(find.byIcon(CupertinoIcons.right_chevron)),
-            rectEquals(const Rect.fromLTRB(489.4, 87.6, 510.4, 108.6)));
-
-        await tester.pumpWidget(
-          buildTestApp(
-            children: <Widget>[
-              CupertinoMenuItem(
-                leading: const Icon(CupertinoIcons.left_chevron),
-                trailing: const Icon(CupertinoIcons.right_chevron),
-                subtitle: const Text('subtitle'),
-                child: TestItem.item0.text,
-              ),
-              CupertinoMenuItem(
-                onPressed: () {},
-                trailingWidth: 50,
-                trailingAlignment: AlignmentDirectional.topStart,
-                trailing: const Text('trailing'),
-                child: TestItem.item1.text,
-              ),
-            ],
-          ),
-        );
-
-        await tester.pumpAndSettle();
-
-        expect(tester.getRect(find.text('trailing')),
-            rectEquals(const Rect.fromLTRB(475.0, 141.6, 525.0, 183.6)));
-        expect(tester.getRect(find.byIcon(CupertinoIcons.right_chevron)),
-            rectEquals(const Rect.fromLTRB(489.4, 87.6, 510.4, 108.6)));
-      });
-      testWidgets('trailing layout RTL', (WidgetTester tester) async {
-        await tester.pumpWidget(
-          buildTestApp(
-            textDirection: TextDirection.rtl,
-            children: <Widget>[
-              CupertinoMenuItem(
-                leading: const Icon(CupertinoIcons.left_chevron),
-                trailing: const Icon(CupertinoIcons.right_chevron),
-                subtitle: const Text('subtitle'),
-                child: TestItem.item0.text,
-              ),
-              CupertinoMenuItem(
-                onPressed: () {},
-                trailingWidth: 20,
-                trailingAlignment: AlignmentDirectional.bottomEnd,
-                trailing: const Text('trailing'),
-                child: TestItem.item1.text,
-              ),
-            ],
-          ),
-        );
-
-        controller.open();
-        await tester.pumpAndSettle();
-
-        expect(tester.getRect(find.text('trailing')),
-            rectEquals(const Rect.fromLTRB(275.0, 141.6, 295.0, 183.6)));
-        expect(tester.getRect(find.byIcon(CupertinoIcons.right_chevron)),
-            rectEquals(const Rect.fromLTRB(289.6, 87.6, 310.6, 108.6)));
-
-        await tester.pumpWidget(
-          buildTestApp(
-            textDirection: TextDirection.rtl,
-            children: <Widget>[
-              CupertinoMenuItem(
-                leading: const Icon(CupertinoIcons.left_chevron),
-                trailing: const Icon(CupertinoIcons.right_chevron),
-                subtitle: const Text('subtitle'),
-                child: TestItem.item0.text,
-              ),
-              CupertinoMenuItem(
-                onPressed: () {},
-                trailingWidth: 50,
-                trailingAlignment: AlignmentDirectional.topStart,
-                trailing: const Text('trailing'),
-                child: TestItem.item1.text,
-              ),
-            ],
-          ),
-        );
-
-        await tester.pumpAndSettle();
-
-        expect(tester.getRect(find.text('trailing')),
-            rectEquals(const Rect.fromLTRB(275.0, 141.6, 325.0, 183.6)));
-        expect(tester.getRect(find.byIcon(CupertinoIcons.right_chevron)),
-            rectEquals(const Rect.fromLTRB(289.6, 87.6, 310.6, 108.6)));
-      });
-
-      testWidgets('subtitle layout LTR', (WidgetTester tester) async {
-        final String longSubtitle = 'subtitle' * 1000;
-
-        // When TextScaler <= 1.25, maxLines == 2
-        await tester.pumpWidget(buildTestApp(
-          children: <Widget>[
-            CupertinoMenuItem(
-              leading: const Icon(CupertinoIcons.left_chevron),
-              trailing: const Icon(CupertinoIcons.right_chevron),
-              subtitle: const Text('subtitle'),
-              child: TestItem.item0.text,
-            ),
-            CupertinoMenuItem(
-              onPressed: () {},
-              subtitle: Text(longSubtitle),
-              child: TestItem.item1.text,
-            ),
-          ],
-        ));
-        controller.open();
-        await tester.pumpAndSettle();
-
-        expect(tester.getRect(find.text('subtitle')),
-            rectEquals(const Rect.fromLTRB(307.0, 99.8, 425.3, 118.8)));
-        expect(tester.getRect(find.text(longSubtitle)),
-            rectEquals(const Rect.fromLTRB(307.0, 163.8, 509.0, 201.8)));
-
-        // When TextScaler > 1.25, maxLines == 100
-        await tester.pumpWidget(buildTestApp(
-          mediaQuery: const MediaQueryData(textScaler: TextScaler.linear(1.3)),
-          children: <Widget>[
-            CupertinoMenuItem(
-              leading: const Icon(CupertinoIcons.left_chevron),
-              trailing: const Icon(CupertinoIcons.right_chevron),
-              subtitle: const Text('subtitle'),
-              child: TestItem.item0.text,
-            ),
-            CupertinoMenuItem(
-              onPressed: () {},
-              subtitle: Text(longSubtitle),
-              child: TestItem.item1.text,
-            ),
-          ],
-        ));
-        await tester.pumpAndSettle();
-
-        expect(tester.getRect(find.text('subtitle')),
-            rectEquals(const Rect.fromLTRB(261.5, 49.5, 415.8, 73.5)));
-        expect(tester.getRect(find.text(longSubtitle)),
-            rectEquals(const Rect.fromLTRB(261.5, 128.6, 556.8, 2528.6)));
-      });
-      testWidgets('subtitle layout RTL', (WidgetTester tester) async {
-        final String longSubtitle = 'subtitle' * 1000;
-
-        // When TextScaler <= 1.25, maxLines == 2
-        await tester.pumpWidget(buildTestApp(
-          textDirection: TextDirection.rtl,
-          children: <Widget>[
-            CupertinoMenuItem(
-              leading: const Icon(CupertinoIcons.left_chevron),
-              trailing: const Icon(CupertinoIcons.right_chevron),
-              subtitle: const Text('subtitle'),
-              child: TestItem.item0.text,
-            ),
-            CupertinoMenuItem(
-              onPressed: () {},
-              subtitle: Text(longSubtitle),
-              child: TestItem.item1.text,
-            ),
-          ],
-        ));
-        controller.open();
-        await tester.pumpAndSettle();
-
-        expect(tester.getRect(find.text('subtitle')),
-            rectEquals(const Rect.fromLTRB(374.7, 99.8, 493.0, 118.8)));
-        expect(tester.getRect(find.text(longSubtitle)),
-            rectEquals(const Rect.fromLTRB(291.0, 163.8, 493.0, 201.8)));
-
-        // When TextScaler > 1.25, maxLines == 100
-        await tester.pumpWidget(buildTestApp(
-          textDirection: TextDirection.rtl,
-          mediaQuery: const MediaQueryData(textScaler: TextScaler.linear(1.3)),
-          children: <Widget>[
-            CupertinoMenuItem(
-              leading: const Icon(CupertinoIcons.left_chevron),
-              trailing: const Icon(CupertinoIcons.right_chevron),
-              subtitle: const Text('subtitle'),
-              child: TestItem.item0.text,
-            ),
-            CupertinoMenuItem(
-              onPressed: () {},
-              subtitle: Text(longSubtitle),
-              child: TestItem.item1.text,
-            ),
-          ],
-        ));
-        await tester.pumpAndSettle();
-
-        expect(tester.getRect(find.text('subtitle')),
-            rectEquals(const Rect.fromLTRB(384.2, 49.5, 538.5, 73.5)));
-        expect(tester.getRect(find.text(longSubtitle)),
-            rectEquals(const Rect.fromLTRB(243.2, 128.6, 538.5, 2528.6)));
-      });
-      testWidgets('default layout', (WidgetTester tester) async {
-        await tester.pumpWidget(
-          CupertinoApp(
-            home: Column(
-              children: <Widget>[
-                CupertinoMenuAnchor(
-                  controller: controller,
-                  menuChildren: <Widget>[
-                    CupertinoMenuItem(
-                      leading: const Icon(CupertinoIcons.left_chevron),
-                      trailing: const Icon(CupertinoIcons.right_chevron),
-                      subtitle: const Text('subtitle'),
-                      child: TestItem.item1.text,
-                      onPressed: () {},
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                CupertinoMenuItem(
-                  onPressed: () {},
-                  leading: const Icon(CupertinoIcons.left_chevron),
-                  trailing: const Icon(CupertinoIcons.right_chevron),
-                  subtitle: const Text('subtitle'),
-                  child: TestItem.item0.text,
-                ),
-              ],
-            ),
-          ),
-        );
-
-        controller.open();
-        await tester.pumpAndSettle();
-
-        // Standalone menu item has loose constraints with a minimum
-        // height of 44.
-        expect(
-          findConstraints(TestItem.item0.findWidget),
-          constraintsMoreOrLess(const BoxConstraints(minHeight: 43.7)),
-        );
-        expect(tester.getRect(TestItem.item0.findWidget),
-            rectEquals(const Rect.fromLTRB(0.0, 536.3, 800.0, 600.0)));
-        expect(
-          findConstraints(TestItem.item1.findWidget),
-          constraintsMoreOrLess(const BoxConstraints(minHeight: 43.7)),
-        );
-        expect(tester.getRect(TestItem.item1.findWidget),
-            rectEquals(const Rect.fromLTRB(275.0, 8.0, 525.0, 71.7)));
-      });
-      testWidgets('applyInsetScaling can be set', (WidgetTester tester) async {
-        // applyInsetScaling, when true, increases the size of the padding,
-        // leading and trailing width, and the constraints by a factor of the
-        // square root of the textScaler. This behavior was observed on the iOS
-        // simulator.
-        await tester.pumpWidget(
-          CupertinoApp(
-            home: MediaQuery(
-              data: const MediaQueryData(
-                textScaler: TextScaler.linear(1.15),
-              ),
-              child: CupertinoMenuAnchor(
-                controller: controller,
-                menuChildren: <Widget>[
-                  CupertinoMenuItem(
-                    leading: const Icon(CupertinoIcons.left_chevron),
-                    trailing: const Icon(CupertinoIcons.right_chevron),
-                    subtitle: const Text('subtitle'),
-                    child: TestItem.item0.text,
-                    onPressed: () {},
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-
-        controller.open();
-        await tester.pumpAndSettle();
-
-        // First, test with applyInsetScaling set to true.
-        expect(tester.getRect(TestItem.item0.findWidget),
-            rectEquals(const Rect.fromLTRB(275.0, 521.4, 525.0, 592.0)));
-        expect(tester.getRect(find.byIcon(CupertinoIcons.left_chevron)),
-            rectEquals(const Rect.fromLTRB(281.9, 545.4, 304.4, 568.0)));
-        expect(tester.getRect(find.byIcon(CupertinoIcons.right_chevron)),
-            rectEquals(const Rect.fromLTRB(486.8, 545.4, 509.3, 568.0)));
-
-        await tester.pumpWidget(
-          CupertinoApp(
-            home: MediaQuery(
-              data: const MediaQueryData(
-                textScaler: TextScaler.linear(1.15),
-              ),
-              child: CupertinoMenuAnchor(
-                controller: controller,
-                menuChildren: <Widget>[
-                  CupertinoMenuItem(
-                    applyInsetScaling: false,
-                    leading: const Icon(CupertinoIcons.left_chevron),
-                    trailing: const Icon(CupertinoIcons.right_chevron),
-                    subtitle: const Text('subtitle'),
-                    child: TestItem.item0.text,
-                    onPressed: () {},
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-
-        // Then, test with applyInsetScaling set to false.
-        expect(tester.getRect(TestItem.item0.findWidget),
-            rectEquals(const Rect.fromLTRB(275.0, 523.0, 525.0, 592.0)));
-        expect(tester.getRect(find.byIcon(CupertinoIcons.left_chevron)),
-            rectEquals(const Rect.fromLTRB(280.5, 546.2, 303.0, 568.8)));
-        expect(tester.getRect(find.byIcon(CupertinoIcons.right_chevron)),
-            rectEquals(const Rect.fromLTRB(488.8, 546.2, 511.3, 568.8)));
-      });
-      testWidgets('custom constraints', (WidgetTester tester) async {
-        await tester.pumpWidget(
-          CupertinoApp(
-            home: Column(
-              children: <Widget>[
-                CupertinoMenuAnchor(
-                  controller: controller,
-                  menuChildren: <Widget>[
-                    CupertinoMenuItem(
-                      constraints: const BoxConstraints(
-                        minWidth: 50,
-                        minHeight: 150,
-                        maxWidth: 150,
-                        maxHeight: 200,
-                      ),
-                      leading: const Icon(CupertinoIcons.left_chevron),
-                      trailing: const Icon(CupertinoIcons.right_chevron),
-                      subtitle: const Text('subtitle'),
-                      child: TestItem.item1.text,
-                      onPressed: () {},
-                    ),
-                  ],
-                ),
-                CupertinoMenuItem(
-                  constraints: const BoxConstraints(
-                    minWidth: 50,
-                    minHeight: 150,
-                    maxWidth: 150,
-                    maxHeight: 200,
-                  ),
-                  onPressed: () {},
-                  leading: const Icon(CupertinoIcons.left_chevron),
-                  trailing: const Icon(CupertinoIcons.right_chevron),
-                  subtitle: const Text('subtitle'),
-                  child: TestItem.item0.text,
-                ),
-              ],
-            ),
-          ),
-        );
-
-        controller.open();
-        await tester.pumpAndSettle();
-
-        BoxConstraints getConstraints(Finder finder) {
-          return (find.descendant(
-                    of: finder,
-                    matching: find.byType(ConstrainedBox),
-                  )
-                  .evaluate()
-                  .first
-                  .widget as ConstrainedBox)
-              .constraints;
-        }
-
-        expect(
-          getConstraints(TestItem.item0.findWidget),
-          const BoxConstraints(
-              minHeight: 150.0, maxHeight: 200, minWidth: 50, maxWidth: 150),
-        );
-        expect(tester.getRect(TestItem.item0.findWidget),
-            rectEquals(const Rect.fromLTRB(325.0, 0.0, 475.0, 200.0)));
-        expect(
-          getConstraints(TestItem.item1.findWidget),
-          const BoxConstraints(
-              minHeight: 150.0, maxHeight: 200, minWidth: 50, maxWidth: 150),
-        );
-        expect(tester.getRect(TestItem.item1.findWidget),
-            rectEquals(const Rect.fromLTRB(275.0, 8.0, 525.0, 208.0)));
-      });
-
       testWidgets('vertical padding', (WidgetTester tester) async {
         EdgeInsetsGeometry getEdgeInsets(Finder finder) {
           return (find
@@ -2187,7 +2186,6 @@ void main() {
                   child: TestItem.item0.text,
                   onPressed: () {},
                 ),
-
                 // Padding + height is above minHeight constraint of 44, so
                 // padding does affect vertical layout
                 CupertinoMenuItem(
@@ -2229,7 +2227,9 @@ void main() {
           tester.getSize(TestItem.item1.findWidget),
           within(distance: 0.05, from: const Size(250, 53)),
         );
-      });
+      },
+      // https://github.com/flutter/flutter/issues/99933
+      skip: isBrowser);
       testWidgets('horizontal padding LTR', (WidgetTester tester) async {
         T findEdgeInsets<T extends EdgeInsetsGeometry>(Finder finder) {
           return (find
@@ -2338,6 +2338,7 @@ void main() {
         );
         controller.open();
         await tester.pumpAndSettle();
+
         final Rect leading = tester.getRect(find.byIcon(CupertinoIcons.left_chevron));
         final Rect trailing = tester.getRect(find.byIcon(CupertinoIcons.right_chevron));
         final Rect subtitle = tester.getRect(find.text('subtitle'));
@@ -2363,6 +2364,7 @@ void main() {
             ),
           ),
         );
+
         final Rect leading2 = tester.getRect(find.byIcon(CupertinoIcons.left_chevron));
         final Rect trailing2 = tester.getRect(find.byIcon(CupertinoIcons.right_chevron));
         final Rect subtitle2 = tester.getRect(find.text('subtitle'));
@@ -2371,17 +2373,12 @@ void main() {
         expect(
           findEdgeInsets(TestItem.item0.findWidget),
           edgeInsetsDirectionalMoreOrLess(
-            const EdgeInsetsDirectional.only(
-              start: 7,
-              end: 13,
-            ),
+            const EdgeInsetsDirectional.only(start: 7, end: 13),
           ),
         );
 
-        expect(
-          tester.getSize(TestItem.item0.findWidget),
-          within(distance: 0.05, from: const Size(250, 43.7)),
-        );
+        expect(tester.getSize(TestItem.item0.findWidget),
+            within(distance: 0.05, from: const Size(250, 43.7)));
         expect(leading2.right - leading.right, moreOrLessEquals(-7));
         expect(trailing2.left - trailing.left, moreOrLessEquals(13));
         expect(subtitle2.right - subtitle.right, moreOrLessEquals(-7));
@@ -2393,8 +2390,7 @@ void main() {
         // Trailing is not shown when the TextScaler > 1.25.
         await tester.pumpWidget(
           buildTestApp(
-            mediaQuery:
-                const MediaQueryData(textScaler: TextScaler.linear(1.3)),
+            textScaler: const TextScaler.linear(1.3),
             children: <Widget>[
               CupertinoMenuItem(
                 leading: const Icon(CupertinoIcons.left_chevron),
@@ -2416,8 +2412,7 @@ void main() {
         await tester.pumpWidget(
           buildTestApp(
             textDirection: TextDirection.rtl,
-            mediaQuery:
-                const MediaQueryData(textScaler: TextScaler.linear(1.3)),
+            textScaler: const TextScaler.linear(1.3),
             children: <Widget>[
               CupertinoMenuItem(
                 leading: const Icon(CupertinoIcons.left_chevron),
@@ -2517,7 +2512,87 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(focusChanges, <bool>[true, false, true, false, true, false]);
-      });
+      }, skip: isBrowser);
+
+      testWidgets('[web] onFocusChange is called on enabled items',
+          (WidgetTester tester) async {
+        final List<bool> focusChanges = <bool>[];
+        final FocusNode focusNode = FocusNode();
+        addTearDown(focusNode.dispose);
+        await tester.pumpWidget(
+          buildTestApp(
+            children: <Widget>[
+              CupertinoMenuItem(
+                focusNode: focusNode,
+                onFocusChange: focusChanges.add,
+                onPressed: () {},
+                child: TestItem.item0.text,
+              ),
+              CupertinoMenuItem(
+                child: TestItem.item1.text,
+                onPressed: () {},
+              ),
+            ],
+          ),
+        );
+        controller.open();
+        await tester.pumpAndSettle();
+
+        // true
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+
+        // false
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        await tester.pump();
+
+        // true
+        focusNode.requestFocus();
+        await tester.pump();
+
+        // false -- focus is excluded if the item is disabled
+        await tester.pumpWidget(
+          buildTestApp(
+            children: <Widget>[
+              CupertinoMenuItem(
+                onFocusChange: focusChanges.add,
+                child: TestItem.item0.text,
+              ),
+              CupertinoMenuItem(
+                child: TestItem.item1.text,
+                onPressed: () {},
+              ),
+            ],
+          ),
+        );
+
+        await tester.pump();
+        await tester.pumpWidget(
+          buildTestApp(
+            children: <Widget>[
+              CupertinoMenuItem(
+                onFocusChange: focusChanges.add,
+                onPressed: () {},
+                child: TestItem.item0.text,
+              ),
+              CupertinoMenuItem(
+                child: TestItem.item1.text,
+                onPressed: () {},
+              ),
+            ],
+          ),
+        );
+
+        // true -- move focus to the first item
+        await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+        await tester.pump();
+
+        // false -- focus is excluded if the menu starts closing
+        controller.close();
+        await tester.pumpAndSettle();
+
+        expect(focusChanges, <bool>[true, false, true, false, true, false]);
+      }, skip: !isBrowser);
 
       testWidgets('onHover is called on enabled items',
           (WidgetTester tester) async {
@@ -3043,7 +3118,6 @@ void main() {
   group('Semantics', () {
     testWidgets('CupertinoMenuItem is not a semantic button',
         (WidgetTester tester) async {
-      final SemanticsTester semantics = SemanticsTester(tester);
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.rtl,
@@ -3059,31 +3133,15 @@ void main() {
 
       // The flags should not have SemanticsFlag.isButton
       expect(
-        semantics,
-        hasSemantics(
-          TestSemantics.root(
-            children: <TestSemantics>[
-              TestSemantics.rootChild(
-                actions: <SemanticsAction>[
-                  SemanticsAction.tap,
-                ],
-                label: 'ABC',
-                rect: const Rect.fromLTRB(0.0, 0.0, 250, 48),
-                transform: Matrix4.translationValues(275.0, 276.0, 0.0),
-                flags: <SemanticsFlag>[
-                  SemanticsFlag.hasEnabledState,
-                  SemanticsFlag.isEnabled,
-                  SemanticsFlag.isFocusable,
-                ],
-                textDirection: TextDirection.rtl,
-              ),
-            ],
-          ),
-          ignoreId: true,
-        ),
-      );
-
-      semantics.dispose();
+          tester.getSemantics(find.widgetWithText(CupertinoMenuItem, 'ABC')),
+          matchesSemantics(
+            hasTapAction: true,
+            isEnabled: true,
+            isFocusable: true,
+            hasEnabledState: true,
+            textDirection: TextDirection.rtl,
+            rect: const Rect.fromLTRB(0.0, 0.0, 250, 48),
+          ));
     });
   });
 }
