@@ -78,7 +78,7 @@ class MenuFocusPolicy extends FocusTraversalPolicy with DirectionalFocusTraversa
       return super.inDirection(currentNode, direction);
     }
     final _MenuAnchorState? anchor = _MenuAnchorState._maybeOf(context);
-    if (anchor == null || !anchor._root._isOpen) {
+    if (anchor == null || !anchor._root._isOpen || anchor._isRoot) {
       return super.inDirection(currentNode, direction);
     }
     final bool buttonIsFocused =
@@ -95,6 +95,7 @@ class MenuFocusPolicy extends FocusTraversalPolicy with DirectionalFocusTraversa
         'In _MenuDirectionalFocusAction, current node is ${anchor.widget.childFocusNode?.debugLabel}, '
         'button is${buttonIsFocused ? '' : ' not'} focused. Assuming ${orientation.name} orientation.'));
 
+// print(currentNode.nearestScope!.traversalDescendants);
     final bool focusRequested = switch (direction) {
       TraversalDirection.up => switch (orientation) {
         Axis.horizontal => _moveToParent(anchor),
@@ -116,9 +117,11 @@ class MenuFocusPolicy extends FocusTraversalPolicy with DirectionalFocusTraversa
                                 ? _moveToSubmenu(anchor)
                                 : _moveToNextFocusableTopLevel(anchor),
           TextDirection.ltr => switch (anchor._parent?._orientation) {
-            Axis.vertical   => buttonIsFocused
-                                ? _moveToPreviousFocusableTopLevel(anchor)
-                                : _moveToParent(anchor),
+            Axis.vertical => buttonIsFocused
+                              ? anchor._parent?._isTopLevel ?? false
+                                  ? _moveToParent(anchor._parent!)
+                                  : _moveToPreviousFocusableTopLevel(anchor)
+                              : _moveToParent(anchor),
             Axis.horizontal
                     || null => _moveToPreviousFocusableTopLevel(anchor)
           }
@@ -127,7 +130,7 @@ class MenuFocusPolicy extends FocusTraversalPolicy with DirectionalFocusTraversa
       TraversalDirection.right => switch (orientation) {
         Axis.horizontal => switch (Directionality.of(context)) {
           TextDirection.rtl => _moveToPrevious(anchor),
-          TextDirection.ltr => _moveToNext(anchor),
+          TextDirection.ltr => _moveToSubmenu(anchor),
         },
         Axis.vertical => switch (Directionality.of(context)) {
           TextDirection.rtl => switch (anchor._parent?._orientation) {
@@ -155,6 +158,12 @@ class MenuFocusPolicy extends FocusTraversalPolicy with DirectionalFocusTraversa
         policy?.invalidateScopeData(currentMenu.widget.childFocusNode!.nearestScope!);
       }
     }
+
+    if(currentMenu._parent!._menuScopeNode.traversalChildren.lastOrNull == currentMenu.widget.childFocusNode){
+      currentMenu._firstItemFocusNode?.requestFocus();
+      return true;
+    }
+
     return false;
   }
 
@@ -209,16 +218,6 @@ class MenuFocusPolicy extends FocusTraversalPolicy with DirectionalFocusTraversa
     }
   }
 
-
-  bool _focusFirstChildAnchor(_MenuAnchorState anchor) {
-    final FocusNode? firstChild = anchor._menuScopeNode.traversalDescendants.firstOrNull;
-    if (firstChild == null) {
-      return false;
-    }
-    firstChild.requestFocus();
-    return true;
-  }
-
   bool _focusParentAnchor(_MenuAnchorState anchor, {bool childAnchorHasChildren = false}) {
     final _MenuAnchorState? targetAnchor = childAnchorHasChildren ? anchor._parent : anchor;
 
@@ -253,7 +252,7 @@ class MenuFocusPolicy extends FocusTraversalPolicy with DirectionalFocusTraversa
       final bool hasChildren = anchor.widget.childFocusNode == currentNode;
       // If the current anchor is a submenu, then move to it's first child.
       if (hasChildren && !(isHorizontal && anchor._isTopLevel)) {
-        return _focusFirstChildAnchor(anchor);
+        return _moveToSubmenu(anchor);
       }
 
       if (isHorizontal) {
@@ -719,14 +718,14 @@ class _MenuAnchorState extends State<MenuAnchor> {
     }
 
 
-    return FocusTraversalGroup(
-      policy: MenuFocusPolicy(),
-      child: _MenuAnchorScope(
+    return Shortcuts(
+          shortcuts: _kMenuTraversalShortcuts,
+          child: _MenuAnchorScope(
           anchorKey: _anchorKey,
           anchor: this,
           isOpen: _isOpen,
-          child: child,
-      ),
+          child:child,
+      )
     );
   }
 
@@ -839,7 +838,6 @@ _MenuAnchorState? get _previousFocusableSibling {
       handle = handle._parent!;
       _depth += 1;
     }
-    print((_depth, _root, handle));
     return handle;
   }
 
@@ -2717,6 +2715,8 @@ class _MenuBarAnchorState extends _MenuAnchorState {
   }
 }
 
+
+
 class _MenuPreviousFocusAction extends PreviousFocusAction {
   @override
   bool invoke(PreviousFocusIntent intent) {
@@ -3950,10 +3950,10 @@ class _Submenu extends StatelessWidget {
               cursor: mouseCursor,
               hitTestBehavior: HitTestBehavior.deferToChild,
               child: FocusTraversalGroup(
-                  policy: MenuFocusPolicy(),
-                  child: FocusScope(
+      policy: MenuFocusPolicy(),
+      child:  FocusScope(
                 node: anchor._menuScopeNode,
-                skipTraversal: true,
+                skipTraversal: false,
                 child: Actions(
                     actions: <Type, Action<Intent>>{
                       DismissIntent: DismissMenuAction(controller: anchor._menuController),
@@ -3969,8 +3969,7 @@ class _Submenu extends StatelessWidget {
                       ),
                     ),
                   ),
-                ),
-              ),
+                )),
             ),
           ),
         ),
