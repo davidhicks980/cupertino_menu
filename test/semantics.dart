@@ -431,6 +431,7 @@ class SemanticsTester {
     // SemanticsTester or directly. When the test succeeds, this tear-down
     // becomes a no-op.
     addTearDown(dispose);
+    addTearDown(_semanticsHandle!.dispose);
   }
 
   /// The widget tester that this object is testing the semantics of.

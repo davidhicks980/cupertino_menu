@@ -1,166 +1,132 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 
+import 'bug.dart';
 import 'cupertino_menu.0.dart';
 import 'test_anchor.dart' as test;
 
 /// Flutter code sample for [MenuAnchor].
 
-void main() => runApp(const MenuApp());
+void main() => runApp(const MaterialApp(home: CupertinoMenuExample()));
 
-class MyCascadingMenu extends StatefulWidget {
-  const MyCascadingMenu({super.key});
+class VariableAlignemnt extends StatefulWidget {
+  const VariableAlignemnt({super.key});
 
   @override
-  State<MyCascadingMenu> createState() => _MyCascadingMenuState();
+  State<VariableAlignemnt> createState() => _VariableAlignemntState();
 }
 
-class _MyCascadingMenuState extends State<MyCascadingMenu> {
-  final FocusNode _buttonFocusNode = FocusNode();
-
-  bool _value = false;
-
-  bool _hide = false;
-
-  Widget buildMenu(int i) {
-    return test.SubmenuButton(
-      key: UniqueKey(),
-        menuChildren: <Widget>[
-          test.MenuItemButton(onPressed: () {}, child: Text('$i-1 ${" " * 30}')),
-          test.SubmenuButton(
-            menuChildren: <Widget>[
-              test.MenuItemButton(onPressed: () {}, child: Text('$i-2-1')),
-              test.SubmenuButton(
-                menuChildren: <Widget>[
-                  test.MenuItemButton(onPressed: () {}, child: Text('$i-2-2-1')),
-                  test.MenuItemButton(onPressed: () {}, child: Text('$i-2-2-2')),
-                ],
-                child: Text('$i-2-2'),
-              ),
-              test.SubmenuButton(
-                menuChildren: <Widget>[
-                  test.MenuItemButton(onPressed: () {}, child: Text('$i-2-3-1')),
-                  test.MenuItemButton(onPressed: () {}, child: Text('$i-2-3-2')),
-                ],
-                child: Text('$i-2-3'),
-              ),
-              test.MenuItemButton(onPressed: () {}, child: Text('$i-2-4')),
-              test.SubmenuButton(
-                menuChildren: <Widget>[
-                  test.MenuItemButton(onPressed: () {}, child: Text('$i-2-5-1')),
-                  test.MenuItemButton(onPressed: () {}, child: Text('$i-2-5-2')),
-                ],
-                child: Text('$i-2-5'),
-              ),
-            ],
-            child: Text('$i-2'),
-          ),
-          test.MenuItemButton(onPressed: () {}, child: Text('$i-3')),
-        ],
-        child: Text('$i                       '),
-      );
-  }
-  Widget buildOriginalMenu(int i) {
-    return SubmenuButton(
-      key: UniqueKey(),
-        menuChildren: <Widget>[
-          MenuItemButton(onPressed: () {}, child: Text('$i-1 ${" " * 30}')),
-          SubmenuButton(
-            menuChildren: <Widget>[
-              MenuItemButton(onPressed: () {}, child: Text('$i-2-1')),
-              SubmenuButton(
-                menuChildren: <Widget>[
-                  MenuItemButton(onPressed: () {}, child: Text('$i-2-2-1')),
-                  MenuItemButton(onPressed: () {}, child: Text('$i-2-2-2')),
-                ],
-                child: Text('$i-2-2'),
-              ),
-              SubmenuButton(
-                menuChildren: <Widget>[
-                  MenuItemButton(onPressed: () {}, child: Text('$i-2-3-1')),
-                  MenuItemButton(onPressed: () {}, child: Text('$i-2-3-2')),
-                ],
-                child: Text('$i-2-3'),
-              ),
-              MenuItemButton(onPressed: () {}, child: Text('$i-2-4')),
-              SubmenuButton(
-                menuChildren: <Widget>[
-                  MenuItemButton(onPressed: () {}, child: Text('$i-2-5-1')),
-                  MenuItemButton(onPressed: () {}, child: Text('$i-2-5-2')),
-                ],
-                child: Text('$i-2-5'),
-              ),
-            ],
-            child: Text('$i-2'),
-          ),
-          MenuItemButton(onPressed: () {}, child: Text('$i-3')),
-        ],
-        child: Text('$i                       '),
-      );
-  }
+class _VariableAlignemntState extends State<VariableAlignemnt> {
+  bool _isDefaultAlignment = true;
 
   @override
   Widget build(BuildContext context) {
-    return  Directionality(
-      textDirection: _value ? TextDirection.rtl: TextDirection.ltr,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Switch(value: _value, onChanged: (bool value){
-             setState(() {
-               _value = value;
-             });
-          }),
-          Switch(value: _hide, onChanged: (bool value){
-             setState(() {
-               _hide = value;
-             });
-          }),
-          buildMenu(0),
-          // buildOriginalMenu(0),
-          if(!_hide)
-          Expanded(
-            child: test.MenuBar(
-                children: <Widget>[
-                  buildMenu(1),
-                  buildMenu(2),
-                  buildMenu(3),
-                  buildMenu(4),
-                  buildMenu(5),
-
-                ]
-            ),
-          ),
-          Expanded(
-            child: MenuBar(
-                children: <Widget>[
-                  buildOriginalMenu(1),
-                  buildOriginalMenu(2),
-                  buildOriginalMenu(3),
-                  buildOriginalMenu(4),
-                  buildOriginalMenu(5),
-
-                ]
-            ),
-          ),
-
-
+    return CupertinoApp(
+        localizationsDelegates: const <LocalizationsDelegate>[
+          DefaultMaterialLocalizations.delegate,
+          DefaultCupertinoLocalizations.delegate,
+          DefaultWidgetsLocalizations.delegate,
         ],
-      ),
-    );
+        home: CupertinoApp(
+          home: Material(
+            child: Builder(
+              builder: (BuildContext context) {
+                final  MediaQueryData data = MediaQuery.of(context);
+                return Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: ColoredBox(
+                    color: const Color(0xFF55FFFF),
+                    child: Stack(
+                      children: <Widget>[
+                        Positioned(
+                          top: 100,
+                          left: 100,
+                          child: Text('Width: ${data.size.width} Height: ${data.size.height}'),
+                        ),
+
+                        ElevatedButton(onPressed: () {
+                          setState(() {
+                          _isDefaultAlignment = !_isDefaultAlignment;
+
+                          });
+                        }, child:  Text(_isDefaultAlignment ? 'It is currently default' : 'Custom Alignment')),
+
+                         Positioned(
+                          top: 200,
+                          left: 200,
+                          child: CupertinoMenuAnchor(
+                            alignment: _isDefaultAlignment  ? null :  AlignmentDirectional.topStart,
+                            menuAlignment: _isDefaultAlignment  ? null :  AlignmentDirectional.topEnd,
+                            menuChildren:  <Widget>[
+                              CupertinoMenuItem(requestCloseOnActivate: false,
+                              onPressed: () {
+                                setState(() {
+
+                                });
+                                _isDefaultAlignment = !_isDefaultAlignment;
+                              },child: const Text('Label'),
+                              ),
+                            ],
+                            builder: _buildAnchor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+            ),
+          ),
+        ));
   }
 }
+// class MyCascadingMenu extends StatefulWidget {
+//   const MyCascadingMenu({super.key});
 
-class MenuApp extends StatelessWidget {
-  const MenuApp({super.key});
+//   @override
+//   State<MyCascadingMenu> createState() => _MyCascadingMenuState();
+// }
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(useMaterial3: true),
-      home: const Scaffold(
-        body: MyCascadingMenu(),
+// class _MyCascadingMenuState extends State<MyCascadingMenu> {
+
+
+
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return   CustomInkWell(
+//       spla
+//       onTap: () {
+//       print('onTap');
+//       },
+//       child: const Text('Press me'),
+//     );
+//   }
+// }
+
+
+
+Widget _buildAnchor(
+  BuildContext context,
+  CupertinoMenuController controller,
+  Widget? child,
+) {
+  return ConstrainedBox(
+    constraints: const BoxConstraints.tightFor(width: 56, height: 56),
+    child: Material(
+      child: InkWell(
+        onTap: () {
+          if (controller.menuStatus
+              case MenuStatus.opened || MenuStatus.opening) {
+            controller.close();
+          } else {
+            controller.open();
+          }
+        },
+        child: const Text('Anchor')
       ),
-    );
-  }
+    ),
+  );
 }

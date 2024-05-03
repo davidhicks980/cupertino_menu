@@ -19,6 +19,10 @@
   "dart.allowTestsOutsideTestFolder": true,
   "dart.autoImportCompletions": true,
   "dart.flutterSdkPath": "~/development/custom",
+  // "dart.flutterTestAdditionalArgs": [
+  //   "--platform=chrome",
+  //   "--web-renderer=html"
+  // ],
   // Remove .fvm files from search
   "search.exclude": {
     "**/.fvm": true

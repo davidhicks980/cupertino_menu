@@ -1,20 +1,15 @@
+import 'dart:math';
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart'
-    show
-        Brightness,
-
-        CupertinoIcons,
-        CupertinoTheme,
-        CupertinoThemeData;
+    show Brightness, CupertinoIcons, CupertinoLargeMenuDivider, CupertinoMenuAnchor, CupertinoMenuController, CupertinoMenuItem,  MenuStatus;
 import 'package:flutter/material.dart'
-    show CheckboxListTile, Colors, FilledButton, Material, Slider, TextButton, showAboutDialog;
+    show CheckboxListTile, Colors, FilledButton, Material, Slider;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-import 'menu.dart';
-import 'menu_item.dart';
+
 import 'resize.dart';
 import 'test_anchor.dart';
 
@@ -64,36 +59,11 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
    double _textSizeSliderValue = 1.0;
    bool _darkMode = true;
    bool _background = true;
-  Rect anchorPosition = const Rect.fromLTWH(0, 0, 50, 40);
-  Rect settingsPosition = const Rect.fromLTWH(0, 0, 50, 40);
-  ui.Image? _lightImage;
-  ui.Image? _darkImage;
+  Rect anchorPosition = const Rect.fromLTWH(0, 0, 5, 5);
+  Rect settingsPosition = const Rect.fromLTWH(0, 0, 5, 5);
   GlobalKey lightKey = GlobalKey();
   GlobalKey darkKey = GlobalKey();
 
-  void visitAllChildren(RenderObject? renderObject,
-      void Function(RenderRepaintBoundary) onBoundary) {
-    if (renderObject == null || renderObject is RenderRepaintBoundary) {
-      onBoundary(renderObject! as RenderRepaintBoundary);
-    }
-    renderObject.visitChildrenForSemantics((RenderObject child) {
-      visitAllChildren(child, onBoundary);
-    });
-  }
-
-  Future<void> takeScreenShot() async {
-    final RenderObject child = context.findRenderObject()!;
-    visitAllChildren(child, (RenderRepaintBoundary boundary) async {
-      if (boundary.parent is RenderMetaData) {
-        if ((boundary.parent! as RenderMetaData).metaData == Brightness.light) {
-          _lightImage = boundary.toImageSync(pixelRatio: 5);
-        } else {
-          _darkImage = boundary.toImageSync(pixelRatio: 5);
-        }
-      }
-    });
-    setState(() {});
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -340,103 +310,119 @@ class Menu extends StatefulWidget {
 
 class _MenuState extends State<Menu> {
     bool textVariant = false;
+    CupertinoMenuController? controller = CupertinoMenuController();
 
   @override
   Widget build(BuildContext context) {
+    final Random random = Random();
     final String superLong = 'subtitle ' * 1000;
-    return CupertinoMenuAnchor(
-            screenInsets: const EdgeInsetsDirectional.fromSTEB(66, 50, 250, 0),
-            childFocusNode: widget.buttonFocusNode,
-            menuChildren: <Widget>[
-              CupertinoMenuItem(
-                // requestFocusOnHover: true,
-                // panActivationDelay: const Duration(milliseconds: 300),
-                leading: const Icon(CupertinoIcons.alarm),
-                trailing: const Icon(CupertinoIcons.check_mark_circled),
-                requestCloseOnActivate: false,
-                subtitle: const Text('Subtitle'),
-                shortcut: const SingleActivator(LogicalKeyboardKey.keyA, shift: true),
-                onPressed: () {
-                  print('activated');
-                },
-                child: const MenuAcceleratorLabel('&C&h&eckmark'),
-              ),
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(
+        textScaler: const TextScaler.linear(1.0),
+      ),
+      child: CupertinoMenuAnchor(
+              childFocusNode: widget.buttonFocusNode,
+              controller: controller,
+              onStatusChanged: (MenuStatus status) {
+                print('Menu status: $status');
 
-              CupertinoMenuItem(
-                // requestFocusOnHover: true,
-                hoveredColor: Colors.green,
-                pressedColor: const Color.fromRGBO(255, 0, 0, 1),
-                trailing: const Icon(CupertinoIcons.folder_badge_plus),
-                requestCloseOnActivate: false,
-                onPressed: () {
-                  setState(() {
-                    textVariant = !textVariant;
-                  });
-                },
-                child: const Text('New Folder'),
-              ),
-              const CupertinoLargeMenuDivider(),
-              CupertinoMenuItem(
-                // requestFocusOnHover: true,
-                leading: Text( superLong),
-                requestCloseOnActivate: false,
-                shortcut: const SingleActivator(LogicalKeyboardKey.keyA, meta: true, ),
-
-                subtitle: textVariant
-                    ? const Text('Small text')
-                    :  Text(superLong),
-                onPressed: () {},
-                child: textVariant
-                    ? const Text('Small text')
-                    :  Text(key:const Key('a'), superLong),
-              ),
-
-              CupertinoMenuItem(
-                // requestFocusOnHover: true,
-                requestCloseOnActivate: false,
-                trailing: const Icon(CupertinoIcons.square_grid_2x2),
-                child: const Text('Icons'),
-                onPressed: () {},
-              ),
-              const CupertinoLargeMenuDivider(),
-              CupertinoMenuItem(
-                // requestFocusOnHover: true,
-
-                requestCloseOnActivate: false,
-                trailing: const Icon(CupertinoIcons.square_grid_2x2),
-                child: const Text('Icons'),
-                onPressed: () {},
-              ),
-              CupertinoMenuItem(
-                // requestFocusOnHover: true,
-
-                requestCloseOnActivate: false,
-                trailing: const Icon(CupertinoIcons.square_grid_2x2),
-                child: const Text('Icons'),
-                onPressed: () {},
-              ),
-            ],
-            builder: (
-              BuildContext context,
-              CupertinoMenuController controller,
-              Widget? child,
-            ) {
-              return FilledButton(
-                focusNode: widget.buttonFocusNode,
-                onPressed: () {
-                  if (controller.menuStatus
-                      case MenuStatus.opening || MenuStatus.opened) {
-                    controller.close();
-                  } else {
-                    controller.open();
-                  }
-                },
-                child: const Text(
-                  'OPEN MENU',
+              },
+              menuChildren: <Widget>[
+                CupertinoMenuItem(
+                  // requestFocusOnHover: true,
+                  // panActivationDelay: const Duration(milliseconds: 300),
+                  leading: const Icon(CupertinoIcons.alarm),
+                  trailing: const Icon(CupertinoIcons.check_mark_circled),
+                  requestCloseOnActivate: false,
+                  subtitle: const Text('Subtitle'),
+                  shortcut: const SingleActivator(LogicalKeyboardKey.keyA, shift: true),
+                  onPressed: () {
+                    final ui.Offset value = Offset(50, random.nextDouble() * 20 + 40);
+                    controller?.open(position:  Offset(50, random.nextDouble() * 100 + 40));
+                    print(value);
+                  },
+                  child: const MenuAcceleratorLabel('&C&h&eckmark'),
                 ),
-              );
-            },
-          );
+
+                CupertinoMenuItem(
+                  // requestFocusOnHover: true,
+                  hoveredColor: Colors.green,
+                  pressedColor: const Color.fromRGBO(255, 0, 0, 1),
+                  trailing: const Icon(CupertinoIcons.folder_badge_plus),
+                  requestCloseOnActivate: false,
+                  onPressed: () {
+                    setState(() {
+                      textVariant = !textVariant;
+                    });
+                  },
+                  child: const Text('New Folder'),
+                ),
+                const CupertinoLargeMenuDivider(),
+                CupertinoMenuItem(
+                  // requestFocusOnHover: true,
+                  leading: Text( superLong),
+                  requestCloseOnActivate: false,
+                  shortcut: const SingleActivator(LogicalKeyboardKey.keyA, meta: true, ),
+
+                  subtitle: textVariant
+                      ? const Text('Small text')
+                      :  Text(superLong),
+                  onPressed: () {},
+                  child: textVariant
+                      ? const Text('Small text')
+                      :  Text(key:const Key('a'), superLong),
+                ),
+
+                CupertinoMenuItem(
+                  // requestFocusOnHover: true,
+                  requestCloseOnActivate: false,
+                  trailing: const Icon(CupertinoIcons.square_grid_2x2),
+                  child: const Text('Icons'),
+                  onPressed: () {},
+                ),
+                const CupertinoLargeMenuDivider(),
+                CupertinoMenuItem(
+                  // requestFocusOnHover: true,
+
+                  requestCloseOnActivate: false,
+                  trailing: const Icon(CupertinoIcons.square_grid_2x2),
+                  child: const Text('Icons', style: TextStyle(color: Colors.red, fontSize: 10)),
+                  onPressed: () {},
+                ),
+                CupertinoMenuItem(
+                  // requestFocusOnHover: true,
+
+                  requestCloseOnActivate: false,
+                  trailing: const Icon(CupertinoIcons.square_grid_2x2),
+                  child: const Text('Icons'),
+                  onPressed: () {},
+                ),
+              ],
+              builder: (
+                BuildContext context,
+                CupertinoMenuController controller,
+                Widget? child,
+              ) {
+                return FilledButton(
+                  focusNode: widget.buttonFocusNode,
+                  onPressed: () {
+                    if (controller.menuStatus
+                        case MenuStatus.opening || MenuStatus.opened) {
+                      controller.close();
+                    } else {
+                      controller.open();
+                    }
+                  },
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints.tightFor(height: 50),
+                    child: const Text(
+                      'OPEN MENU',
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
 
   }
 }

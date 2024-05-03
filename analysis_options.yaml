@@ -2,8 +2,7 @@
 include: package:lint/strict.yaml # For production apps
 
 analyzer:
-  enable-experiment:
-    - macros
+
   language:
     strict-casts: true
     strict-inference: true
