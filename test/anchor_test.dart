@@ -1182,6 +1182,7 @@ void main() {
       await tester.tap(find.byType(CupertinoMenuAnchor));
       await tester.pumpAndSettle();
 
+      // https://github.com/flutter/flutter/issues/147770
       if (isBrowser) {
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       } else {
@@ -1236,6 +1237,8 @@ void main() {
       await tester.tap(find.byType(CupertinoMenuAnchor));
       await tester.pumpAndSettle();
 
+
+      // https://github.com/flutter/flutter/issues/147770
       if (isBrowser) {
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       } else {
