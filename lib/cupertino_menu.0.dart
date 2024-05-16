@@ -1,17 +1,14 @@
 import 'dart:math';
-import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart'
-    show Brightness, CupertinoIcons, CupertinoLargeMenuDivider, CupertinoMenuAnchor, CupertinoMenuController, CupertinoMenuItem,  MenuStatus;
+    show Brightness,  CupertinoMenuAnchor, CupertinoMenuController, CupertinoMenuItem,  MenuStatus;
 import 'package:flutter/material.dart'
-    show CheckboxListTile, Colors, FilledButton, Material, Slider;
-import 'package:flutter/rendering.dart';
+    show CheckboxListTile, FilledButton, Material, Slider;
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 
 import 'resize.dart';
-import 'test_anchor.dart';
 
 // import 'menu.dart';
 // import 'menu_item.dart';
@@ -363,6 +360,7 @@ class _MenuState extends State<Menu> {
                         controller.close();
                       } else {
                         controller.open();
+                        print('open');
                       }
                     },
                     child: ConstrainedBox(

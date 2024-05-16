@@ -7,12 +7,27 @@ import 'package:flutter/material.dart';
 
 /// Flutter code sample for [CupertinoMenuAnchor] that creates a
 /// navigation history menu similar to the navigation history stack on iOS.
-void main() => runApp(const CupertinoNavigationStackMenuApp());
+void main() {
+  runApp(const CupertinoHistoryMenuApp());
+}
+
+class CupertinoHistoryMenuApp extends StatelessWidget {
+  const CupertinoHistoryMenuApp({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return const CupertinoApp(
+      localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+        DefaultMaterialLocalizations.delegate,
+      ],
+      home: RecursiveView(depth: 0),
+    );
+  }
+}
 
 /// A wrapper that shows a navigation history menu when the back button is
 /// pressed down.
-class CupertinoBackButtonMenu extends StatelessWidget {
-  const CupertinoBackButtonMenu({
+class CupertinoHistoryMenu extends StatelessWidget {
+  const CupertinoHistoryMenu({
     super.key,
     required this.depth,
   });
@@ -38,11 +53,12 @@ class CupertinoBackButtonMenu extends StatelessWidget {
             CupertinoMenuItem(
               child: Text('View $i'),
               onPressed: () {
+                controller.close();
                 // Pop to the selected view
                 Navigator.popUntil(
                   context,
                   (Route<dynamic> route) {
-                    return route.settings.name == 'View ${i - 1}' ||
+                    return route.settings.name == 'View $i' ||
                            route.settings.name == '/'; // Home route
                   },
                 );
@@ -89,7 +105,7 @@ class RecursiveView extends StatelessWidget {
     Widget? leading;
     if (depth != 0) {
       // Wrap the back button with a menu that shows the navigation history.
-      leading = CupertinoBackButtonMenu(depth: depth);
+      leading = CupertinoHistoryMenu(depth: depth);
     }
     return CupertinoPageScaffold(
       navigationBar: CupertinoNavigationBar(
@@ -134,19 +150,6 @@ class RecursiveView extends StatelessWidget {
           return RecursiveView(depth: nextDepth);
         },
       ),
-    );
-  }
-}
-
-class CupertinoNavigationStackMenuApp extends StatelessWidget {
-  const CupertinoNavigationStackMenuApp({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const CupertinoApp(
-      localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-        DefaultMaterialLocalizations.delegate,
-      ],
-      home: RecursiveView(depth: 0),
     );
   }
 }

@@ -1,3 +1,7 @@
+// Copyright 2014 The Flutter Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -5,7 +9,9 @@ import 'package:flutter/services.dart';
 
 /// Flutter code sample for [CupertinoMenuAnchor] that shows a context menu at
 /// the location of a secondary tap.
-void main() => runApp(const CupertinoContextMenuApp());
+void main() {
+  runApp(const CupertinoContextMenuApp());
+}
 
 /// An enhanced enum to define the available menus.
 ///
@@ -28,10 +34,10 @@ class ContextMenuExample extends StatefulWidget {
 }
 
 class _ContextMenuExampleState extends State<ContextMenuExample> {
-  MenuEntry? _lastSelection;
   final FocusNode _buttonFocusNode = FocusNode(debugLabel: 'Menu Button');
   final CupertinoMenuController _menuController = CupertinoMenuController();
   bool _menuWasEnabled = false;
+  MenuEntry? _lastSelection;
 
   bool get showingMessage => _showingMessage;
   bool _showingMessage = false;

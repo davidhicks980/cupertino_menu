@@ -35,7 +35,7 @@ void main() {
   // Generic button that opens a menu. Used insead of a TextButton or
   // CupertinoButton to avoid flaky tests in the future.
 
-  // TODO(davidhicks980): Replace with a TextButton or CupertinoButton if a
+  // TODO(davidhicks980): Replace with a CupertinoButton if a
   // FocusNode is added, https://github.com/flutter/flutter/issues/144385
   Widget buildAnchor(
     BuildContext context,
@@ -536,7 +536,6 @@ void main() {
 
     testWidgets('menu does not close on root menu internal scroll',
         (WidgetTester tester) async {
-      // Regression test for https://github.com/flutter/flutter/issues/122168.
       final ScrollController scrollController = ScrollController();
       addTearDown(scrollController.dispose);
       bool rootOpened = false;
@@ -732,12 +731,7 @@ void main() {
     });
 
     testWidgets('panning scales the menu', (WidgetTester tester) async {
-      final TestGesture gesture = await tester.createGesture(
-        pointer: 1,
-      );
 
-      await gesture.addPointer(location: Offset.zero);
-      addTearDown(gesture.removePointer);
 
       await changeSurfaceSize(tester, const Size(1000, 1000));
 
@@ -757,11 +751,14 @@ void main() {
           ),
         ),
       );
+      final TestGesture gesture = await tester.createGesture(pointer: 1);
+
+      addTearDown(gesture.removePointer);
 
       await tester.tap(find.byType(CupertinoMenuAnchor));
       await tester.pumpAndSettle();
-      final Offset startPosition =
-          tester.getCenter(find.byType(CupertinoLargeMenuDivider));
+
+      final Offset startPosition = tester.getCenter(find.byType(CupertinoLargeMenuDivider));
       await gesture.down(startPosition);
       await tester.pump();
 
@@ -824,11 +821,10 @@ void main() {
       await tester.pump();
 
       expect(getScale(), 0.7);
+
+      await gesture.up();
     });
     testWidgets('pan can be disabled', (WidgetTester tester) async {
-      final TestGesture gesture = await tester.createGesture(pointer: 1);
-      await gesture.addPointer(location: Offset.zero);
-      addTearDown(gesture.removePointer);
       await changeSurfaceSize(tester, const Size(1000, 1000));
       await tester.pumpWidget(
         CupertinoApp(
@@ -851,13 +847,16 @@ void main() {
           ),
         ),
       );
+      final TestGesture gesture = await tester.createGesture(pointer: 1);
+      addTearDown(gesture.removePointer);
 
       await tester.tap(find.byType(CupertinoMenuAnchor));
       await tester.pumpAndSettle();
-      final Offset startPosition =
-          tester.getCenter(find.byType(CupertinoLargeMenuDivider));
+
+      final Offset startPosition = tester.getCenter(find.byType(CupertinoLargeMenuDivider));
       await gesture.down(startPosition);
       await tester.pump();
+
       final Rect rect = tester.getRect(
         find.descendant(
           of: findMenuPanel(),
@@ -882,6 +881,9 @@ void main() {
 
       // Pan is disabled, so panActivationDelay should not be triggered.
       expect(controller.menuStatus, MenuStatus.opened);
+
+      await gesture.up();
+
     });
 
     testWidgets('DismissMenuAction closes the menu',
@@ -1182,7 +1184,8 @@ void main() {
       await tester.tap(find.byType(CupertinoMenuAnchor));
       await tester.pumpAndSettle();
 
-      // https://github.com/flutter/flutter/issues/147770
+      // TODO(davidhicks980): On web, pressing the down arrow key does not
+      // focus the first item. https://github.com/flutter/flutter/issues/147770
       if (isBrowser) {
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       } else {

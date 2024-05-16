@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/src/material/material_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+
 /// Record that groups together the styles of various parts of a menu item.
 typedef _MenuPartsStyle = ({
   TextStyle? leadingIconStyle,
@@ -145,20 +146,24 @@ void main() {
         .last;
   }
 
-  Widget buildTestApp({
-    AlignmentGeometry? alignment,
-    AlignmentGeometry? menuAlignment,
-    Offset alignmentOffset = Offset.zero,
-    TextDirection textDirection = TextDirection.ltr,
-    bool consumesOutsideTap = false,
-    List<Widget>? children,
-    void Function(TestItem item)? onPressed,
-    void Function()? onOpen,
-    void Function()? onClose,
-    CupertinoThemeData? theme,
-    bool? boldText,
-    TextScaler? textScaler,
-  }) {
+  Widget buildTestApp(
+      {AlignmentGeometry? alignment,
+      AlignmentGeometry? menuAlignment,
+      Offset alignmentOffset = Offset.zero,
+      TextDirection textDirection = TextDirection.ltr,
+      bool consumesOutsideTap = false,
+      List<Widget>? children,
+      void Function(TestItem item)? onPressed,
+      void Function()? onOpen,
+      void Function()? onClose,
+      CupertinoThemeData? theme,
+      bool? boldText,
+      TextScaler? textScaler,
+      Widget Function(
+        BuildContext context,
+        CupertinoMenuController controller,
+        Widget? child,
+      )? buildAnchor}) {
     final FocusNode focusNode = FocusNode();
     addTearDown(focusNode.dispose);
     return CupertinoApp(
@@ -187,7 +192,7 @@ void main() {
                       createTestItems(
                         onPressed: onPressed,
                       ),
-                  builder: _buildAnchor,
+                  builder: buildAnchor ?? _buildAnchor,
                 ),
               ),
             ),
@@ -842,18 +847,11 @@ void main() {
         // respond.
         int interactions = 0;
         final FocusNode focusNode = FocusNode();
-        final TestGesture gesture = await tester.createGesture(
-          kind: PointerDeviceKind.mouse,
-          pointer: 1,
-        );
-
         focusNode.addListener(() {
           interactions++;
         });
 
-        await gesture.addPointer(location: Offset.zero);
 
-        addTearDown(gesture.removePointer);
         addTearDown(focusNode.dispose);
 
         await tester.pumpWidget(
@@ -878,6 +876,13 @@ void main() {
         controller.open();
         await tester.pumpAndSettle();
 
+        final TestGesture gesture = await tester.createGesture(
+          kind: PointerDeviceKind.mouse,
+          pointer: 1,
+        );
+
+        addTearDown(gesture.removePointer);
+
         // Test focus
         focusNode.requestFocus();
         await tester.pumpAndSettle();
@@ -897,8 +902,9 @@ void main() {
         );
 
         // Test pan
-        await tester.pump(const Duration(milliseconds: 200));
+        await tester.pumpAndSettle(const Duration(milliseconds: 200));
         await gesture.up();
+        await tester.pump();
 
         expect(controller.isOpen, isTrue);
         expect(TestItem.item0.findWidget, findsOneWidget);
@@ -944,9 +950,8 @@ void main() {
           kind: PointerDeviceKind.mouse,
           pointer: 1,
         );
-        await gesture.addPointer(location: Offset.zero);
 
-        addTearDown(() => gesture.removePointer());
+        addTearDown(gesture.removePointer);
 
         // None hovered
         expect(findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
@@ -957,7 +962,7 @@ void main() {
         // Enabled button
         // Pressed color @ 5% opacity is used when hovered color is not specified
         await gesture.moveTo(tester.getCenter(TestItem.item0.findWidget));
-        await tester.pumpAndSettle();
+        await tester.pump();
 
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item0.findWidget),
@@ -969,7 +974,7 @@ void main() {
         // Hovered button with custom hoverColor and pressedColor
         // Specified hovered color takes priority over pressed color
         await gesture.moveTo(tester.getCenter(TestItem.item1.findWidget));
-        await tester.pumpAndSettle();
+        await tester.pump();
 
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item1.findWidget),
@@ -979,7 +984,7 @@ void main() {
         // Hovered button with custom pressedColor
         // Pressed color @ 5% opacity is used when hovered color is not specified
         await gesture.moveTo(tester.getCenter(TestItem.item2.findWidget));
-        await tester.pumpAndSettle();
+        await tester.pump();
 
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item2.findWidget),
@@ -988,7 +993,7 @@ void main() {
 
         // Disabled button
         await gesture.moveTo(tester.getCenter(TestItem.item3.findWidget));
-        await tester.pumpAndSettle();
+        await tester.pump();
 
         expect(findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
         expect(findDescendentDecoration(TestItem.item1.findWidget), findsNothing);
@@ -1009,7 +1014,8 @@ void main() {
           );
         final FocusNode focusNode = FocusNode(debugLabel: 'TestNode ${TestItem.item1}');
         addTearDown(focusNode.dispose);
-        await tester.pumpWidget(buildTestApp(
+        await tester.pumpWidget(
+          buildTestApp(
             theme: const CupertinoThemeData(brightness: Brightness.dark),
             children: <Widget>[
               CupertinoMenuItem(
@@ -1032,8 +1038,12 @@ void main() {
                 child: TestItem.item2.text,
               ),
               CupertinoMenuItem(
-                  requestFocusOnHover: true, child: TestItem.item3.text),
-            ]));
+                requestFocusOnHover: true,
+                child: TestItem.item3.text,
+              ),
+            ],
+          ),
+        );
 
         await tester.tap(find.byType(CupertinoMenuAnchor));
         await tester.pumpAndSettle();
@@ -1042,8 +1052,7 @@ void main() {
           pointer: 1,
         );
 
-        await gesture.addPointer(location: Offset.zero);
-        addTearDown(() => gesture.removePointer());
+        addTearDown(gesture.removePointer);
 
         // None hovered
         expect(findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
@@ -1054,7 +1063,7 @@ void main() {
         // Enabled button
         // Pressed color @ 5% opacity is used when hovered color is not specified
         await gesture.moveTo(tester.getCenter(TestItem.item0.findWidget));
-        await tester.pumpAndSettle();
+        await tester.pump();
 
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item0.findWidget),
@@ -1065,7 +1074,7 @@ void main() {
         // Hovered button with custom hoverColor and pressedColor
         // Specified hovered color takes priority over pressed color
         await gesture.moveTo(tester.getCenter(TestItem.item1.findWidget));
-        await tester.pumpAndSettle();
+        await tester.pump();
 
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item1.findWidget),
@@ -1075,7 +1084,7 @@ void main() {
         // Hovered button with custom pressedColor
         // Pressed color @ 5% opacity is used when hovered color is not specified
         await gesture.moveTo(tester.getCenter(TestItem.item2.findWidget));
-        await tester.pumpAndSettle();
+        await tester.pump();
 
         expect(
           findDescendentDecoratedBoxColor(tester, TestItem.item2.findWidget),
@@ -1085,7 +1094,7 @@ void main() {
 
         // Disabled button
         await gesture.moveTo(tester.getCenter(TestItem.item3.findWidget));
-        await tester.pumpAndSettle();
+        await tester.pump();
 
         expect(findDescendentDecoration(TestItem.item0.findWidget), findsNothing);
         expect(findDescendentDecoration(TestItem.item1.findWidget), findsNothing);
@@ -1118,17 +1127,9 @@ void main() {
 
         // ignore: prefer_final_locals
         int pressedCount = 0;
-        final TestGesture gesture = await tester.createGesture(
-          kind: PointerDeviceKind.mouse,
-          pointer: 1,
-        );
 
-        await gesture.addPointer(location: Offset.zero);
-        addTearDown(() => gesture.removePointer());
-
-        // Because the app defaults to light mode, I only test
-        // dark mode here. Should light mode be tested as well?
-        await tester.pumpWidget(buildTestApp(
+        await tester.pumpWidget(
+          buildTestApp(
             theme: const CupertinoThemeData(brightness: Brightness.dark),
             children: <Widget>[
               const CupertinoLargeMenuDivider(),
@@ -1150,7 +1151,9 @@ void main() {
                 child: TestItem.item2.text,
               ),
               CupertinoMenuItem(child: TestItem.item3.text),
-            ]));
+            ],
+          ),
+        );
 
         controller.open();
         await tester.pumpAndSettle();
@@ -1160,6 +1163,13 @@ void main() {
         expect(findDescendentDecoration(TestItem.item1.findWidget), findsNothing);
         expect(findDescendentDecoration(TestItem.item2.findWidget), findsNothing);
         expect(findDescendentDecoration(TestItem.item3.findWidget), findsNothing);
+
+        final TestGesture gesture = await tester.createGesture(
+          kind: PointerDeviceKind.mouse,
+          pointer: 1,
+        );
+
+        addTearDown(gesture.removePointer);
 
         await gesture.down(tester.getCenter(
           find.byType(CupertinoLargeMenuDivider),
@@ -1247,6 +1257,9 @@ void main() {
           findDescendentDecoratedBoxColor(tester, TestItem.item1.findWidget),
           isSameColorAs(customPressedColor.darkColor),
         );
+
+        await gesture.up();
+        await tester.pump();
       });
 
       testWidgets('mouse cursor can be set and is inherited',
@@ -1328,12 +1341,7 @@ void main() {
       });
     });
     group('Layout', () {
-      testWidgets('layout ltr', (WidgetTester tester) async {
-        final UniqueKey leading = UniqueKey();
-        final UniqueKey trailing = UniqueKey();
-        final UniqueKey child = UniqueKey();
-        final UniqueKey subtitle = UniqueKey();
-
+      testWidgets('widget layout ltr', (WidgetTester tester) async {
         await tester.pumpWidget(
           CupertinoApp(
             home: CupertinoMenuAnchor(
@@ -1341,10 +1349,10 @@ void main() {
               menuChildren: <CupertinoMenuItem>[
                 CupertinoMenuItem(
                   onPressed: () {},
-                  subtitle: SizedBox(key: subtitle, height: 20, width: 20),
-                  leading: SizedBox(key: leading, height: 20, width: 20),
-                  trailing: SizedBox(key: trailing, height: 20, width: 20),
-                  child: SizedBox(key: child, height: 20, width: 20),
+                  leading: const SizedBox(key: Key('lead'), height: 20, width: 20),
+                  trailing: const SizedBox(key: Key('trail'), height: 20, width: 20),
+                  subtitle: const SizedBox(key: Key('sub'), height: 20, width: 20),
+                  child: const SizedBox(key: Key('child'), height: 20, width: 20),
                 ),
               ],
             ),
@@ -1354,22 +1362,17 @@ void main() {
         controller.open();
         await tester.pumpAndSettle();
 
-        expect(tester.getRect(find.byKey(leading)),
+        expect(tester.getRect(find.byKey(const Key('lead'))),
             rectEquals(const Rect.fromLTRB(282.0, 550.2, 302.0, 570.2)));
-        expect(tester.getRect(find.byKey(child)),
-            rectEquals(const Rect.fromLTRB(307.0, 539.7, 327.0, 559.7)));
-        expect(tester.getRect(find.byKey(subtitle)),
-            rectEquals(const Rect.fromLTRB(307.0, 560.7, 327.0, 580.7)));
-        expect(tester.getRect(find.byKey(trailing)),
+        expect(tester.getRect(find.byKey(const Key('trail'))),
             rectEquals(const Rect.fromLTRB(489.7, 550.2, 509.7, 570.2)));
+        expect(tester.getRect(find.byKey(const Key('sub'))),
+            rectEquals(const Rect.fromLTRB(307.0, 560.7, 327.0, 580.7)));
+        expect(tester.getRect(find.byKey(const Key('child'))),
+            rectEquals(const Rect.fromLTRB(307.0, 539.7, 327.0, 559.7)));
       });
 
-      testWidgets('layout rtl', (WidgetTester tester) async {
-        final UniqueKey leading = UniqueKey();
-        final UniqueKey trailing = UniqueKey();
-        final UniqueKey child = UniqueKey();
-        final UniqueKey subtitle = UniqueKey();
-
+      testWidgets('widget layout rtl', (WidgetTester tester) async {
         await tester.pumpWidget(
           CupertinoApp(
             home: Directionality(
@@ -1379,10 +1382,10 @@ void main() {
                   menuChildren:  <Widget>[
                     CupertinoMenuItem(
                       onPressed: () {},
-                      subtitle: SizedBox(key: subtitle, height: 20, width: 20),
-                      leading: SizedBox(key: leading, height: 20, width: 20),
-                      trailing: SizedBox(key: trailing, height: 20, width: 20),
-                      child: SizedBox(key: child, height: 20, width: 20),
+                      leading: const SizedBox(key: Key('lead'), height: 20, width: 20),
+                      trailing: const SizedBox(key: Key('trail'), height: 20, width: 20),
+                      subtitle: const SizedBox(key: Key('sub'), height: 20, width: 20),
+                      child: const SizedBox(key: Key('child'), height: 20, width: 20),
                     ),
                   ],
               ),
@@ -1393,22 +1396,17 @@ void main() {
         controller.open();
         await tester.pumpAndSettle();
 
-        expect(tester.getRect(find.byKey(leading)),
+        expect(tester.getRect(find.byKey(const Key('lead'))),
             rectEquals(const Rect.fromLTRB(498.0, 550.2, 518.0, 570.2)));
-        expect(tester.getRect(find.byKey(child)),
-            rectEquals(const Rect.fromLTRB(473.0, 539.7, 493.0, 559.7)));
-        expect(tester.getRect(find.byKey(subtitle)),
-            rectEquals(const Rect.fromLTRB(473.0, 560.7, 493.0, 580.7)));
-        expect(tester.getRect(find.byKey(trailing)),
+        expect(tester.getRect(find.byKey(const Key('trail'))),
             rectEquals(const Rect.fromLTRB(290.3, 550.2, 310.3, 570.2)));
+        expect(tester.getRect(find.byKey(const Key('child'))),
+            rectEquals(const Rect.fromLTRB(473.0, 539.7, 493.0, 559.7)));
+        expect(tester.getRect(find.byKey(const Key('sub'))),
+            rectEquals(const Rect.fromLTRB(473.0, 560.7, 493.0, 580.7)));
       });
 
       testWidgets('applyInsetScaling can be set', (WidgetTester tester) async {
-        final UniqueKey leading = UniqueKey();
-        final UniqueKey trailing = UniqueKey();
-        final UniqueKey child = UniqueKey();
-        final UniqueKey subtitle = UniqueKey();
-
         // applyInsetScaling, when true, increases the size of the padding,
         // leading and trailing width, and the constraints by a factor of the
         // square root of the textScaler. This behavior was observed on the iOS
@@ -1424,10 +1422,10 @@ void main() {
                 menuChildren:  <Widget>[
                   CupertinoMenuItem(
                     onPressed: () {},
-                    subtitle: SizedBox(key: subtitle, height: 20, width: 20),
-                    leading: SizedBox(key: leading, height: 20, width: 20),
-                    trailing: SizedBox(key: trailing, height: 20, width: 20),
-                    child: SizedBox(key: child, height: 20, width: 20),
+                    leading: const SizedBox(key: Key('lead'), height: 20, width: 20),
+                    trailing: const SizedBox(key: Key('trail'), height: 20, width: 20),
+                    subtitle: const SizedBox(key: Key('sub'), height: 20, width: 20),
+                    child: const SizedBox(key: Key('child'), height: 20, width: 20),
                   ),
                 ],
               ),
@@ -1439,14 +1437,16 @@ void main() {
         await tester.pumpAndSettle();
 
         // First, test with applyInsetScaling set to true (default)
-        expect(tester.getRect(find.byKey(leading)),
+        expect(tester.getRect(find.byKey(const Key('lead'))),
             rectEquals(const Rect.fromLTRB(283.4, 549.7, 303.4, 569.7)));
-        expect(tester.getRect(find.byKey(child)),
-            rectEquals(const Rect.fromLTRB(309.3, 539.2, 329.3, 559.2)));
-        expect(tester.getRect(find.byKey(subtitle)),
-            rectEquals(const Rect.fromLTRB(309.3, 560.2, 329.3, 580.2)));
-        expect(tester.getRect(find.byKey(trailing)),
+        expect(tester.getRect(find.byKey(const Key('trail'))),
             rectEquals(const Rect.fromLTRB(487.7, 549.7, 507.7, 569.7)));
+        expect(tester.getRect(find.byKey(const Key('sub'))),
+            rectEquals(const Rect.fromLTRB(309.3, 560.2, 329.3, 580.2)));
+        expect(tester.getRect(find.byKey(const Key('child'))),
+            rectEquals(const Rect.fromLTRB(309.3, 539.2, 329.3, 559.2)));
+
+
 
         await tester.pumpWidget(
           CupertinoApp(
@@ -1459,10 +1459,10 @@ void main() {
                 menuChildren: <Widget>[
                   CupertinoMenuItem(
                     applyInsetScaling: false,
-                    leading: SizedBox(key: leading, height: 20, width: 20),
-                    trailing: SizedBox(key: trailing, height: 20, width: 20),
-                    subtitle: SizedBox(key: subtitle, height: 20, width: 20),
-                    child: SizedBox(key: child, height: 20, width: 20),
+                    leading: const SizedBox(key: Key('lead'), height: 20, width: 20),
+                    trailing: const SizedBox(key: Key('trail'), height: 20, width: 20),
+                    subtitle: const SizedBox(key: Key('sub'), height: 20, width: 20),
+                    child: const SizedBox(key: Key('child'), height: 20, width: 20),
                     onPressed: () {},
                   ),
                 ],
@@ -1472,14 +1472,15 @@ void main() {
         );
 
         // Then, test with applyInsetScaling set to false.
-        expect(tester.getRect(find.byKey(leading)),
+        expect(tester.getRect(find.byKey(const Key('lead'))),
             rectEquals(const Rect.fromLTRB(282.0, 550.5, 302.0, 570.5)));
-        expect(tester.getRect(find.byKey(child)),
-            rectEquals(const Rect.fromLTRB(307.0, 540.0, 327.0, 560.0)));
-        expect(tester.getRect(find.byKey(subtitle)),
-            rectEquals(const Rect.fromLTRB(307.0, 561.0, 327.0, 581.0)));
-        expect(tester.getRect(find.byKey(trailing)),
+        expect(tester.getRect(find.byKey(const Key('trail'))),
             rectEquals(const Rect.fromLTRB(489.7, 550.5, 509.7, 570.5)));
+        expect(tester.getRect(find.byKey(const Key('sub'))),
+            rectEquals(const Rect.fromLTRB(307.0, 561.0, 327.0, 581.0)));
+        expect(tester.getRect(find.byKey(const Key('child'))),
+            rectEquals(const Rect.fromLTRB(307.0, 540.0, 327.0, 560.0)));
+
       });
       testWidgets(
         'child layout LTR',
@@ -1539,14 +1540,10 @@ void main() {
               rectEquals(const Rect.fromLTRB(44.5, 20.9, 174.6, 48.9)));
           expect(tester.getRect(find.text(superLongText)),
               rectEquals(const Rect.fromLTRB(44.5, 100.1, 339.8, 2900.1)));
-        },
-        // https://github.com/flutter/flutter/issues/99933
-        skip: isBrowser,
-      );
+      }, skip: isBrowser); // https://github.com/flutter/flutter/issues/99933
 
       testWidgets('child layout RTL', (WidgetTester tester) async {
         final String superLongText = 'super long text' * 1000;
-
         // Maxlines should be 2 when the TextScaler < 1.25.
         await tester.pumpWidget(
           buildTestApp(
@@ -1600,9 +1597,7 @@ void main() {
             rectEquals(const Rect.fromLTRB(191.4, 20.9, 321.5, 48.9)));
         expect(tester.getRect(find.text(superLongText)),
             rectEquals(const Rect.fromLTRB(26.2, 100.1, 321.5, 2900.1)));
-      },
-      // https://github.com/flutter/flutter/issues/99933
-      skip: isBrowser);
+      }, skip: isBrowser);  // https://github.com/flutter/flutter/issues/99933
 
       testWidgets('leading layout LTR', (WidgetTester tester) async {
         await tester.pumpWidget(
@@ -1640,9 +1635,8 @@ void main() {
             rectEquals(const Rect.fromLTRB(8.0, 123.3, 40.0, 165.3)));
         expect(tester.getRect(find.text('leading50')),
             rectEquals(const Rect.fromLTRB(8.0, 188.3, 58.0, 230.3)));
-      },
-      // https://github.com/flutter/flutter/issues/99933
-      skip: isBrowser);
+      }, skip: isBrowser);  // https://github.com/flutter/flutter/issues/99933
+
       testWidgets('leading layout RTL', (WidgetTester tester) async {
         await tester.pumpWidget(
           buildTestApp(
@@ -1680,9 +1674,7 @@ void main() {
             rectEquals(const Rect.fromLTRB(226.0, 123.3, 258.0, 165.3)));
         expect(tester.getRect(find.text('leading50')),
             rectEquals(const Rect.fromLTRB(208.0, 188.3, 258.0, 230.3)));
-      },
-      // https://github.com/flutter/flutter/issues/99933
-      skip: isBrowser);
+      }, skip: isBrowser); // https://github.com/flutter/flutter/issues/99933
 
       testWidgets('trailing layout LTR', (WidgetTester tester) async {
         await tester.pumpWidget(
@@ -1720,9 +1712,7 @@ void main() {
             rectEquals(const Rect.fromLTRB(214.0, 123.3, 258.0, 165.3)));
         expect(tester.getRect(find.text('trailing50')),
             rectEquals(const Rect.fromLTRB(208.0, 188.3, 258.0, 230.3)));
-      },
-      // https://github.com/flutter/flutter/issues/99933
-      skip: isBrowser);
+      }, skip: isBrowser); // https://github.com/flutter/flutter/issues/99933
       testWidgets('trailing layout RTL', (WidgetTester tester) async {
          await tester.pumpWidget(
           buildTestApp(
@@ -1754,20 +1744,13 @@ void main() {
         controller.open();
         await tester.pumpAndSettle();
 
-        print(tester.getRect(find.byIcon(CupertinoIcons.right_chevron)));
-        print(tester.getRect(find.text('trailing')));
-        print(tester.getRect(find.text('trailing50')));
-
-
         expect(tester.getRect(find.byIcon(CupertinoIcons.right_chevron)),
             rectEquals(const Rect.fromLTRB(22.6, 69.3, 43.6, 90.3)));
         expect(tester.getRect(find.text('trailing')),
             rectEquals(const Rect.fromLTRB(8.0, 123.3, 52.0, 165.3)));
         expect(tester.getRect(find.text('trailing50')),
             rectEquals(const Rect.fromLTRB(8.0, 188.3, 58.0, 230.3)));
-      },
-      // https://github.com/flutter/flutter/issues/99933
-      skip: isBrowser);
+      }, skip: isBrowser); // https://github.com/flutter/flutter/issues/99933
 
       testWidgets('subtitle layout LTR', (WidgetTester tester) async {
         final String longSubtitle = 'subtitle' * 1000;
@@ -1820,9 +1803,7 @@ void main() {
             rectEquals(const Rect.fromLTRB(44.5, 49.9, 198.8, 73.9)));
         expect(tester.getRect(find.text(longSubtitle)),
             rectEquals(const Rect.fromLTRB(44.5, 129.1, 339.8, 2529.1)));
-      },
-      // https://github.com/flutter/flutter/issues/99933
-      skip: isBrowser);
+      }, skip: isBrowser); // https://github.com/flutter/flutter/issues/99933
       testWidgets('subtitle layout RTL', (WidgetTester tester) async {
         final String longSubtitle = 'subtitle' * 1000;
 
@@ -1875,9 +1856,7 @@ void main() {
             rectEquals(const Rect.fromLTRB(167.2, 49.9, 321.5, 73.9)));
         expect(tester.getRect(find.text(longSubtitle)),
             rectEquals(const Rect.fromLTRB(26.2, 129.1, 321.5, 2529.1)));
-      },
-      // https://github.com/flutter/flutter/issues/99933
-      skip: isBrowser);
+      }, skip: isBrowser); // https://github.com/flutter/flutter/issues/99933
 
       testWidgets('default layout', (WidgetTester tester) async {
         await tester.pumpWidget(
@@ -2227,9 +2206,8 @@ void main() {
           tester.getSize(TestItem.item1.findWidget),
           within(distance: 0.05, from: const Size(250, 53)),
         );
-      },
-      // https://github.com/flutter/flutter/issues/99933
-      skip: isBrowser);
+      }, skip: isBrowser); // https://github.com/flutter/flutter/issues/99933
+
       testWidgets('horizontal padding LTR', (WidgetTester tester) async {
         T findEdgeInsets<T extends EdgeInsetsGeometry>(Finder finder) {
           return (find
@@ -2458,8 +2436,13 @@ void main() {
         controller.open();
         await tester.pumpAndSettle();
 
-        // true
-        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        // TODO(davidhicks980): - Remove conditional when focus behavior is
+        // consistent, https://github.com/flutter/flutter/issues/147770
+        if (isBrowser) {
+          await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        } else {
+          await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+        }
         await tester.pump();
 
         // false
@@ -2512,97 +2495,11 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(focusChanges, <bool>[true, false, true, false, true, false]);
-      }, skip: isBrowser);
-
-      testWidgets('[web] onFocusChange is called on enabled items',
-          (WidgetTester tester) async {
-        final List<bool> focusChanges = <bool>[];
-        final FocusNode focusNode = FocusNode();
-        addTearDown(focusNode.dispose);
-        await tester.pumpWidget(
-          buildTestApp(
-            children: <Widget>[
-              CupertinoMenuItem(
-                focusNode: focusNode,
-                onFocusChange: focusChanges.add,
-                onPressed: () {},
-                child: TestItem.item0.text,
-              ),
-              CupertinoMenuItem(
-                child: TestItem.item1.text,
-                onPressed: () {},
-              ),
-            ],
-          ),
-        );
-        controller.open();
-        await tester.pumpAndSettle();
-
-        // true
-        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-        await tester.pump();
-
-        // false
-        await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-        await tester.pump();
-
-        // true
-        focusNode.requestFocus();
-        await tester.pump();
-
-        // false -- focus is excluded if the item is disabled
-        await tester.pumpWidget(
-          buildTestApp(
-            children: <Widget>[
-              CupertinoMenuItem(
-                onFocusChange: focusChanges.add,
-                child: TestItem.item0.text,
-              ),
-              CupertinoMenuItem(
-                child: TestItem.item1.text,
-                onPressed: () {},
-              ),
-            ],
-          ),
-        );
-
-        await tester.pump();
-        await tester.pumpWidget(
-          buildTestApp(
-            children: <Widget>[
-              CupertinoMenuItem(
-                onFocusChange: focusChanges.add,
-                onPressed: () {},
-                child: TestItem.item0.text,
-              ),
-              CupertinoMenuItem(
-                child: TestItem.item1.text,
-                onPressed: () {},
-              ),
-            ],
-          ),
-        );
-
-        // true -- move focus to the first item
-        await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
-        await tester.pump();
-
-        // false -- focus is excluded if the menu starts closing
-        controller.close();
-        await tester.pumpAndSettle();
-
-        expect(focusChanges, <bool>[true, false, true, false, true, false]);
-      }, skip: !isBrowser);
+      });
 
       testWidgets('onHover is called on enabled items',
           (WidgetTester tester) async {
-        final TestGesture gesture = await tester.createGesture(
-          kind: PointerDeviceKind.mouse,
-          pointer: 1,
-        );
 
-        await gesture.addPointer(location: Offset.zero);
-        addTearDown(() => gesture.removePointer());
         final List<(TestItem, bool)> hoverChanges = <(TestItem, bool)>[];
         await tester.pumpWidget(
           buildTestApp(
@@ -2630,6 +2527,9 @@ void main() {
             ],
           ),
         );
+
+        final TestGesture gesture = await tester.createGesture(pointer: 10, kind: PointerDeviceKind.mouse);
+        addTearDown(gesture.removePointer);
         controller.open();
         await tester.pumpAndSettle();
 
@@ -2659,7 +2559,7 @@ void main() {
       });
       testWidgets('onPressed is called when set', (WidgetTester tester) async {
         int pressed = 0;
-        final CupertinoApp widget = CupertinoApp(
+        await tester.pumpWidget(CupertinoApp(
           home: Column(
             children: <Widget>[
               Align(
@@ -2684,11 +2584,12 @@ void main() {
               ),
             ],
           ),
-        );
-        await tester.pumpWidget(widget);
-
+        ));
         controller.open();
-        await tester.pumpFrames(widget, const Duration(milliseconds: 200));
+
+        for(int i = 0; i < 10; i++) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
 
         expect(controller.menuStatus, MenuStatus.opening);
 
@@ -2713,7 +2614,10 @@ void main() {
         await tester.pumpAndSettle();
 
         controller.close();
-        await tester.pumpFrames(widget, const Duration(milliseconds: 50));
+
+        for(int i = 0; i < 10; i++) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
 
         // Do not tap if closing.
         await tester.tap(TestItem.item0.findWidget);
@@ -2722,17 +2626,22 @@ void main() {
         expect(pressed, 2);
       });
       testWidgets('HitTestBehavior can be set', (WidgetTester tester) async {
-        await tester.pumpWidget(buildTestApp(children: <Widget>[
-          CupertinoMenuItem(
-            onPressed: () {},
-            child: TestItem.item0.text,
+        await tester.pumpWidget(
+          buildTestApp(
+            children: <Widget>[
+              CupertinoMenuItem(
+                onPressed: () {},
+                child: TestItem.item0.text,
+              ),
+              CupertinoMenuItem(
+                onPressed: () {},
+                behavior: HitTestBehavior.translucent,
+                child: TestItem.item1.text,
+              ),
+            ],
           ),
-          CupertinoMenuItem(
-            onPressed: () {},
-            behavior: HitTestBehavior.translucent,
-            child: TestItem.item1.text,
-          ),
-        ]));
+        );
+
         controller.open();
         await tester.pumpAndSettle();
 
@@ -2764,12 +2673,7 @@ void main() {
       testWidgets('panPressActivationDelay activates when set',
           (WidgetTester tester) async {
         TestItem? pressed;
-        final TestGesture gesture = await tester.createGesture(
-          pointer: 1,
-        );
 
-        await gesture.addPointer(location: Offset.zero);
-        addTearDown(gesture.removePointer);
         await tester.pumpWidget(
           buildTestApp(
             children: <Widget>[
@@ -2794,6 +2698,9 @@ void main() {
             ],
           ),
         );
+
+        final TestGesture gesture = await tester.createGesture();
+        addTearDown(gesture.removePointer);
         controller.open();
         await tester.pumpAndSettle();
 
@@ -2803,14 +2710,14 @@ void main() {
 
         // Item0 does not specify panPressActivationDelay => should not activate
         await gesture.moveTo(tester.getCenter(TestItem.item0.findWidget));
-        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pump(const Duration(milliseconds: 350));
         await tester.pumpAndSettle();
 
         expect(controller.isOpen, isTrue);
 
         // Item1 is disabled => should not activate
         await gesture.moveTo(tester.getCenter(TestItem.item1.findWidget));
-        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pump(const Duration(milliseconds: 350));
         await tester.pumpAndSettle();
 
         expect(controller.isOpen, isTrue);
@@ -2818,21 +2725,19 @@ void main() {
         // Item2 is enabled and has a non-zero panPressActivationDelay, so it
         // should activate
         await gesture.moveTo(tester.getCenter(TestItem.item2.findWidget));
-        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pump(const Duration(milliseconds: 350));
         await tester.pumpAndSettle();
 
         expect(controller.isOpen, isFalse);
         expect(pressed, TestItem.item2);
+
+        await gesture.up();
+        await tester.pump();
       });
+
       testWidgets('respects requestFocusOnHover property',
           (WidgetTester tester) async {
-        final TestGesture gesture = await tester.createGesture(
-          kind: PointerDeviceKind.mouse,
-          pointer: 1,
-        );
 
-        await gesture.addPointer(location: Offset.zero);
-        addTearDown(() => gesture.removePointer());
         final List<(TestItem, bool)> focusChanges = <(TestItem, bool)>[];
         await tester.pumpWidget(
           buildTestApp(
@@ -2880,6 +2785,15 @@ void main() {
             ],
           ),
         );
+
+        final TestGesture gesture = await tester.createGesture(
+          kind: PointerDeviceKind.mouse,
+          pointer: 7,
+        );
+
+        await gesture.down(Offset.zero);
+        addTearDown(gesture.removePointer);
+
         controller.open();
         await tester.pumpAndSettle();
 
@@ -2911,6 +2825,9 @@ void main() {
           (TestItem.item2, false),
           (TestItem.item4, true),
         ]);
+
+        await gesture.up();
+        await tester.pump();
       });
       testWidgets('respects closeOnActivate property',
           (WidgetTester tester) async {
@@ -2928,15 +2845,14 @@ void main() {
           ),
         ));
 
-        await tester.tap(find.byType(CupertinoMenuAnchor));
+        await tester.tap(find.byType(CupertinoMenuAnchor), pointer: 3);
         await tester.pump();
 
         expect(find.byType(CupertinoMenuItem), findsOneWidget);
 
         await tester.pumpAndSettle();
-
         // Taps the CupertinoMenuItem which should close the menu
-        await tester.tap(TestItem.item0.findWidget);
+        await tester.tap(TestItem.item0.findWidget, pointer: 3);
         await tester.pumpAndSettle();
 
         expect(find.byType(CupertinoMenuItem), findsNothing);
@@ -2955,7 +2871,7 @@ void main() {
           ),
         );
 
-        await tester.tap(find.byType(CupertinoMenuAnchor));
+        await tester.tap(find.byType(CupertinoMenuAnchor), pointer: 3);
         await tester.pump();
 
         expect(find.byType(CupertinoMenuItem), findsOneWidget);
@@ -2963,7 +2879,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Taps the CupertinoMenuItem which shouldn't close the menu
-        await tester.tap(TestItem.item0.findWidget);
+        await tester.tap(TestItem.item0.findWidget, pointer: 3);
         await tester.pumpAndSettle();
 
         expect(find.byType(CupertinoMenuItem), findsOneWidget);
