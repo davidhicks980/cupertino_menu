@@ -10,10 +10,6 @@ import 'cupertino_menu.dart';
 
 const bool isTransparent = true;
 
-
-
-
-
 mixin CupertinoMenuEntry<T> on Widget {
   /// The amount of vertical space occupied by this entry.
   ///
@@ -23,7 +19,6 @@ mixin CupertinoMenuEntry<T> on Widget {
   // user-provided height, or to calculate height at runtime.
   double get height => kMinInteractiveDimensionCupertino;
 
-
   /// The color of a [CupertinoInteractiveMenuItem] when pressed.
   // Pressed colors are based on the following:
   //
@@ -32,10 +27,10 @@ mixin CupertinoMenuEntry<T> on Widget {
   // Light mode on black background => rgb(177, 177, 177)
   // Light mode on white => rgb(225, 225, 225)
   static const CupertinoDynamicColor backgroundOnPress =
-    CupertinoDynamicColor.withBrightness(
-      color: Color.fromRGBO(50, 50, 50, 0.105),
-      darkColor: Color.fromRGBO(255, 255, 255, 0.15),
-    );
+      CupertinoDynamicColor.withBrightness(
+    color: Color.fromRGBO(50, 50, 50, 0.105),
+    darkColor: Color.fromRGBO(255, 255, 255, 0.15),
+  );
 
   /// Default color for [CupertinoMenuDivider] and [CupertinoVerticalMenuDivider].
   ///
@@ -51,14 +46,14 @@ mixin CupertinoMenuEntry<T> on Widget {
   /// Color.fromRGBO(187, 187, 187)
   /// ```
   static const CupertinoDynamicColor dividerColor = isTransparent
-    ? CupertinoDynamicColor.withBrightness(
-        color: Color.fromRGBO(70, 70, 70, 0.35),
-        darkColor: Color.fromRGBO(230, 230, 230, 0.3),
-      )
-    : CupertinoDynamicColor.withBrightness(
-        color: Color.fromRGBO(181, 181, 181, 1),
-        darkColor: Color.fromRGBO(51, 51, 51, 1),
-      );
+      ? CupertinoDynamicColor.withBrightness(
+          color: Color.fromRGBO(70, 70, 70, 0.35),
+          darkColor: Color.fromRGBO(230, 230, 230, 0.3),
+        )
+      : CupertinoDynamicColor.withBrightness(
+          color: Color.fromRGBO(181, 181, 181, 1),
+          darkColor: Color.fromRGBO(51, 51, 51, 1),
+        );
 
   /// Whether this menu item has a leading widget. If it does, the menu
   /// items without a leading widget space will have leading space added to align
@@ -69,9 +64,8 @@ mixin CupertinoMenuEntry<T> on Widget {
   bool get hasSeparator => true;
 }
 
-class CupertinoInteractiveMenuItem<T> 
-  extends StatefulWidget
-  with CupertinoMenuEntry<T> {
+class CupertinoInteractiveMenuItem<T> extends StatefulWidget
+    with CupertinoMenuEntry<T> {
   const CupertinoInteractiveMenuItem({
     super.key,
     required this.child,
@@ -157,9 +151,9 @@ class CupertinoInteractiveMenuItem<T>
 
   static const CupertinoDynamicColor defaultTextColor =
       CupertinoDynamicColor.withBrightness(
-          color: Color.fromRGBO(0, 0, 0, 0.96),
-          darkColor: Color.fromRGBO(255, 255, 255, 0.96),
-        );
+    color: Color.fromRGBO(0, 0, 0, 0.96),
+    darkColor: Color.fromRGBO(255, 255, 255, 0.96),
+  );
   static const TextStyle defaultTextStyle = TextStyle(
     inherit: false,
     fontFamily: 'SF Pro',
@@ -410,9 +404,9 @@ class CupertinoCheckedMenuItem<T> extends CupertinoBaseMenuItem<T> {
 
   @override
   Widget? get leading {
-    return ExcludeSemantics(child: 
-        _CupertinoCheckMark(checked: checked!),
-      );
+    return ExcludeSemantics(
+      child: _CupertinoCheckMark(checked: checked!),
+    );
   }
 
   @override
@@ -425,7 +419,7 @@ class CupertinoCheckedMenuItem<T> extends CupertinoBaseMenuItem<T> {
   ///
   /// Defaults to false.
   ///
-  /// When true, the [CupertinoIcons.check_mark] checkmark icon is displayed at 
+  /// When true, the [CupertinoIcons.check_mark] checkmark icon is displayed at
   /// the leading edge of the menu item.
   final bool? checked;
 
@@ -465,7 +459,7 @@ class CupertinoStickyMenuHeader extends StatelessWidget
   /// A widget to displayed at the leading edge of the header.
   final Widget leading;
 
-  /// Padding to apply to the contents of the header. 
+  /// Padding to apply to the contents of the header.
   final EdgeInsetsDirectional padding;
 
   @override
@@ -623,7 +617,7 @@ class _CupertinoMenuItemStructure extends StatelessWidget {
   /// The width of the leading portion of the menu item.
   final double? _leadingWidth;
 
-  /// The width of the trailing portion of the menu item. 
+  /// The width of the trailing portion of the menu item.
   final double? _trailingWidth;
 
   /// The height of the menu item.
@@ -638,8 +632,8 @@ class _CupertinoMenuItemStructure extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double textScaler = MediaQuery.textScalerOf(context).scale(1);
-    final bool hasLeading = leading != null || 
-                            CupertinoMenuLayerScope.of(context).hasLeadingWidget;
+    final bool hasLeading =
+        leading != null || CupertinoMenuLayerScope.of(context).hasLeadingWidget;
     // Used to limit jump when the contents of a menu item change
     return AnimatedSize(
       curve: Curves.easeOutExpo,
@@ -651,10 +645,8 @@ class _CupertinoMenuItemStructure extends StatelessWidget {
           child: Row(
             children: <Widget>[
               SizedBox(
-                width: _leadingWidth ?? 
-                        (hasLeading 
-                          ? leadingWidgetWidth 
-                          : defaultHorizontalWidth),
+                width: _leadingWidth ??
+                    (hasLeading ? leadingWidgetWidth : defaultHorizontalWidth),
                 child: hasLeading
                     ? Align(
                         alignment: const AlignmentDirectional(0.167, 0),
@@ -667,7 +659,7 @@ class _CupertinoMenuItemStructure extends StatelessWidget {
                     ? Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: <Widget>[
-                          title, 
+                          title,
                           subtitle!,
                         ],
                       )
@@ -675,10 +667,10 @@ class _CupertinoMenuItemStructure extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               SizedBox(
-                width: _trailingWidth ?? 
-                        (trailing != null
-                          ? trailingWidgetWidth
-                          : defaultHorizontalWidth),
+                width: _trailingWidth ??
+                    (trailing != null
+                        ? trailingWidgetWidth
+                        : defaultHorizontalWidth),
                 child: trailing != null
                     ? Align(
                         alignment: AlignmentDirectional.centerStart,
@@ -818,7 +810,7 @@ class _ActionRowState extends InheritedWidget {
 }
 
 class CupertinoMenuActionRow extends StatelessWidget
-      with CupertinoMenuEntry<Never> {
+    with CupertinoMenuEntry<Never> {
   const CupertinoMenuActionRow({
     super.key,
     required this.children,
@@ -828,8 +820,6 @@ class CupertinoMenuActionRow extends StatelessWidget
         );
 
   final List<Widget> children;
-
-  
 
   @override
   bool get hasLeading => false;
@@ -874,7 +864,7 @@ class CupertinoMenuActionRow extends StatelessWidget
 }
 
 /// A [CupertinoMenuEntry] that inserts a large horizontal divider.
-/// 
+///
 /// The divider has a height of 8 logical pixels. A [color] parameter can be
 /// provided to customize the color of the divider.
 ///
@@ -884,7 +874,7 @@ class CupertinoMenuActionRow extends StatelessWidget
 /// * [CupertinoMenuActionItem], a horizontal menu item.
 @immutable
 class CupertinoMenuLargeDivider extends StatelessWidget
-      with CupertinoMenuEntry<Never> {
+    with CupertinoMenuEntry<Never> {
   /// Creates a large horizontal divider for a [CupertinoMenu].
   const CupertinoMenuLargeDivider({
     super.key,
@@ -892,8 +882,8 @@ class CupertinoMenuLargeDivider extends StatelessWidget
   });
 
   /// Color for [CupertinoMenuLargeDivider].
-  /// 
-  /// 
+  ///
+  ///
   // The following colors were measured from the iOS simulator and opacity was extrapolated:
   // ```dart
   // // Dark mode on white:
@@ -905,16 +895,16 @@ class CupertinoMenuLargeDivider extends StatelessWidget
   // // Light mode on white:
   // Color.fromRGBO(226, 226, 226, 1)
   // ```
-  static const CupertinoDynamicColor transparentColor = 
-    CupertinoDynamicColor.withBrightness(
-      color: Color.fromRGBO(0, 0, 0, 0.08),
-      darkColor: Color.fromRGBO(0, 0, 0, 0.16),
-    );
-  static const CupertinoDynamicColor  opaqueColor = 
-    CupertinoDynamicColor.withBrightness(
-      color: Color.fromRGBO(226, 226, 226, 1),
-      darkColor: Color.fromRGBO(26, 26, 26, 1),
-    );
+  static const CupertinoDynamicColor transparentColor =
+      CupertinoDynamicColor.withBrightness(
+    color: Color.fromRGBO(0, 0, 0, 0.08),
+    darkColor: Color.fromRGBO(0, 0, 0, 0.16),
+  );
+  static const CupertinoDynamicColor opaqueColor =
+      CupertinoDynamicColor.withBrightness(
+    color: Color.fromRGBO(226, 226, 226, 1),
+    darkColor: Color.fromRGBO(26, 26, 26, 1),
+  );
 
   /// The color of the divider.
   ///
@@ -946,11 +936,11 @@ class CupertinoMenuLargeDivider extends StatelessWidget
 /// The default width of the divider is 1 physical pixel,
 @immutable
 class CupertinoMenuDivider extends StatelessWidget
-      with CupertinoMenuEntry<Never> {
+    with CupertinoMenuEntry<Never> {
   /// A [CupertinoMenuEntry] that adds a top border to it's child
   const CupertinoMenuDivider({
     super.key,
-    this.color  = CupertinoMenuEntry.dividerColor,
+    this.color = CupertinoMenuEntry.dividerColor,
     this.thickness = 0.0,
   });
 
@@ -960,7 +950,7 @@ class CupertinoMenuDivider extends StatelessWidget
   final CupertinoDynamicColor color;
 
   /// The thickness of the divider.
-  /// 
+  ///
   /// Defaults to 0.0, which is equivalent to 1 physical pixel.
   final double thickness;
 
@@ -970,15 +960,15 @@ class CupertinoMenuDivider extends StatelessWidget
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-        foregroundPainter: _AliasedBorderPainter(
-          begin: AlignmentDirectional.topStart,
-          end: AlignmentDirectional.topEnd,
-          border: BorderSide(
-            color: color.resolveFrom(context),
-            width: 0.0,
-            strokeAlign:  BorderSide.strokeAlignCenter,
-          ),
+      foregroundPainter: _AliasedBorderPainter(
+        begin: AlignmentDirectional.topStart,
+        end: AlignmentDirectional.topEnd,
+        border: BorderSide(
+          color: color.resolveFrom(context),
+          width: 0.0,
+          strokeAlign: BorderSide.strokeAlignCenter,
         ),
+      ),
     );
   }
 }
@@ -995,22 +985,22 @@ class CupertinoMenuDivider extends StatelessWidget
 /// * [CupertinoMenuActionItem], horizontally-arranged menu items that are
 ///   separated by [CupertinoMenuVerticalDivider]s.
 class CupertinoMenuVerticalDivider extends StatelessWidget
-      with CupertinoMenuEntry<Never> {
+    with CupertinoMenuEntry<Never> {
   /// Creates a vertical divider for a side-by-side appearance row.
   ///
   /// Divider has width and thickness of 0 logical pixels.
   const CupertinoMenuVerticalDivider({
     super.key,
-    this.color = CupertinoMenuEntry.dividerColor, 
+    this.color = CupertinoMenuEntry.dividerColor,
     this.height = double.infinity,
     this.thickness = 0.0,
   });
 
   /// The color of divider.
   final CupertinoDynamicColor color;
-  
-  /// The thickness of the divider. 
-  /// 
+
+  /// The thickness of the divider.
+  ///
   /// Defaults to 0.0, which is equivalent to 1 physical pixel.
   final double thickness;
 
@@ -1024,14 +1014,14 @@ class CupertinoMenuVerticalDivider extends StatelessWidget
   Widget build(BuildContext context) {
     return CustomPaint(
       foregroundPainter: _AliasedBorderPainter(
-        begin: const AlignmentDirectional(0 , -0.98),
+        begin: const AlignmentDirectional(0, -0.98),
         end: AlignmentDirectional.bottomCenter,
         border: BorderSide(
-          color: color.resolveFrom(context), 
+          color: color.resolveFrom(context),
           width: 0.0,
         ),
       ),
-      size : const Size(0, double.infinity),
+      size: const Size(0, double.infinity),
     );
   }
 }
@@ -1039,7 +1029,7 @@ class CupertinoMenuVerticalDivider extends StatelessWidget
 // A custom painter that draws a border without antialiasing
 //
 // If not used, hairline borders are antialiased, which make them look
-// thicker compared to iOS native menus. 
+// thicker compared to iOS native menus.
 class _AliasedBorderPainter extends CustomPainter {
   const _AliasedBorderPainter({
     required this.border,
@@ -1075,18 +1065,15 @@ class _AliasedBorderPainter extends CustomPainter {
       end != oldDelegate.end;
 }
 
-
 /// A mixin that rebuilds [State] when an item becomes interactive or not.
-/// 
+///
 /// Interactivity can be accessed via the [isInteractive] property.
 @optionalTypeArgs
 mixin CupertinoMenuItemInteractivityMixin<T extends StatefulWidget>
-      on State<T> {
-
+    on State<T> {
   /// Whether the menu layer containing this item can react to input.
   bool get isInteractive => _isInteractive;
   bool _isInteractive = true;
-
 
   @override
   void didChangeDependencies() {
@@ -1148,13 +1135,14 @@ class CupertinoMenuItemGestureHandler<T> extends StatefulWidget {
 }
 
 class _CupertinoMenuItemGestureHandlerState<T>
-       extends State<CupertinoMenuItemGestureHandler<T>>
-          with PanTarget<CupertinoMenuItemGestureHandler<T>>,
-               CupertinoMenuItemInteractivityMixin {
-  late final Map<Type, Action<Intent>> _actionMap = 
-  <Type, Action<Intent>>{
+    extends State<CupertinoMenuItemGestureHandler<T>>
+    with
+        PanTarget<CupertinoMenuItemGestureHandler<T>>,
+        CupertinoMenuItemInteractivityMixin {
+  late final Map<Type, Action<Intent>> _actionMap = <Type, Action<Intent>>{
     ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: _simulateTap),
-    ButtonActivateIntent: CallbackAction<ButtonActivateIntent>(onInvoke: _simulateTap),
+    ButtonActivateIntent:
+        CallbackAction<ButtonActivateIntent>(onInvoke: _simulateTap),
   };
   bool get enabled => widget.enabled && isInteractive;
   Timer? _longPanPressTimer;
@@ -1178,7 +1166,7 @@ class _CupertinoMenuItemGestureHandlerState<T>
         _longPanPressTimer = null;
       });
     }
-    
+
     if (!_isSwiped) {
       setState(() {
         _isSwiped = true;
@@ -1217,7 +1205,7 @@ class _CupertinoMenuItemGestureHandlerState<T>
         _isPressed = false;
         _isSwiped = false;
       });
-    } 
+    }
   }
 
   void _handleTapDown(TapDownDetails details) {
@@ -1314,19 +1302,16 @@ class _CupertinoMenuItemGestureHandlerState<T>
   }
 }
 
-
 // Chevron used in [CupertinoNestedMenuItemAnchor]
 class _CupertinoNestedMenuChevron extends StatelessWidget {
   const _CupertinoNestedMenuChevron();
-  
+
   @override
   Widget build(BuildContext context) {
     return Text.rich(
       TextSpan(
         text: String.fromCharCode(
-          CupertinoIcons
-            .chevron_forward
-            .codePoint,
+          CupertinoIcons.chevron_forward.codePoint,
         ),
         style: TextStyle(
           fontSize: 17.5,
@@ -1361,13 +1346,13 @@ class CupertinoNestedMenuItemAnchor<T> extends StatefulWidget
   /// A widget displayed underneath the title. Typically a [Text] widget.
   final Widget? subtitle;
 
-  /// A widget displayed at the trailing edge of the anchor. 
-  /// 
+  /// A widget displayed at the trailing edge of the anchor.
+  ///
   /// Typically a [CupertinoIcon].
   final Widget? trailing;
 
   /// The animation that controls the rotation of the chevron and the
-  /// fade-in/fade-out of the title. 
+  /// fade-in/fade-out of the title.
   final Animation<double> animation;
 
   /// Called when the anchor is tapped.
@@ -1375,7 +1360,7 @@ class CupertinoNestedMenuItemAnchor<T> extends StatefulWidget
 
   /// [CupertinoNestedMenu]s contain two anchors: one on the underlying menu
   /// and one on the nested menu. When the nested menu is open, the underlying
-  /// anchor is hidden and the nested anchor is shown. 
+  /// anchor is hidden and the nested anchor is shown.
   /// When false, the anchor is hidden using a [Visibility] widget.
   final bool isTopButton;
 
@@ -1389,18 +1374,17 @@ class CupertinoNestedMenuItemAnchor<T> extends StatefulWidget
   double get height => 44;
 
   static const CupertinoDynamicColor defaultSubtitleColor =
-    CupertinoDynamicColor.withBrightness(
-            color: Color.fromRGBO(119, 120, 119, 1.00),
-        darkColor: Color.fromRGBO(255, 255, 255, 0.48),
-      );
+      CupertinoDynamicColor.withBrightness(
+    color: Color.fromRGBO(119, 120, 119, 1.00),
+    darkColor: Color.fromRGBO(255, 255, 255, 0.48),
+  );
 
-  static const TextStyle defaultSubtitleStyle = 
-      TextStyle(
-        inherit: false,
-        fontSize: 15,
-        color: defaultSubtitleColor,
-        letterSpacing: -0.21,
-      );
+  static const TextStyle defaultSubtitleStyle = TextStyle(
+    inherit: false,
+    fontSize: 15,
+    color: defaultSubtitleColor,
+    letterSpacing: -0.21,
+  );
 
   @override
   State<CupertinoNestedMenuItemAnchor<T>> createState() {
@@ -1409,9 +1393,10 @@ class CupertinoNestedMenuItemAnchor<T> extends StatefulWidget
 }
 
 class _CupertinoNestedMenuItemAnchorState<T>
-      extends State<CupertinoNestedMenuItemAnchor<T>> {
+    extends State<CupertinoNestedMenuItemAnchor<T>> {
   static const Interval topTextInterval = Interval(0.2, 0.6);
-  static const Interval bottomTextInterval = Interval(0.3, 0.6, curve: Curves.easeIn);
+  static const Interval bottomTextInterval =
+      Interval(0.3, 0.6, curve: Curves.easeIn);
   late Animation<double>? _chevronRotationAnimation;
   late Animation<TextStyle>? _bottomTextAnimation;
   late Animation<TextStyle>? _topTextAnimation;
@@ -1421,12 +1406,11 @@ class _CupertinoNestedMenuItemAnchorState<T>
   void didChangeDependencies() {
     super.didChangeDependencies();
     final Color labelColor = CupertinoDynamicColor.resolve(
-                             CupertinoInteractiveMenuItem.defaultTextColor,
-                               context,
-                             );
-    _defaultTextStyle = CupertinoInteractiveMenuItem
-                          .defaultTextStyle
-                          .copyWith(color: labelColor);
+      CupertinoInteractiveMenuItem.defaultTextColor,
+      context,
+    );
+    _defaultTextStyle = CupertinoInteractiveMenuItem.defaultTextStyle
+        .copyWith(color: labelColor);
     _buildAnimations();
   }
 
@@ -1445,33 +1429,35 @@ class _CupertinoNestedMenuItemAnchorState<T>
     );
 
     // Bottom text fades out
-    _bottomTextAnimation = widget.animation
-        .drive(CurveTween(curve: bottomTextInterval))
-        .drive(TextStyleTween(
-            begin: _defaultTextStyle,
-            end: _defaultTextStyle.copyWith(
-              color: _defaultTextStyle.color?.withOpacity(0),
-              letterSpacing: 0,
-            ),
-          ),);
+    _bottomTextAnimation =
+        widget.animation.drive(CurveTween(curve: bottomTextInterval)).drive(
+              TextStyleTween(
+                begin: _defaultTextStyle,
+                end: _defaultTextStyle.copyWith(
+                  color: _defaultTextStyle.color?.withOpacity(0),
+                  letterSpacing: 0,
+                ),
+              ),
+            );
     // Top text fades in when opening.
-    _topTextAnimation = widget.animation
-        .drive(CurveTween(curve: topTextInterval))
-        .drive(TextStyleTween(
-            begin: _defaultTextStyle.copyWith(
-              color: _defaultTextStyle.color?.withOpacity(0),
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.41,
-            ),
-            end: _defaultTextStyle.copyWith(
-              fontWeight: FontWeight.w600,
-              letterSpacing: -0.21,
-            ),
-          ),);
+    _topTextAnimation =
+        widget.animation.drive(CurveTween(curve: topTextInterval)).drive(
+              TextStyleTween(
+                begin: _defaultTextStyle.copyWith(
+                  color: _defaultTextStyle.color?.withOpacity(0),
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.41,
+                ),
+                end: _defaultTextStyle.copyWith(
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.21,
+                ),
+              ),
+            );
   }
-  
+
   Widget? _buildSubtitle(BuildContext context) {
-    if(widget.subtitle == null){
+    if (widget.subtitle == null) {
       return null;
     }
     return DefaultTextStyle.merge(
@@ -1531,24 +1517,25 @@ class _CupertinoNestedMenuItemAnchorState<T>
   }
 }
 
-/// Called when a [PanTarget] is entered or exited. 
-/// 
+/// Called when a [PanTarget] is entered or exited.
+///
 /// The [position] describes the global position of the pointer.
-/// 
+///
 /// The [onTarget] parameter is true when the pointer is on a [PanTarget].
-typedef CupertinoPanUpdateCallback = void Function(Offset position, bool onTarget);
+typedef CupertinoPanUpdateCallback = void Function(
+    Offset position, bool onTarget);
 
-/// Called when the user stops panning. 
-/// 
+/// Called when the user stops panning.
+///
 /// This can occur when the user lifts their
 /// finger or if the user drags the pointer outside of the
 /// [CupertinoPanListener].
-/// 
+///
 /// The [position] describes the global position of the pointer.
 typedef CupertinoPanEndCallback = void Function(Offset position);
 
-/// Called when the user starts panning. 
-/// 
+/// Called when the user starts panning.
+///
 /// The [position] describes the global position of the pointer.
 typedef CupertinoPanStartCallback = Drag? Function(Offset position);
 
@@ -1558,49 +1545,46 @@ typedef CupertinoPanStartCallback = Drag? Function(Offset position);
 /// selected after the user's finger has made contact with the menu item for the
 /// specified duration
 class CupertinoPanListener<T extends PanTarget<StatefulWidget>>
-      extends StatefulWidget {
+    extends StatefulWidget {
   /// Creates [CupertinoPanListener] that wraps a Cupertino menu and notifies the layer's children during user swiping.
   const CupertinoPanListener({
     super.key,
     required this.child,
-     this.onPanUpdate,
-     this.onPanEnd,
-     this.onPanStart,
+    this.onPanUpdate,
+    this.onPanEnd,
+    this.onPanStart,
   });
 
-  /// Called when a [PanTarget] is entered or exited. 
-  /// 
+  /// Called when a [PanTarget] is entered or exited.
+  ///
   /// The [position] describes the global position of the pointer.
-  /// 
+  ///
   /// The [onTarget] parameter is true when the pointer is on a [PanTarget].
   final CupertinoPanUpdateCallback? onPanUpdate;
-  
-  /// Called when the user stops panning. 
-  /// 
+
+  /// Called when the user stops panning.
+  ///
   /// This can occur when the user lifts their
   /// finger or if the user drags the pointer outside of the
   /// [CupertinoPanListener].
-  /// 
+  ///
   /// The [position] describes the global position of the pointer.
   final CupertinoPanEndCallback? onPanEnd;
 
-
-  /// Called when the user starts panning. 
-  /// 
+  /// Called when the user starts panning.
+  ///
   /// The [position] describes the global position of the pointer.
   final CupertinoPanEndCallback? onPanStart;
 
   /// The menu layer to wrap.
   final Widget child;
 
-
   /// Creates a [ImmediateMultiDragGestureRecognizer] to recognize the start of
   /// a pan gesture.
   ImmediateMultiDragGestureRecognizer createRecognizer(
     CupertinoPanStartCallback onStart,
   ) {
-    return ImmediateMultiDragGestureRecognizer()
-           ..onStart = onStart;
+    return ImmediateMultiDragGestureRecognizer()..onStart = onStart;
   }
 
   @override
@@ -1610,7 +1594,7 @@ class CupertinoPanListener<T extends PanTarget<StatefulWidget>>
 }
 
 class _CupertinoPanListenerState<T extends PanTarget<StatefulWidget>>
-      extends State<CupertinoPanListener<T>> {
+    extends State<CupertinoPanListener<T>> {
   ImmediateMultiDragGestureRecognizer? _recognizer;
   bool _isDragging = false;
 
@@ -1691,7 +1675,7 @@ mixin PanTarget<T extends StatefulWidget> on State<T> {
 // Handles panning events for a [CupertinoPanListener]
 //
 // Calls [onPanUpdate] when the user's finger moves over a [PanTarget] and
-// [onPanEnd] when the user's finger leaves the [PanTarget]. 
+// [onPanEnd] when the user's finger leaves the [PanTarget].
 //
 // This class was adapted from [_DragAvatar].
 class _PanHandler<T extends PanTarget<StatefulWidget>> extends Drag {
@@ -1731,10 +1715,8 @@ class _PanHandler<T extends PanTarget<StatefulWidget>> extends Drag {
     WidgetsBinding.instance.hitTestInView(result, globalPosition, viewId);
     final List<T> targets = _getDragTargets(result.path).toList();
     bool listsMatch = false;
-    if (
-      targets.length >= _enteredTargets.length &&
-      _enteredTargets.isNotEmpty
-    ) {
+    if (targets.length >= _enteredTargets.length &&
+        _enteredTargets.isNotEmpty) {
       listsMatch = true;
       final Iterator<T> iterator = targets.iterator;
       for (int i = 0; i < _enteredTargets.length; i++) {
