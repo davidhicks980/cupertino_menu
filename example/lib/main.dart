@@ -2,9 +2,10 @@ import 'package:cupertino_menu/cupertino_menu.dart';
 import 'package:cupertino_menu/cupertino_menu_item.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-final _darkThemeToggle = ValueNotifier<bool>(true);
+final ValueNotifier<bool> _darkThemeToggle = ValueNotifier<bool>(true);
 
 /// This file includes basic example for [CupertinoMenuButton]
 void main() {
@@ -23,29 +24,28 @@ class CupertinoMenuExample extends StatefulWidget {
 class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
-        valueListenable: _darkThemeToggle,
-        builder: (BuildContext context, bool value, Widget? child) {
-          return MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              platformBrightness: value ? Brightness.dark : Brightness.light,
-            ),
-            child: CupertinoApp(
-              localizationsDelegates: const [
-                GlobalCupertinoLocalizations.delegate,
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-              ],
-              routes: <String, WidgetBuilder>{
-                '/next': (BuildContext context) => const Text('Next'),
-              },
-              title: 'CupertinoMenu Example',
-              home: const MyHomePage(),
-            ),
-            
-          );
-        },
-      );
+    return ValueListenableBuilder<bool>(
+      valueListenable: _darkThemeToggle,
+      builder: (BuildContext context, bool value, Widget? child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            platformBrightness: value ? Brightness.dark : Brightness.light,
+          ),
+          child: CupertinoApp(
+            localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+              GlobalCupertinoLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+            ],
+            routes: <String, WidgetBuilder>{
+              '/next': (BuildContext context) => const Text('Next'),
+            },
+            title: 'CupertinoMenu Example',
+            home: const MyHomePage(),
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -59,96 +59,84 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage>
     with SingleTickerProviderStateMixin {
   bool _isImageShown = false;
-  Color _backgroundColor = Colors.black;
+  Color _backgroundColor = Colors.white;
   // bool _rtl = false;
   @override
-  Widget build(BuildContext context) => Material(
-        child: CupertinoPageScaffold(
-          backgroundColor: _backgroundColor,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              image: _isImageShown
-                  ? DecorationImage(
-                      image: AssetImage('assets/image.avif'),
-                      fit: BoxFit.fitHeight,
-                    )
-                  : null,
-            ),
-            child: SafeArea(
-              child: Stack(
-                children: [
-                  Align(
-                    alignment: Alignment.topLeft,
-                    child: CupertinoMenuSample(),
-                  ),
-                  const Align(
-                    alignment: Alignment(-0.5, -1),
-                    child: CupertinoMenuSample(),
-                  ),
-                  Align(
-                    alignment: Alignment(0.5, -1),
-                    child: CupertinoMenuSample(),
-                  ),
-                  const Align(
-                    alignment: Alignment(1, -1),
-                    child: CupertinoMenuSample(),
-                  ),
-                  const Align(
-                    alignment: Alignment(-1, -0.2),
-                    child: CupertinoMenuSample(),
-                  ),
-                  const Align(
-                    alignment: Alignment(-1, 0),
-                    child: CupertinoMenuSample(),
-                  ),
-                  const Align(
-                    alignment: Alignment(1, 0),
-                    child: CupertinoMenuSample(),
-                  ),
-                  const Align(
-                    alignment: Alignment.bottomRight,
-                    child: CupertinoMenuSample(),
-                  ),
-                  const Align(
-                    child: CupertinoMenuSample(),
-                  ),
-                  const Align(
-                    alignment: Alignment.bottomLeft,
-                    child: CupertinoMenuSample(),
-                  ),
-                  Align(
-                    alignment: Alignment(-1, 0.7),
-                    child: Settings(
-                      imageShown: _isImageShown,
-                      backgroundColor: _backgroundColor,
-                      onImageToggled: (bool value) {
-                        setState(() {
-                          _isImageShown = value;
-                        });
-                      },
-                      onColorToggled: (bool value) {
-                        setState(() {
-                          _backgroundColor =
-                              value ? Colors.black : Colors.white;
-                        });
-                      },
-                      onThemeToggled: (bool value) {
-                        print(value);
-                        _darkThemeToggle.value = value;
-                      },
-                      onDirectionalityToggled: (bool value) {
-                        // setState(() {
-                        //   _rtl = value;
-                        // });
-                      },
-                    ),
-                  ),
-                ],
+  Widget build(BuildContext context) {
+    timeDilation = 5.0;
+
+    return Material(
+      child: CupertinoPageScaffold(
+        backgroundColor: _backgroundColor,
+        child: SafeArea(
+          child: Stack(
+            children: <Widget>[
+              const Align(
+                alignment: Alignment.topLeft,
+                child: CupertinoMenuSample(),
               ),
-            ),
+              const Align(
+                alignment: Alignment(-0.5, -1),
+                child: CupertinoMenuSample(),
+              ),
+              const Align(
+                alignment: Alignment(0.5, -1),
+                child: CupertinoMenuSample(),
+              ),
+              const Align(
+                alignment: Alignment.topRight,
+                child: CupertinoMenuSample(),
+              ),
+              const Align(
+                alignment: Alignment(-1, -0.2),
+                child: CupertinoMenuSample(),
+              ),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: CupertinoMenuSample(),
+              ),
+              const Align(
+                alignment: Alignment.centerRight,
+                child: CupertinoMenuSample(),
+              ),
+              const Align(
+                alignment: Alignment.bottomRight,
+                child: CupertinoMenuSample(),
+              ),
+              const Align(
+                child: CupertinoMenuSample(),
+              ),
+              const Align(
+                alignment: Alignment.bottomLeft,
+                child: CupertinoMenuSample(),
+              ),
+              Align(
+                alignment: const Alignment(-1, 0.7),
+                child: Settings(
+                  imageShown: _isImageShown,
+                  backgroundColor: _backgroundColor,
+                  onImageToggled: (bool value) {
+                    setState(() {
+                      _isImageShown = value;
+                    });
+                  },
+                  onColorToggled: (bool value) {
+                    setState(() {
+                      _backgroundColor = value ? Colors.black : Colors.white;
+                    });
+                  },
+                  onThemeToggled: (bool value) {
+                    _darkThemeToggle.value = value;
+                  },
+                  onDirectionalityToggled: (bool value) {},
+                ),
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class Settings extends StatelessWidget {
@@ -171,110 +159,108 @@ class Settings extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    var show = false;
+    bool show = false;
     return Transform.scale(
       alignment: Alignment.topLeft,
       scale: 0.9,
       child: StatefulBuilder(
-        builder: (context, setState) {
+        builder: (BuildContext context, setState) {
           return show
-            ? SizedBox(
-                width: 300,
-                height: 300,
-                child: DefaultTextStyle(
-                  style: TextStyle(
-                    color: CupertinoColors.label.resolveFrom(context),
-                    fontSize: 12,
+              ? SizedBox(
+                  width: 300,
+                  height: 300,
+                  child: DefaultTextStyle(
+                    style: TextStyle(
+                      color: CupertinoColors.label.resolveFrom(context),
+                      fontSize: 12,
+                    ),
+                    child: CupertinoListSection.insetGrouped(
+                      hasLeading: false,
+                      backgroundColor: Colors.transparent,
+                      children: <Widget>[
+                        CupertinoListTile.notched(
+                          backgroundColor: Colors.transparent,
+                          title: const Text('Hide'),
+                          trailing: SizedBox(
+                            height: 20,
+                            child: CupertinoSwitch(
+                              value: Directionality.of(context) ==
+                                  TextDirection.rtl,
+                              onChanged: (bool value) {
+                                setState(() {
+                                  show = false;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                        CupertinoListTile.notched(
+                          backgroundColor: Colors.transparent,
+                          title: const Text('Right-to-left'),
+                          trailing: SizedBox(
+                            height: 20,
+                            child: CupertinoSwitch(
+                              value: Directionality.of(context) ==
+                                  TextDirection.rtl,
+                              onChanged: onDirectionalityToggled,
+                            ),
+                          ),
+                        ),
+                        CupertinoListTile.notched(
+                          backgroundColor: Colors.transparent,
+                          title: const Text('Background'),
+                          trailing: SizedBox(
+                            height: 20,
+                            child: CupertinoSwitch(
+                              value: imageShown,
+                              onChanged: onImageToggled,
+                            ),
+                          ),
+                        ),
+                        CupertinoListTile.notched(
+                          backgroundColor: Colors.transparent,
+                          title: const Text('Dark Mode'),
+                          trailing: SizedBox(
+                            height: 20,
+                            child: CupertinoSwitch(
+                              value: MediaQuery.platformBrightnessOf(context) ==
+                                  Brightness.dark,
+                              onChanged: onThemeToggled,
+                            ),
+                          ),
+                        ),
+                        CupertinoListTile.notched(
+                          backgroundColor: Colors.transparent,
+                          backgroundColorActivated: Colors.transparent,
+                          title: const Text('Black background'),
+                          trailing: SizedBox(
+                            height: 20,
+                            child: CupertinoSwitch(
+                              value: backgroundColor == Colors.black,
+                              onChanged: onColorToggled,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: CupertinoListSection.insetGrouped(
-                    hasLeading: false,
-                    backgroundColor: Colors.transparent,
-                    children: [
-                      CupertinoListTile.notched(
-                        backgroundColor: Colors.transparent,
-                        title: const Text('Hide'),
-                        trailing: SizedBox(
-                          height: 20,
-                          child: CupertinoSwitch(
-                            value:
-                                Directionality.of(context) == TextDirection.rtl,
-                            onChanged: (value) {
-                              setState(() {
-                                show = false;
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                      CupertinoListTile.notched(
-                        backgroundColor: Colors.transparent,
-                        title: const Text('Right-to-left'),
-                        trailing: SizedBox(
-                          height: 20,
-                          child: CupertinoSwitch(
-                            value:
-                                Directionality.of(context) == TextDirection.rtl,
-                            onChanged: onDirectionalityToggled,
-                          ),
-                        ),
-                      ),
-                      CupertinoListTile.notched(
-                        backgroundColor: Colors.transparent,
-                        title: const Text('Background'),
-                        trailing: SizedBox(
-                          height: 20,
-                          child: CupertinoSwitch(
-                            value: imageShown,
-                            onChanged: onImageToggled,
-                          ),
-                        ),
-                      ),
-                      CupertinoListTile.notched(
-                        backgroundColor: Colors.transparent,
-                        title: const Text('Dark Mode'),
-                        trailing: SizedBox(
-                          height: 20,
-                          child: CupertinoSwitch(
-                            value: MediaQuery.platformBrightnessOf(context) ==
-                                Brightness.dark,
-                            onChanged: onThemeToggled,
-                          ),
-                        ),
-                      ),
-                      CupertinoListTile.notched(
-                        backgroundColor: Colors.transparent,
-                        backgroundColorActivated: Colors.transparent,
-                        title: const Text('Black background'),
-                        trailing: SizedBox(
-                          height: 20,
-                          child: CupertinoSwitch(
-                            value: backgroundColor == Colors.black,
-                            onChanged: onColorToggled,
-                          ),
-                        ),
-                      ),
-                    ],
+                )
+              : Padding(
+                  padding: const EdgeInsets.only(top: 30.0),
+                  child: CupertinoButton(
+                    onPressed: () {
+                      setState(() {
+                        show = true;
+                      });
+                    },
+                    child: const Icon(CupertinoIcons.settings),
                   ),
-                ),
-              )
-            : Padding(
-                padding: const EdgeInsets.only(top: 30.0),
-                child: CupertinoButton(
-                  onPressed: () {
-                    setState(() {
-                      show = true;
-                    });
-                  },
-                  child: const Icon(CupertinoIcons.settings),
-                ),
-              );
+                );
         },
       ),
     );
   }
 }
-
-
 
 class CupertinoMenuSample extends StatefulWidget {
   const CupertinoMenuSample({
@@ -283,36 +269,30 @@ class CupertinoMenuSample extends StatefulWidget {
     this.offset,
   });
 
-final ValueChanged<String?>? onSelected;
+  final ValueChanged<String?>? onSelected;
   final Offset? offset;
   @override
   State<CupertinoMenuSample> createState() => _CupertinoMenuSampleState();
 }
 
 class _CupertinoMenuSampleState extends State<CupertinoMenuSample> {
-  String _checkedValue = "Cat";
+  String _checkedValue = 'Cat';
   bool _isCheckableChecked = false;
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoMenuButton<String>(
-      onSelect: (value) {
-        setState(() {
-          _checkedValue = value;
-        });
-      },
+    return CupertinoMenuButton(
       offset: widget.offset,
-      itemBuilder: (context) {
-        return [
+      itemBuilder: (BuildContext context) {
+        return <Widget>[
           CupertinoStickyMenuHeader(
-            child: const Text('Downloads'),
-            leading: Container(
-              width: 42,
-              height: 42,
-              child: Image(
-                image: AssetImage("assets/file.png"),
-              ),
-            ),
+            leading: SizedBox(
+                width: 42,
+                height: 42,
+                child: Icon(
+                  CupertinoIcons.folder,
+                  color: CupertinoColors.label.resolveFrom(context),
+                )),
             trailing: CupertinoButton(
               minSize: 34,
               padding: EdgeInsets.zero,
@@ -332,39 +312,45 @@ class _CupertinoMenuSampleState extends State<CupertinoMenuSample> {
               ),
               onPressed: () {},
             ),
-            subtitle: Text("Folder"),
+            subtitle: const Text('Folder'),
+            child: const Text('Downloads'),
           ),
           CupertinoNestedMenu(
-            itemBuilder: (context) => [
-               CupertinoCheckedMenuItem(
-                value: "Cat",
-                checked: _checkedValue == "Cat",
-                child: Text('Cat'),
+            itemBuilder: (BuildContext context) => <Widget>[
+              CupertinoCheckedMenuItem(
+                checked: _checkedValue == 'Cat',
                 shouldPopMenuOnPressed: false,
-                onTap: (){
+                onTap: () {
                   setState(() {
-                    _checkedValue = "Cat";
+                    _checkedValue = 'Cat';
                   });
                 },
+                child: const Text('Cat'),
               ),
-               CupertinoCheckedMenuItem(
-                value: "Feline",
-                checked: _checkedValue == "Feline",
-                onTap: (){
+              CupertinoCheckedMenuItem(
+                checked: _checkedValue == 'Feline',
+                onTap: () {
                   setState(() {
-                    _checkedValue = "Feline";
+                    _checkedValue = 'Feline';
                   });
                 },
                 shouldPopMenuOnPressed: false,
-                child: Text('Feline'),
+                child: const Text('Feline'),
               ),
-               CupertinoCheckedMenuItem(
-                value: "🐱",
-                checked: _checkedValue == "🐱",
-                child: Text('🐱, and pop the menu', style: TextStyle(height: 1.35)),
+              CupertinoCheckedMenuItem(
+                checked: _checkedValue == '🐱',
+                onTap: () {
+                  setState(() {
+                    _checkedValue = 'Feline';
+                  });
+                },
+                child: const Text(
+                  '🐱, and pop the menu',
+                  style: TextStyle(height: 1.35),
+                ),
               ),
             ],
-            subtitle:  Text(_checkedValue, style: TextStyle(height: 1.35)),
+            subtitle: Text(_checkedValue, style: const TextStyle(height: 1.35)),
             child: const Text('Favorite Animal'),
           ),
           CupertinoCheckedMenuItem(
@@ -373,7 +359,7 @@ class _CupertinoMenuSampleState extends State<CupertinoMenuSample> {
               CupertinoIcons.question,
             ),
             checked: _isCheckableChecked,
-            child: Text("Checkable"),
+            child: const Text('Checkable'),
             onTap: () {
               setState(() {
                 _isCheckableChecked = !_isCheckableChecked;
@@ -384,22 +370,21 @@ class _CupertinoMenuSampleState extends State<CupertinoMenuSample> {
             trailing: const Icon(
               CupertinoIcons.textformat_size,
             ),
-            child: Text(
+            child: const Text(
               'Simple',
             ),
             onTap: () {},
           ),
-          CupertinoMenuItem(
+          const CupertinoMenuItem(
             shouldPopMenuOnPressed: false,
-            trailing: const Icon(
+            trailing: Icon(
               CupertinoIcons.textformat_size,
             ),
-            child: Text('Default'),
             isDefaultAction: true,
+            child: Text('Default'),
           ),
           const CupertinoMenuItem(
             trailing: Icon(CupertinoIcons.cloud_upload),
-            value: 'Disabled',
             enabled: false,
             child: Text('Disabled'),
           ),
@@ -408,7 +393,6 @@ class _CupertinoMenuSampleState extends State<CupertinoMenuSample> {
               CupertinoIcons.triangle,
               semanticLabel: 'Triangle',
             ),
-            value: 'Triangle',
             child: Text('Triangle'),
           ),
           const CupertinoMenuActionItem(
@@ -416,7 +400,6 @@ class _CupertinoMenuSampleState extends State<CupertinoMenuSample> {
               CupertinoIcons.square,
               semanticLabel: 'Square',
             ),
-            value: 'Square',
             child: Text('Square'),
           ),
           const CupertinoMenuActionItem(
@@ -424,7 +407,6 @@ class _CupertinoMenuSampleState extends State<CupertinoMenuSample> {
               CupertinoIcons.circle,
               semanticLabel: 'Circle',
             ),
-            value: 'Circle',
             child: Text('Circle'),
           ),
           const CupertinoMenuActionItem(
@@ -432,22 +414,19 @@ class _CupertinoMenuSampleState extends State<CupertinoMenuSample> {
               CupertinoIcons.star,
               semanticLabel: 'Star',
             ),
-            value: 'Star',
             child: Text('Star'),
           ),
           const CupertinoMenuLargeDivider(),
           const CupertinoMenuItem(
-            value: 'Delete',
-            child: Text('Delete'),
             isDestructiveAction: true,
             trailing: Icon(
               CupertinoIcons.delete,
               semanticLabel: 'Delete',
             ),
+            child: Text('Delete'),
           ),
         ];
       },
     );
   }
 }
-
