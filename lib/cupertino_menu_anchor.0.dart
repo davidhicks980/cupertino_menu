@@ -2,8 +2,11 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart' hide MenuController;
+import 'package:flutter/material.dart' hide MenuController, RawMenuAnchor;
+
+import 'anchor.dart';
+import 'base_menu.dart' show MenuController;
 
 /// Flutter code sample for a [CupertinoMenuAnchor] that shows a basic menu.
 void main() => runApp(const CupertinoSimpleMenuApp());
@@ -104,14 +107,13 @@ class _MenuExampleState extends State<MenuExample> {
             ],
             builder: (
               BuildContext context,
-              CupertinoMenuController controller,
+              MenuController controller,
               Widget? child,
             ) {
               return TextButton(
                 focusNode: _buttonFocusNode,
                 onPressed: () {
-                  if (controller.menuStatus
-                      case MenuStatus.opening || MenuStatus.opened) {
+                  if (controller.animationStatus.isForwardOrCompleted) {
                     controller.close();
                   } else {
                     controller.open();

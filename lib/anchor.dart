@@ -25,30 +25,44 @@ const bool _kDebugMenus = false;
 
 class AnimatedMenuController extends MenuControllerDecorator {
   const AnimatedMenuController({required super.menuController, required this.animationController});
-  static const Tolerance _springTolerance = Tolerance(velocity: 0.1, distance: 0.1);
-
   final AnimationController animationController;
-  SpringSimulation get forwardSpring => SpringSimulation(
-    SpringDescription.withDampingRatio(mass: 1.0, stiffness: 150, ratio: 0.7),
+    ClampedSimulation get forwardSpring => ClampedSimulation(SpringSimulation(
+    forwardSpringDescription,
     animationController.value,
     1.0,
-    0.0,
-    tolerance: _springTolerance,
+    5.0, // The velocity is set to 5.0 to ensure the menu opens quickly.
+  ),
+  xMax: 2.0,
+  xMin: 0
   );
-  SpringSimulation get reverseSpring => SpringSimulation(
-    SpringDescription.withDampingRatio(mass: 1.0, stiffness: 200, ratio: 0.7),
+  ClampedSimulation get reverseSpring => ClampedSimulation(SpringSimulation(
+    reverseSpringDescription,
     animationController.value,
     0.0,
-    0.0,
-    tolerance: _springTolerance,
+    5.0,
+  ),
+       xMin: 0.0,
+          xMax: 1.0,
   );
+
+   /// The [SpringDescription] used for the opening animation of a menu layer.
+   static const SpringDescription forwardSpringDescription =
+      SpringDescription(mass: 1, stiffness: 32.7 * math.pi * math.pi, damping: 9.25 * math.pi);
+
+  /// The [SpringDescription] used for the closing animation of a menu layer.
+  static const SpringDescription reverseSpringDescription =
+      SpringDescription(
+        mass: 1,
+        stiffness: 64 * math.pi * math.pi,
+        damping: 28.8 * math.pi
+      );
 
   @override
   void handleMenuOpenRequest({ui.Offset? position}) {
     // Call whenComplete() rather than whenCompleteOrCancel() to avoid marking
     // the menu as opened when the [AnimationStatus] moves from forward to
     // reverse.
-    animationController.animateWith(forwardSpring).whenComplete(markMenuOpened);
+    animationController..stop()..animateWith(forwardSpring).whenComplete(markMenuOpened);
   }
 
   @override
@@ -258,8 +272,6 @@ class CupertinoMenuAnchor extends StatefulWidget {
     this.enablePan = true,
     this.shrinkWrap = true,
     this.consumeOutsideTap = false,
-    this.forwardSpring = _defaultForwardSpring,
-    this.reverseSpring = _defaultReverseSpring,
     this.backgroundColor = defaultBackgroundColor,
     this.surfaceBuilder = defaultSurfaceBuilder,
     this.screenInsets = _defaultScreenInsets,
@@ -359,12 +371,6 @@ class CupertinoMenuAnchor extends StatefulWidget {
   /// Defaults to null.
   final ScrollPhysics? scrollPhysics;
 
-  /// The [SpringDescription] used for the opening animation of the menu.
-  final SpringDescription forwardSpring;
-
-  /// The [SpringDescription] used for the closing animation of the menu.
-  final SpringDescription reverseSpring;
-
   /// The constraints to apply to the menu scrollable.
   final BoxConstraints? constraints;
 
@@ -436,21 +442,7 @@ class CupertinoMenuAnchor extends StatefulWidget {
   /// Defaults to 8 logical pixels on all sides.
   final EdgeInsetsGeometry screenInsets;
 
-  /// The [SpringDescription] used for the opening animation of a menu layer.
-  static const SpringDescription _defaultForwardSpring =
-      SpringDescription(
-        mass: 1,
-        stiffness: 32.7 * math.pi * math.pi,
-        damping: 9.25 * math.pi
-      );
 
-  /// The [SpringDescription] used for the closing animation of a menu layer.
-  static const SpringDescription _defaultReverseSpring =
-      SpringDescription(
-        mass: 1,
-        stiffness: 64 * math.pi * math.pi,
-        damping: 28.8 * math.pi
-      );
 
   /// The default background color of the menu surface.
   // Background colors were measured on an iOS 14 simulator are based on the
@@ -537,7 +529,6 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
   late ui.Offset? _menuPosition = widget.alignmentOffset;
   bool _hasLeadingWidget = false;
   final FocusScopeNode _menuScopeNode = FocusScopeNode();
-
   AnimatedMenuController? menuController;
 
   @override

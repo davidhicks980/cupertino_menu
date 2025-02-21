@@ -7,12 +7,10 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 
-import 'anchor.dart';
-import 'cupertino_menu.0.dart';
-import 'scroll_view.dart';
+import 'cupertino_menu_anchor.0.dart';
 
 
-void main() => runApp(const CupertinoSurfaceDemo());
+void main() => runApp(const CupertinoSimpleMenuApp());
 
 class CupertinoSurfaceDemo extends StatefulWidget {
   const CupertinoSurfaceDemo({super.key});
