@@ -1,163 +1,143 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart' ;
+import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 
+import 'anchor.dart';
+import 'cupertino_menu.0.dart';
 import 'scroll_view.dart';
 
-// import 'anchor.dart';
 
+void main() => runApp(const CupertinoSurfaceDemo());
 
-void main() => runApp(const MenuApp());
-
-class MenuApp extends StatelessWidget {
-  const MenuApp({super.key});
+class CupertinoSurfaceDemo extends StatefulWidget {
+  const CupertinoSurfaceDemo({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(body: MyCascadingMenu()),
-    );
-  }
+  State<CupertinoSurfaceDemo> createState() => _CupertinoSurfaceDemoState();
 }
 
-class MyCascadingMenu extends StatefulWidget {
-  const MyCascadingMenu({super.key});
-
-  @override
-  State<MyCascadingMenu> createState() => _MyCascadingMenuState();
-}
-
-class _MyCascadingMenuState extends State<MyCascadingMenu> {
-  final FocusNode _buttonFocusNode = FocusNode();
-  final CupertinoMenuController controller = CupertinoMenuController();
-
-  final bool _hide  = false;
-
-  @override
-  void dispose() {
-    _buttonFocusNode.dispose();
-
-    super.dispose();
-  }
+class _CupertinoSurfaceDemoState extends State<CupertinoSurfaceDemo> {
+  bool _dark = false;
 
   @override
   Widget build(BuildContext context) {
     return CupertinoApp(
-            home:Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Flexible(
-                    child: SuperScroll(
-                      physics: const CustomPhysics(),
-                      slivers: <Widget>[
-
-                        SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (BuildContext context, int index) {
-                              return ListTile(
-                                title: Text('Item $index'),
-                              );
-                            },
-                            childCount: 50,
-                          ),
-                        ),
-
-                      ],
-                    ),
-                  ),
-                  Align(
-                    child: CupertinoMenuAnchor(
-                      controller: controller,
-                      scrollPhysics: const CustomPhysics(),
-                      builder: (BuildContext context, CupertinoMenuController controller, Widget? child) {
-                        return ConstrainedBox(
-                          constraints: const BoxConstraints.tightFor(height: 50, width: 50),
-                          child: GestureDetector(
-                            onLongPressDown: (LongPressDownDetails details) {
-                               if (controller.menuStatus case MenuStatus.opened || MenuStatus.opening) {
-                                  controller.close();
-                                } else {
-                                  controller.open();
-                                }
-                            },
-                            child: const Text('Hih'),
-                          ),
-                        );
+      theme: _dark
+          ? const CupertinoThemeData(brightness: Brightness.dark)
+          : const CupertinoThemeData(brightness: Brightness.light),
+      home: Stack(
+        children: <Widget>[
+          const Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Expanded(child: ColoredBox(color: CupertinoColors.activeOrange)),
+              Expanded(child: ColoredBox(color: CupertinoColors.activeGreen)),
+              Expanded(child: ColoredBox(color: CupertinoColors.activeBlue)),
+            ],
+          ),
+          Center(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.all(Radius.circular(14)),
+              child: SizedBox(
+                height: 400,
+                width: 250,
+                child: CupertinoSurface(
+                  child: Center(
+                    child: CupertinoSwitch(
+                      value: _dark,
+                      onChanged: (bool value) {
+                        setState(() {
+                          _dark = value;
+                        });
                       },
-                      menuChildren: <Widget>[
-                  CupertinoMenuItem(
-                    onPressed: () {},
-                    child: const Text('Hih'),
-                  ),
-                  const CupertinoMenuItem(
-                    panActivationDelay: Duration(milliseconds: 300),
-                    child: Text('Hih'),
-                  ),
-                  CupertinoMenuItem(
-                    onPressed: () {
-                      print('pressed');
-                    },
-                    panActivationDelay: const Duration(milliseconds: 300),
-                    child: const Text('Hih'),
-                  ),
-                  CupertinoMenuItem(
-                    onPressed: () {},
-                    child: const Text('Hih'),
-                  ),
-                  const CupertinoMenuItem(
-                    panActivationDelay: Duration(milliseconds: 300),
-                    child: Text('Hih'),
-                  ),
-                  CupertinoMenuItem(
-                    onPressed: () {
-                      print('pressed');
-                    },
-                    panActivationDelay: const Duration(milliseconds: 300),
-                    child: const Text('Hih'),
-                  ),
-                  CupertinoMenuItem(
-                    onPressed: () {},
-                    child: const Text('Hih'),
-                  ),
-                  const CupertinoMenuItem(
-                    panActivationDelay: Duration(milliseconds: 300),
-                    child: Text('Hih'),
-                  ),
-                  CupertinoMenuItem(
-                    onPressed: () {
-                      print('pressed');
-                    },
-                    panActivationDelay: const Duration(milliseconds: 300),
-                    child: const Text('Hih'),
-                  ),
-                  CupertinoMenuItem(
-                    onPressed: () {},
-                    child: const Text('Hih'),
-                  ),
-                  const CupertinoMenuItem(
-                    panActivationDelay: Duration(milliseconds: 300),
-                    child: Text('Hih'),
-                  ),
-                  CupertinoMenuItem(
-                    onPressed: () {
-                      print('pressed');
-                    },
-                    panActivationDelay: const Duration(milliseconds: 300),
-                    child: const Text('Hih'),
-                  ),
-                            ],
                     ),
                   ),
-                ],
+                ),
+              ),
             ),
-          );
+          ),
+        ],
+      ),
+    );
   }
 }
 
+class CupertinoSurface extends StatelessWidget {
+  const CupertinoSurface({
+    super.key,
+    this.color = defaultBackgroundColor,
+    this.child,
+  });
+  final Color color;
+  final Widget? child;
+
+  // Animates the vibrance, blur, and background of the menu panel.
+  static const CupertinoDynamicColor defaultBackgroundColor =
+      CupertinoDynamicColor.withBrightness(
+    color: Color.fromRGBO(243, 243, 243, 0.775),
+    darkColor: Color.fromRGBO(55, 55, 55, 0.735),
+  );
+
+  static const List<double> darkMatrix = <double>[
+    1.385, -0.56, -0.112, 0.0, 0.3, //
+    -0.315, 1.14, -0.112, 0.0, 0.3, //
+    -0.315, -0.56, 1.588, 0.0, 0.3, //
+    0.0, 0.0, 0.0, 1.0, 0.0
+  ];
+
+  static const List<double> lightMatrix = <double>[
+    1.74, -0.4, -0.17, 0.0, 0.0, //
+    -0.26, 1.6, -0.17, 0.0, 0.0, //
+    -0.26, -0.4, 1.83, 0.0, 0.0, //
+    0.0, 0.0, 0.0, 1.0, 0.0
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final ui.Color resolvedColor = CupertinoDynamicColor.maybeResolve(color, context) ?? color;
+    Widget surface = DecoratedBox(
+      decoration: BoxDecoration(
+          color: resolvedColor,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(
+              color: Color.fromRGBO(0, 0, 0, 0.12),
+              spreadRadius: 30,
+              blurRadius: 50,
+            ),
+          ]),
+      child: child,
+    );
+    // If the color is not opaque, apply a blur filter to the surface.
+    if (resolvedColor.alpha != 0xFF) {
+      ui.ImageFilter filter = ui.ImageFilter.blur(sigmaX: 30, sigmaY: 30);
+
+      if (!kIsWeb) {
+        filter = ui.ImageFilter.compose(
+          outer: filter,
+          inner: ui.ColorFilter.matrix(
+            CupertinoTheme.maybeBrightnessOf(context) == Brightness.dark
+                ? darkMatrix
+                : lightMatrix,
+          ),
+        );
+      }
+
+      surface = BackdropFilter(
+        blendMode: BlendMode.src,
+        filter: filter,
+        child: surface,
+      );
+    }
+
+    return surface;
+  }
+}
 
 class CustomPhysics extends ScrollPhysics {
   /// Creates scroll physics that bounce back from the edge.
@@ -172,9 +152,7 @@ class CustomPhysics extends ScrollPhysics {
   @override
   CustomPhysics applyTo(ScrollPhysics? ancestor) {
     return CustomPhysics(
-      parent: buildParent(ancestor),
-      decelerationRate: decelerationRate
-    );
+        parent: buildParent(ancestor), decelerationRate: decelerationRate);
   }
 
   /// The multiple applied to overscroll to make it appear that scrolling past
@@ -202,15 +180,19 @@ class CustomPhysics extends ScrollPhysics {
       return offset;
     }
 
-    final double overscrollPastStart = math.max(position.minScrollExtent - position.pixels, 0.0);
-    final double overscrollPastEnd = math.max(position.pixels - position.maxScrollExtent, 0.0);
-    final double overscrollPast = math.max(overscrollPastStart, overscrollPastEnd);
-    final bool easing = (overscrollPastStart > 0.0 && offset < 0.0)
-        || (overscrollPastEnd > 0.0 && offset > 0.0);
+    final double overscrollPastStart =
+        math.max(position.minScrollExtent - position.pixels, 0.0);
+    final double overscrollPastEnd =
+        math.max(position.pixels - position.maxScrollExtent, 0.0);
+    final double overscrollPast =
+        math.max(overscrollPastStart, overscrollPastEnd);
+    final bool easing = (overscrollPastStart > 0.0 && offset < 0.0) ||
+        (overscrollPastEnd > 0.0 && offset > 0.0);
 
     final double friction = easing
         // Apply less resistance when easing the overscroll vs tensioning.
-        ? frictionFactor((overscrollPast - offset.abs()) / position.viewportDimension)
+        ? frictionFactor(
+            (overscrollPast - offset.abs()) / position.viewportDimension)
         : frictionFactor(overscrollPast / position.viewportDimension);
     final double direction = offset.sign;
 
@@ -220,7 +202,8 @@ class CustomPhysics extends ScrollPhysics {
     return direction * _applyFriction(overscrollPast, offset.abs(), friction);
   }
 
-  static double _applyFriction(double extentOutside, double absDelta, double gamma) {
+  static double _applyFriction(
+      double extentOutside, double absDelta, double gamma) {
     assert(absDelta > 0);
     double total = 0.0;
     if (extentOutside > 0) {
@@ -238,7 +221,8 @@ class CustomPhysics extends ScrollPhysics {
   double applyBoundaryConditions(ScrollMetrics position, double value) => 0.0;
 
   @override
-  Simulation? createBallisticSimulation(ScrollMetrics position, double velocity) {
+  Simulation? createBallisticSimulation(
+      ScrollMetrics position, double velocity) {
     final Tolerance tolerance = toleranceFor(position);
     if (velocity.abs() >= tolerance.velocity || position.outOfRange) {
       return BouncingScrollSimulation2(
@@ -279,7 +263,8 @@ class CustomPhysics extends ScrollPhysics {
   @override
   double carriedMomentum(double existingVelocity) {
     return existingVelocity.sign *
-        math.min(0.000816 * math.pow(existingVelocity.abs(), 1.967).toDouble(), 40000.0);
+        math.min(0.000816 * math.pow(existingVelocity.abs(), 1.967).toDouble(),
+            40000.0);
   }
 
   // Eyeballed from observation to counter the effect of an unintended scroll
@@ -344,20 +329,23 @@ class BouncingScrollSimulation2 extends Simulation {
     } else {
       // Taken from UIScrollView.decelerationRate (.normal = 0.998)
       // 0.998^1000 = ~0.135
-      _frictionSimulation = FrictionSimulation(0.135, position, velocity, constantDeceleration: constantDeceleration);
+      _frictionSimulation = FrictionSimulation(0.135, position, velocity,
+          constantDeceleration: constantDeceleration);
       final double finalX = _frictionSimulation.finalX;
       if (velocity > 0.0 && finalX > trailingExtent) {
         _springTime = _frictionSimulation.timeAtX(trailingExtent);
         _springSimulation = _overscrollSimulation(
           trailingExtent,
-          math.min(_frictionSimulation.dx(_springTime), maxSpringTransferVelocity),
+          math.min(
+              _frictionSimulation.dx(_springTime), maxSpringTransferVelocity),
         );
         assert(_springTime.isFinite);
       } else if (velocity < 0.0 && finalX < leadingExtent) {
         _springTime = _frictionSimulation.timeAtX(leadingExtent);
         _springSimulation = _underscrollSimulation(
           leadingExtent,
-          math.min(_frictionSimulation.dx(_springTime), maxSpringTransferVelocity),
+          math.min(
+              _frictionSimulation.dx(_springTime), maxSpringTransferVelocity),
         );
         assert(_springTime.isFinite);
       } else {

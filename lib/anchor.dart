@@ -6,19 +6,59 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+
 import 'package:flutter/cupertino.dart' show CupertinoColors, CupertinoDynamicColor, CupertinoScrollBehavior, CupertinoScrollbar, CupertinoTheme, kMinInteractiveDimensionCupertino;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' show MaterialLocalizations;
 import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart'  hide DismissMenuAction, MenuController, RawMenuAnchor, RawMenuAnchorChildBuilder, RawMenuOverlayInfo;
 
-
+import 'base_menu.dart';
+import 'material.dart' show LocalizedShortcutLabeler;
 
 const Duration _kMenuPanReboundDuration = Duration(milliseconds: 600);
 const bool _kDebugMenus = false;
+
+class AnimatedMenuController extends MenuControllerDecorator {
+  const AnimatedMenuController({required super.menuController, required this.animationController});
+  static const Tolerance _springTolerance = Tolerance(velocity: 0.1, distance: 0.1);
+
+  final AnimationController animationController;
+  SpringSimulation get forwardSpring => SpringSimulation(
+    SpringDescription.withDampingRatio(mass: 1.0, stiffness: 150, ratio: 0.7),
+    animationController.value,
+    1.0,
+    0.0,
+    tolerance: _springTolerance,
+  );
+  SpringSimulation get reverseSpring => SpringSimulation(
+    SpringDescription.withDampingRatio(mass: 1.0, stiffness: 200, ratio: 0.7),
+    animationController.value,
+    0.0,
+    0.0,
+    tolerance: _springTolerance,
+  );
+
+  @override
+  void handleMenuOpenRequest({ui.Offset? position}) {
+    // Call whenComplete() rather than whenCompleteOrCancel() to avoid marking
+    // the menu as opened when the [AnimationStatus] moves from forward to
+    // reverse.
+    animationController.animateWith(forwardSpring).whenComplete(markMenuOpened);
+  }
+
+  @override
+  void handleMenuCloseRequest() {
+    // Call whenComplete() rather than whenCompleteOrCancel() to avoid marking
+    // the menu as closed when the [AnimationStatus] moves from reverse to
+    // forward.
+    animationController.animateBackWith(reverseSpring).whenComplete(markMenuClosed);
+  }
+}
 
 /// Whether [defaultTargetPlatform] is an Apple platform (Mac or iOS).
 bool get _isApple {
@@ -58,27 +98,6 @@ const Map<ShortcutActivator, Intent> _kMenuTraversalShortcuts =
       DirectionalFocusIntent(TraversalDirection.right),
 };
 
-
-class _DismissMenuAction extends DismissAction {
-  /// Creates a [_DismissMenuAction].
-  _DismissMenuAction({required this.controller});
-
-  /// The [MenuController] associated with the menus that should be closed.
-  final CupertinoMenuController controller;
-
-  @override
-  void invoke(DismissIntent intent) {
-    assert(_debugMenuInfo('$runtimeType: Dismissing all open menus.'));
-    controller._anchor?._animateClosed();
-  }
-
-  @override
-  bool isEnabled(DismissIntent intent) {
-    return controller.menuStatus != MenuStatus.closed &&
-           controller.menuStatus != MenuStatus.closing;
-  }
-}
-
 /// Mix [CupertinoMenuEntryMixin] in to define how a menu item should be drawn
 /// in a menu.
 ///
@@ -115,86 +134,6 @@ mixin CupertinoMenuEntryMixin {
   bool get hasLeading => false;
 }
 
-/// The visibility status of a [CupertinoMenuAnchor].
-enum MenuStatus {
-  /// The menu is closed, and the menu animation status is [AnimationStatus.dismissed]
-  closed,
-
-  /// The menu is opening, and the menu animation status is [AnimationStatus.forward]
-  opening,
-
-  /// The menu is open, and the menu animation status is [AnimationStatus.completed]
-  opened,
-
-  /// The menu is closing, and the menu animation status is [AnimationStatus.reverse]
-  closing,
-}
-
-/// A controller to manage a menu created by a [CupertinoMenuAnchor].
-///
-/// A [CupertinoMenuController] is used to control and interrogate a menu after
-/// it has been created, with methods such as [open] and [close], and state
-/// accessors like [isOpen].
-///
-/// See also:
-///
-/// * [CupertinoMenuAnchor], a widget that displays a Cupertino-style menu when
-///   pressed.
-class CupertinoMenuController {
-  /// The anchor that this controller controls.
-  ///
-  /// This is set automatically when a [CupertinoMenuController] is given to the
-  /// anchor it controls.
-  _CupertinoMenuAnchorState? _anchor;
-
-  /// The [AnimationStatus] of the animation that reveals this controller's menu.
-  MenuStatus get menuStatus => _anchor!._menuStatus;
-
-  /// Whether the menu that this controller is associated with is open.
-  ///
-  /// When this, the menu is at least partially visible, meaning its
-  /// is not [MenuStatus.closed].
-  bool get isOpen => _anchor!._menuStatus != MenuStatus.closed;
-
-  /// Close the menu that this menu controller is associated with.
-  ///
-  /// If the menu's anchor point (a [CupertinoMenuAnchor]) is
-  /// scrolled by an ancestor, or the view changes size, then any open menu will
-  /// automatically close.
-  void close() {
-    assert(_anchor != null, 'CupertinoMenuController is not attached to an anchor');
-    _anchor!._animateClosed();
-  }
-
-  /// Open the menu that this controller is associated with.
-  ///
-  /// If `position` is provided, then the menu will open at the position given, in
-  /// the coordinate space of the [CupertinoMenuAnchor] this controller is
-  /// attached to.
-  ///
-  /// The `position` will override the [CupertinoMenuAnchor.alignmentOffset]
-  /// given to the [CupertinoMenuAnchor].
-  ///
-  /// If the menu's anchor point (the [CupertinoMenuAnchor]) is scrolled by an
-  /// ancestor, or the view changes size, then any open menu will automatically
-  /// close.
-  void open({ui.Offset? position}) {
-    assert(_anchor != null, 'CupertinoMenuController is not attached to an anchor');
-    _anchor!._animateOpen(position: position);
-  }
-
-  // ignore: use_setters_to_change_properties
-  void _attach(_CupertinoMenuAnchorState anchor) {
-    _anchor = anchor;
-  }
-
-  void _detach(_CupertinoMenuAnchorState anchor) {
-    if (_anchor == anchor) {
-      _anchor = null;
-    }
-  }
-}
-
 class _AnchorScope extends InheritedWidget {
   const _AnchorScope({required this.state, required super.child});
   final _CupertinoMenuAnchorState state;
@@ -205,18 +144,6 @@ class _AnchorScope extends InheritedWidget {
   }
 }
 
-/// A builder for the widget that this [CupertinoMenuAnchor] surrounds.
-///
-/// Typically, this is a button that opens the menu by calling
-/// [CupertinoMenuController.open] on the controller passed to the menu.
-///
-/// If a child is not supplied, then the [CupertinoMenuAnchor] will be the size
-/// that its parent allocates for it.
-typedef CupertinoMenuAnchorChildBuilder = Widget Function(
-  BuildContext context,
-  CupertinoMenuController controller,
-  Widget? child,
-);
 
 /// The menu surface builder used by [CupertinoMenuAnchor].
 ///
@@ -235,9 +162,6 @@ typedef CupertinoMenuSurfaceBuilder = Widget Function(
   Color backgroundColor,
   Clip clipBehavior,
 );
-
-/// A callback that is invoked when the [MenuStatus] changes.
-typedef CupertinoMenuStatusChangedCallback = void Function(MenuStatus status);
 
 /// A widget used to mark the "anchor" for a menu, defining the rectangle used
 /// to position the menu, which can be done with an explicit location, or
@@ -325,9 +249,8 @@ class CupertinoMenuAnchor extends StatefulWidget {
     this.childFocusNode,
     this.onOpen,
     this.onClose,
-    this.onStatusChanged,
-    this.scrollPhysics,
     this.constraints,
+    this.scrollPhysics,
     this.menuAlignment,
     this.alignment,
     this.alignmentOffset,
@@ -344,7 +267,7 @@ class CupertinoMenuAnchor extends StatefulWidget {
 
   /// An optional controller that allows opening and closing of the menu from
   /// other widgets.
-  final CupertinoMenuController? controller;
+  final MenuController? controller;
 
   /// The [childFocusNode] attribute is the optional [FocusNode] also associated
   /// the [child] or [builder] widget that opens the menu.
@@ -405,11 +328,6 @@ class CupertinoMenuAnchor extends StatefulWidget {
   /// to closing, see [onStatusChanged].
   final VoidCallback? onClose;
 
-  /// A callback that is invoked when the status of the menu changes. Unlike
-  /// [onOpen] and [onClose], this callback is invoked for all [MenuStatus]
-  /// changes.
-  final CupertinoMenuStatusChangedCallback? onStatusChanged;
-
   /// A list of children containing the menu items that are the contents of the
   /// menu surrounded by this [CupertinoMenuAnchor].
   ///
@@ -423,7 +341,7 @@ class CupertinoMenuAnchor extends StatefulWidget {
   ///
   /// If not supplied, then the [CupertinoMenuAnchor] will be the size that its parent
   /// allocates for it.
-  final CupertinoMenuAnchorChildBuilder? builder;
+  final RawMenuAnchorChildBuilder? builder;
 
   /// The optional child to be passed to the [builder].
   ///
@@ -607,7 +525,6 @@ class CupertinoMenuAnchor extends StatefulWidget {
 }
 class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     with TickerProviderStateMixin {
-  static const Tolerance _springTolerance = Tolerance(velocity: 0.1, distance: 0.1);
   final GlobalKey _panelScrollableKey = GlobalKey(debugLabel: '$CupertinoMenuAnchor Scrollable Key');
   late final Animation<double> _scaleAnimation;
   late final AnimationController _panAnimationController;
@@ -616,23 +533,22 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
   /// Whether any siblings of this menu item have a leading widget. If a sibling
   /// has a leading widget, this menu item will have leading space added to
   /// align the leading edges of all menu items.
-  MenuStatus _menuStatus = MenuStatus.closed;
   ui.Rect _anchorRect = ui.Rect.zero;
   late ui.Offset? _menuPosition = widget.alignmentOffset;
   bool _hasLeadingWidget = false;
-  final MenuController _innerMenuController = MenuController();
-  CupertinoMenuController? _internalMenuController;
-  CupertinoMenuController get _menuController => widget.controller
-                                                  ?? _internalMenuController!;
+  final FocusScopeNode _menuScopeNode = FocusScopeNode();
+
+  AnimatedMenuController? menuController;
+
   @override
   void initState() {
     super.initState();
-    if (widget.controller == null) {
-      _internalMenuController = CupertinoMenuController();
-    }
-    _menuController._attach(this);
     _animationController = AnimationController.unbounded(vsync: this);
     _panAnimationController = AnimationController.unbounded(value: 1, vsync: this);
+    menuController =  AnimatedMenuController(
+          menuController: widget.controller ?? MenuController(),
+          animationController: _animationController,
+        );
     // The scale animation is a combination of the menu opening and pan
     // animations.
     _scaleAnimation = _AnimationProduct(
@@ -656,15 +572,10 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     }
 
     if (oldWidget.controller != widget.controller) {
-      oldWidget.controller?._detach(this);
-      if (widget.controller != null) {
-        _internalMenuController?._detach(this);
-        _internalMenuController = null;
-      } else {
-        assert(_internalMenuController == null);
-        _internalMenuController = CupertinoMenuController();
-      }
-      _menuController._attach(this);
+      menuController =  AnimatedMenuController(
+              menuController: widget.controller ?? MenuController(),
+              animationController: _animationController,
+            );
     }
 
     if (oldWidget.menuChildren != widget.menuChildren) {
@@ -677,123 +588,16 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
       });
     }
 
-    assert(_menuController._anchor == this);
   }
 
   @override
   void dispose() {
+    _menuScopeNode.dispose();
     _animationController.stop();
     _animationController.dispose();
     _panAnimationController.stop();
     _panAnimationController.dispose();
-    _menuController._detach(this);
-    _internalMenuController = null;
     super.dispose();
-  }
-
-  // Update the menu status and call listeners.
-  void _updateMenuStatus(MenuStatus status) {
-    if (status == _menuStatus) {
-      return;
-    }
-
-    final MenuStatus previousStatus = _menuStatus;
-    _menuStatus = status;
-
-    // Cannot use a postFrameCallback because focus won't return to the previous
-    // focus node when the menu is closed.
-    if (mounted && SchedulerBinding.instance.schedulerPhase !=
-                   SchedulerPhase.persistentCallbacks) {
-      setState(() { /* Mark dirty if mounted and not already building. */ });
-    }
-
-    if (previousStatus == MenuStatus.closed) {
-      widget.onOpen?.call();
-    }
-
-    if (status == MenuStatus.closed) {
-      widget.onClose?.call();
-    }
-
-    widget.onStatusChanged?.call(status);
-  }
-
-  // Sets the menu status to closed and sets the menu animation to 0.0. Does not
-  // trigger the root menu to close the overlay.
-  void _handleClosed() {
-    _animationController.stop();
-    _animationController.value = 0;
-    _updateMenuStatus(MenuStatus.closed);
-  }
-
-  // Sets the menu status to opened and sets the menu animation to 1.0. Does not
-  // trigger the root menu to open the overlay.
-  void _handleOpened() {
-    _animationController.stop();
-    _animationController.value = 1;
-    _updateMenuStatus(MenuStatus.opened);
-  }
-
-  // Animate the menu closed, then trigger the root menu to close the overlay.
-  void _animateClosed() {
-    if (_menuStatus case MenuStatus.closed || MenuStatus.closing) {
-      assert(_debugMenuInfo('Blocked $_animateClosed because the menu is already closing'));
-      return;
-    }
-
-    // When the animation controller finishes closing, the inner menu's onClose
-    // callback will be called, thereby triggering the _handleClosed callback.
-    _animationController
-      ..stop()
-      ..animateWith(
-        ClampedSimulation(
-          SpringSimulation(
-            widget.reverseSpring,
-            _animationController.value,
-            0.0,
-            5.0,
-            tolerance: _springTolerance,
-          ),
-          xMin: 0.0,
-          xMax: 1.0,
-        ),
-      ).whenComplete(_innerMenuController.close);
-
-    _updateMenuStatus(MenuStatus.closing);
-  }
-
-  void _animateOpen({ui.Offset? position}) {
-    if (_menuStatus case MenuStatus.opened || MenuStatus.opening) {
-      _innerMenuController.open(position: position);
-      _animationController.value = 1.0;
-      return;
-    }
-
-    if (!_innerMenuController.isOpen) {
-      _innerMenuController.open(position: position);
-    }
-
-    _animationController
-      ..stop()
-      ..animateWith(SpringSimulation(
-        widget.forwardSpring,
-        _animationController.value,
-        1.0,
-        5.0,
-      )).whenComplete(_handleOpened);
-
-    _updateMenuStatus(MenuStatus.opening);
-
-    // When the menu is first opened, set the first focus to the first item in
-    // the menu.
-    SchedulerBinding.instance.addPostFrameCallback((Duration timeStamp) {
-      final BuildContext? panelContext = _panelScrollableKey.currentContext;
-      if (mounted && (panelContext?.mounted ?? false)) {
-        FocusScope.of(context).setFirstFocus(
-          FocusScope.of(panelContext!),
-        );
-      }
-    });
   }
 
   // Scales the menu panel when the user drags their pointer away from the menu.
@@ -875,6 +679,7 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
           _menuPosition!.dy,
         ));
       }
+
       return anchorRect.shift(_menuPosition!);
     }
     return anchorRect;
@@ -882,13 +687,10 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
 
   Widget _buildMenuOverlay(
     BuildContext overlayContext,
-    List<Widget> children,
-    FocusScopeNode menuFocusScopeNode,
-    Offset? alignmentOffset,
-    Object? tapRegionGroupId,
+    RawMenuOverlayInfo info,
   ) {
-    if (alignmentOffset != null) {
-      _menuPosition = alignmentOffset;
+    if (info.position != null) {
+      _menuPosition = info.position;
     }
 
     final RenderBox anchor = context.findRenderObject()! as RenderBox;
@@ -896,35 +698,30 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     final ui.Rect anchorRect = anchor.localToGlobal(Offset.zero, ancestor: overlay) & anchor.size;
     _anchorRect = _resolveAnchorRect(Directionality.of(context), anchorRect);
 
-    if (_menuStatus == MenuStatus.closed) {
-      return const SizedBox.shrink();
-    }
-
     return ExcludeFocus(
-      excluding: _menuStatus == MenuStatus.closing ||
-                 _menuStatus == MenuStatus.closed,
+      excluding: menuController?.animationStatus == AnimationStatus.reverse,
       child: _MenuPanel(
         context: overlayContext,
         animation: _animationController.view,
-        menuController: _menuController,
+        menuController: menuController!,
         scaleAnimation: _scaleAnimation,
         backgroundColor: widget.backgroundColor,
         shrinkWrap: widget.shrinkWrap,
         overlaySize: overlay.paintBounds.size,
         constraints: widget.constraints,
         anchorRect: _anchorRect,
-        tapRegionGroupId: tapRegionGroupId,
+        tapRegionGroupId: info.tapRegionGroupId,
         panelScrollableKey: _panelScrollableKey,
         consumeOutsideTaps: widget.consumeOutsideTap,
         clipBehavior: widget.clipBehavior,
         scrollPhysics: widget.scrollPhysics,
-        menuScopeNode: menuFocusScopeNode,
+        menuScopeNode: _menuScopeNode,
         alignment: widget.alignment,
         menuAlignment: widget.menuAlignment,
         surfaceBuilder: widget.surfaceBuilder,
         screenInsets: widget.screenInsets,
         enablePan: widget.enablePan,
-        children: children,
+        children: widget.menuChildren,
       ),
     );
   }
@@ -934,7 +731,7 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
     MenuController controller,
     Widget? child,
   ) {
-    final Widget anchor = widget.builder?.call(context, _menuController, child)
+    final Widget anchor = widget.builder?.call(context, menuController!, child)
                             ?? child
                             ?? const SizedBox.shrink();
     return widget.enablePan ? _PanSurface(child: anchor) : anchor;
@@ -944,16 +741,14 @@ class _CupertinoMenuAnchorState extends State<CupertinoMenuAnchor>
   Widget build(BuildContext context) {
     Widget scope = _AnchorScope(
       state: this,
-      child: MenuAnchor.withOverlayBuilder(
-        menuChildren: widget.menuChildren,
+      child: RawMenuAnchor(
         overlayBuilder: _buildMenuOverlay,
         builder: _buildAnchorChild,
-        controller: _innerMenuController,
+        controller: menuController!,
         childFocusNode: widget.childFocusNode,
-        alignmentOffset: _menuPosition,
-        consumeOutsideTap: widget.consumeOutsideTap,
-        onClose: _handleClosed,
-        onOpen: _animateOpen,
+        consumeOutsideTaps: widget.consumeOutsideTap,
+        onClose: widget.onClose,
+        onOpen: widget.onOpen,
         child: widget.child,
       ),
     );
@@ -1000,7 +795,7 @@ class _MenuPanel extends StatelessWidget {
   final Color backgroundColor;
   final BuildContext context;
   final bool consumeOutsideTaps;
-  final CupertinoMenuController menuController;
+  final MenuController menuController;
   final ui.Rect anchorRect;
   final ui.Size overlaySize;
   final FocusScopeNode menuScopeNode;
@@ -1025,14 +820,13 @@ class _MenuPanel extends StatelessWidget {
       groupId: tapRegionGroupId,
       consumeOutsideTaps: consumeOutsideTaps,
       onTapOutside: (PointerDownEvent event) {
-        menuController._anchor!._animateClosed();
+        menuController.close();
       },
       child: MouseRegion(
         hitTestBehavior: HitTestBehavior.deferToChild,
         child: Actions(
           actions: <Type, Action<Intent>>{
-            DirectionalFocusIntent: MenuDirectionalFocusAction(),
-            DismissIntent: _DismissMenuAction(controller: menuController),
+            DismissIntent: DismissMenuAction(controller: menuController),
           },
           child: FocusScope(
             debugLabel: '$_MenuPanel Focus Scope',
@@ -1258,44 +1052,53 @@ class _AnimatedSurfaceVibrance extends AnimatedWidget {
   final Widget child;
   final Color surfaceColor;
   double get value => ui.clampDouble((super.listenable as Animation<double>).value, 0.0, 1.0);
-  static const double darkLumR = 0.45;
-  static const double darkLumG = 0.8;
-  static const double darkLumB = 0.16;
-  static const double lightLumR = 0.26;
-  static const double lightLumG = 0.4;
-  static const double lightLumB = 0.17;
+
+
 
   /// A [ColorFilter.matrix] that saturates and brightens.
   ///
   /// From https://docs.rainmeter.net/tips/colormatrix-guide/, but tuned
   /// to resemble the iOS 17 menu. Luminance values were altered to emphasize
   /// blues and greens.
-  List<double> buildColorFilterMatrix({
+  List<double> buildLightColorFilterMatrix({
     required double strength,
-    required Brightness brightness,
   }) {
-    double additive, saturation, lumR, lumG, lumB;
-    if (brightness == Brightness.light) {
-      saturation = strength * 1 + 1;
-      additive = 0.0;
-      lumR = lightLumR;
-      lumG = lightLumG;
-      lumB = lightLumB;
-    } else {
-      saturation = strength * 0.7 + 1;
-      additive = 0.3;
-      lumR = darkLumR;
-      lumG = darkLumG;
-      lumB = darkLumB;
-    }
-    final double sr = (1 - saturation) * lumR;
-    final double sg = (1 - saturation) * lumG;
-    final double sb = (1 - saturation) * lumB;
+    const double lightLumR = 0.26;
+    const double lightLumG = 0.4;
+    const double lightLumB = 0.17;
+    final double saturation = strength * 1 + 1;
+    final double sr = (1 - saturation) * lightLumR;
+    final double sg = (1 - saturation) * lightLumG;
+    final double sb = (1 - saturation) * lightLumB;
     return <double>[
-      sr + saturation, sg             , sb             , 0.0, additive,
-      sr             , sg + saturation, sb             , 0.0, additive,
-      sr             , sg             , sb + saturation, 0.0, additive,
-      0.0            , 0.0            , 0.0            , 1.0, 0.0     ,
+      sr + saturation, sg             , sb             , 0.0, 0.0, //
+      sr             , sg + saturation, sb             , 0.0, 0.0, //
+      sr             , sg             , sb + saturation, 0.0, 0.0, //
+      0.0            , 0.0            , 0.0            , 1.0, 0.0, //
+    ];
+  }
+
+  /// A [ColorFilter.matrix] that saturates and brightens.
+  ///
+  /// From https://docs.rainmeter.net/tips/colormatrix-guide/, but tuned
+  /// to resemble the iOS 17 menu. Luminance values were altered to emphasize
+  /// blues and greens.
+  List<double> buildDarkColorFilterMatrix({
+    required double strength,
+  }) {
+    const double additive = 0.3;
+    const double darkLumR = 0.45;
+    const double darkLumG = 0.8;
+    const double darkLumB = 0.16;
+    final double saturation = strength * 0.7 + 1;
+    final double sr = (1 - saturation) * darkLumR;
+    final double sg = (1 - saturation) * darkLumG;
+    final double sb = (1 - saturation) * darkLumB;
+    return <double>[
+      sr + saturation, sg             , sb             , 0.0, additive, //
+      sr             , sg + saturation, sb             , 0.0, additive, //
+      sr             , sg             , sb + saturation, 0.0, additive, //
+      0.0            , 0.0            , 0.0            , 1.0, 0.0     , //
     ];
   }
 
@@ -1304,7 +1107,7 @@ class _AnimatedSurfaceVibrance extends AnimatedWidget {
     final ui.Color resolved = CupertinoDynamicColor.maybeResolve(surfaceColor, context)
                                 ?? surfaceColor;
     final ui.Color color = resolved.withOpacity(resolved.opacity * value);
-    final double delayedValue = _surfaceDelay.transform(value);
+    final double vibrancy = _surfaceDelay.transform(value);
     Widget surface = CustomPaint(
       willChange: value != 0 && value != 1,
       painter: _UnclippedColorPainter(color: color),
@@ -1314,18 +1117,21 @@ class _AnimatedSurfaceVibrance extends AnimatedWidget {
     // If the color is not opaque, apply a blur filter to the surface.
     if (color.alpha != 0xFF) {
       ui.ImageFilter filter = ui.ImageFilter.blur(
-        sigmaX: 30 * delayedValue,
-        sigmaY: 30 * delayedValue,
+        sigmaX: 30 * vibrancy,
+        sigmaY: 30 * vibrancy,
       );
 
       if (!kIsWeb) {
         filter = ui.ImageFilter.compose(
           outer: filter,
           inner: ui.ColorFilter.matrix(
-            buildColorFilterMatrix(
-              strength: delayedValue,
-              brightness: CupertinoTheme.maybeBrightnessOf(context) ?? Brightness.light,
-            ),
+            CupertinoTheme.maybeBrightnessOf(context) == Brightness.dark
+                ? buildDarkColorFilterMatrix(
+                    strength: vibrancy,
+                  )
+                : buildLightColorFilterMatrix(
+                    strength: vibrancy,
+                  ),
           ),
         );
       }
@@ -1987,17 +1793,17 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
   /// If [requestCloseOnActivate] is true, this method is responsible for notifying the
   /// [CupertinoMenuAnchor] that the menu should begin closing.
   void _handleSelect(BuildContext context) {
-    final _CupertinoMenuAnchorState? anchor = CupertinoMenuAnchor._maybeOf(context);
+    final MenuController? anchor = MenuController.maybeOf(context);
 
     // Block selection if the menu is already closing.
-    if (anchor?._menuStatus case MenuStatus.closing) {
+    if (anchor?.animationStatus case AnimationStatus.reverse) {
       assert(_debugMenuInfo('Blocked $child selection because menu is closing'));
       return;
     }
 
     assert(_debugMenuInfo('Selected $child menu'));
     if (requestCloseOnActivate) {
-      anchor?._animateClosed();
+      anchor?.close();
     }
 
     // Delay the call to onPressed until post-frame so that the focus is
@@ -2056,13 +1862,6 @@ class CupertinoMenuItem extends StatelessWidget with CupertinoMenuEntryMixin {
           size: math.sqrt(textScale) * 21,
           color: titleTextStyle.color,
         ),
-        child: label,
-      );
-    }
-
-     if (_platformSupportsAccelerators && enabled) {
-      label = MenuAcceleratorCallbackBinding(
-        onInvoke: () => _handleSelect(context),
         child: label,
       );
     }
@@ -2459,7 +2258,7 @@ class _CupertinoMenuDivider extends StatelessWidget {
   static const CupertinoDynamicColor color =
     CupertinoDynamicColor.withBrightness(
         color: Color.fromRGBO(0, 0, 0, 0.24),
-        darkColor: Color.fromRGBO(255, 255, 255, 0.23),
+        darkColor: Color.fromRGBO(255, 255, 255, 0.10),
       );
 
   /// The widget below this widget in the tree.

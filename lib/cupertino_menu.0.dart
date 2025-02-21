@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 
+import 'anchor.dart';
 import 'resize.dart';
 
 // import 'menu.dart';
@@ -67,13 +68,10 @@ class _CupertinoMenuExampleState extends State<CupertinoMenuExample> {
     return SizedBox(
       width: MediaQuery.of(context).size.width,
       height: MediaQuery.of(context).size.height,
-      child: Directionality(
-        textDirection: _directionality,
-        child: MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(_textSizeSliderValue),
-            platformBrightness: _darkMode ? Brightness.dark : Brightness.light,
-          ),
+      child: MediaQuery(
+        data: MediaQuery.of(context).copyWith(platformBrightness: _darkMode ? Brightness.dark : Brightness.light),
+        child: Directionality(
+          textDirection: _directionality,
           child: SafeArea(
             child: Stack(
                 children: <Widget>[
@@ -281,7 +279,10 @@ class _DropdownState extends State<Dropdown> {
       child: Draggable(
         feedback: const SizedBox.shrink(),
         feedbackOffset: _offset,
+        rootOverlay: true,
+        hitTestBehavior: HitTestBehavior.opaque,
         onDragUpdate: (DragUpdateDetails location) {
+          print( location.delta.dx);
           setState(() {
             _offset = _offset.translate(location.delta.dx, location.delta.dy);
           });
@@ -315,65 +316,76 @@ class _MenuState extends State<Menu> {
   Widget build(BuildContext context) {
     final Random random = Random();
     final String superLong = 'subtitle ' * 1000;
-    return MediaQuery(
-      data: MediaQuery.of(context).copyWith(
-        textScaler: const TextScaler.linear(1.3),
-        boldText: true
-      ),
-      child: Directionality(
-        textDirection: TextDirection.rtl,
-        child: CupertinoMenuAnchor(
-                childFocusNode: widget.buttonFocusNode,
-                controller: controller,
-                onStatusChanged: (MenuStatus status) {
-                  print('Menu status: $status');
+    return CupertinoMenuAnchor(
+            childFocusNode: widget.buttonFocusNode,
+            controller: controller,
+            enablePan: false,
+            onStatusChanged: (MenuStatus status) {
+              print('Menu status: $status');
 
-                },
-                menuChildren: <Widget>[
-                  CupertinoMenuItem(
-                    requestCloseOnActivate: false,
-                    // requestFocusOnHover: true,
-                    child: Text('super long text' * (_short ? 1 : 1000)),
-                    onPressed: () {
-                      _short = !_short;
-                      setState(() {
+            },
+            menuChildren: <Widget>[
+              CupertinoMenuItem(
+                requestCloseOnActivate: false,
+                // requestFocusOnHover: true,
+                child: Text('super long text' * (_short ? 1 : 1000)),
+                onPressed: () {
+                  _short = !_short;
+                  setState(() {
 
-                      });
-                    },
-                  ),
-                  CupertinoMenuItem(
-                    // requestFocusOnHover: true,
-                    child: Text('super long text' * 1000),
-                    onPressed: () {},
-                  ),
-                ],
-                builder: (
-                  BuildContext context,
-                  CupertinoMenuController controller,
-                  Widget? child,
-                ) {
-                  return FilledButton(
-                    focusNode: widget.buttonFocusNode,
-                    onPressed: () {
-                      if (controller.menuStatus
-                          case MenuStatus.opening || MenuStatus.opened) {
-                        controller.close();
-                      } else {
-                        controller.open();
-                        print('open');
-                      }
-                    },
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints.tightFor(height: 50),
-                      child: const Text(
-                        'OPEN MENU',
-                      ),
-                    ),
-                  );
+                  });
                 },
               ),
-      ),
-    );
+              CupertinoMenuItem(
+                // requestFocusOnHover: true,
+                child: const Text('Text'),
+                onPressed: () {},
+              ),
+              const CupertinoLargeMenuDivider(),
+
+              CupertinoMenuItem(
+                // requestFocusOnHover: true,
+                child: const Text('Text'),
+                onPressed: () {},
+              ),
+              CupertinoMenuItem(
+                // requestFocusOnHover: true,
+                child: const Text('Text'),
+                onPressed: () {},
+              ),
+              const CupertinoLargeMenuDivider(),
+
+              CupertinoMenuItem(
+                // requestFocusOnHover: true,
+                child: const Text('Text'),
+                onPressed: () {},
+              ),
+              CupertinoMenuItem(
+                // requestFocusOnHover: true,
+                child: const Text('Text'),
+                onPressed: () {},
+              ),
+            ],
+            builder: (
+              BuildContext context,
+              CupertinoMenuController controller,
+              Widget? child,
+            ) {
+              return FilledButton(
+                focusNode: widget.buttonFocusNode,
+                onPressed: () {
+                  if (controller.menuStatus
+                      case MenuStatus.opening || MenuStatus.opened) {
+                    controller.close();
+                  } else {
+                    controller.open();
+                    print('open');
+                  }
+                },
+                child: const Text('Open')
+              );
+            },
+          );
 
   }
 }

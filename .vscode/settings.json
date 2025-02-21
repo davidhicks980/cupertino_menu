@@ -5,29 +5,28 @@
     "editor.formatOnPaste": false
   },
   "html.format.enable": false,
-  "githubPullRequests.ignoredPullRequestBranches": ["master"],
+  "githubPullRequests.ignoredPullRequestBranches": [
+    "master"
+  ],
   "files.trimTrailingWhitespace": true,
   "editor.codeActionsOnSave": {
     "source.organizeImports": "never",
     "source.fixAll": "explicit"
   },
-
   "dart.analyzeAngularTemplates": false,
   "dart.documentation": "full",
   "dart.enableCompletionCommitCharacters": true,
   "dart.renameFilesWithClasses": "prompt",
   "dart.allowTestsOutsideTestFolder": true,
   "dart.autoImportCompletions": true,
-  "dart.flutterSdkPath": "~/development/custom",
+  "dart.flutterSdkPath": ".fvm/versions/master",
   "dart.flutterTestAdditionalArgs": [
     "--platform=chrome",
     "--web-renderer=html"
   ],
-  // Remove .fvm files from search
   "search.exclude": {
     "**/.fvm": true
   },
-  // Remove from file watching
   "files.watcherExclude": {
     "**/.fvm": true
   }
