@@ -1,16 +1,132 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/cupertino.dart' hide CupertinoAlertDialog, CupertinoDialogAction, showCupertinoDialog;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
+import 'package:flutter/scheduler.dart';
 
-import 'cupertino_menu_anchor.0.dart';
+import 'dialog.dart';
+import 'dialog_route.dart';
 
 
-void main() => runApp(const CupertinoSimpleMenuApp());
+
+void main() => runApp(const AlertDialogApp());
+
+// Copyright 2014 The Flutter Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+
+
+class AlertDialogApp extends StatelessWidget {
+  const AlertDialogApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const CupertinoApp(
+      theme: CupertinoThemeData(brightness: Brightness.light),
+      home: AlertDialogExample(),
+    );
+  }
+}
+
+class AlertDialogExample extends StatelessWidget {
+  const AlertDialogExample({super.key});
+
+  void _showAlertDialog(BuildContext context) {
+    timeDilation = 3;
+    showCupertinoDialog<void>(
+      context: context,
+      builder:
+          (BuildContext context) => CupertinoAlertDialog(
+            title: const Text('Alert'),
+            content: const Text('Proceed with destructive action?'),
+            actions: <CupertinoDialogAction>[
+              CupertinoDialogAction(
+                /// This parameter indicates this action is the default,
+                /// and turns the action's text to bold text.
+                isDefaultAction: true,
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('No'),
+              ),
+              CupertinoDialogAction(
+                /// This parameter indicates the action would perform
+                /// a destructive action such as deletion, and turns
+                /// the action's text color to red.
+                isDestructiveAction: true,
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text('Yes'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _FilterTest(
+      Center(
+        child: CupertinoButton(
+          onPressed: () => _showAlertDialog(context),
+          child: const Text('CupertinoAlertDialog'),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterTest extends StatelessWidget {
+  const _FilterTest(Widget child, {this.brightness = Brightness.light}) : _child = child;
+  final Brightness brightness;
+  final Widget _child;
+
+  @override
+  Widget build(BuildContext context) {
+    final Size size = MediaQuery.sizeOf(context);
+    final double tileHeight = size.height / 4;
+    final double tileWidth = size.width / 8;
+    return CupertinoApp(
+      home: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          // 512 color tiles
+          // 4 alpha levels (0.416, 0.25, 0.5, 0.75)
+          for (int a = 0; a < 4; a++)
+            for (int h = 0; h < 8; h++) // 8 hues
+              for (int s = 0; s < 4; s++) // 4 saturation levels
+                for (int b = 0; b < 4; b++) // 4 brightness levels
+                  Positioned(
+                    left: h * tileWidth + b * tileWidth / 4,
+                    top: a * tileHeight + s * tileHeight / 4,
+                    height: tileHeight,
+                    width: tileWidth,
+                    child: ColoredBox(
+                      color:
+                          HSVColor.fromAHSV(
+                            0.5 + a / 8,
+                            h * 45,
+                            0.5 + s / 8,
+                            0.5 + b / 8,
+                          ).toColor(),
+                    ),
+                  ),
+          Padding(
+            padding: const EdgeInsets.all(32),
+            child: CupertinoTheme(data: CupertinoThemeData(brightness: brightness), child: _child),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 
 class CupertinoSurfaceDemo extends StatefulWidget {
   const CupertinoSurfaceDemo({super.key});
