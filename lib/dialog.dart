@@ -14,10 +14,9 @@ import 'dart:ui' show ImageFilter, SemanticsRole, lerpDouble;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart';
 
 
 // TODO(abarth): These constants probably belong somewhere more general.
@@ -193,19 +192,28 @@ bool _isInAccessibilityMode(BuildContext context) {
 /// The default width of the divider is 1 physical pixel, Unlike a [Border],
 /// the [thickness] of the divider does occupy layout space.
 class CupertinoMenuDivider extends StatelessWidget {
+  const CupertinoMenuDivider({
+    super.key,
+    this.color = baseColor,
+    this.tint = overlayColor,
+  }) : _axisDirection =null;
   /// Draws a [CupertinoMenuDivider] below a [child].
   /// Creates a [CupertinoMenuDivider].
   ///
   /// By default, the divider is 1 physical pixel thick.
-  const CupertinoMenuDivider({
+  const CupertinoMenuDivider.vertical({
     super.key,
-    this.color = col,
+    this.color = baseColor,
     this.tint = overlayColor,
-    this.thickness,
-    this.child,
-  });
+  }) : _axisDirection = Axis.vertical;
 
-  final Widget? child;
+  const CupertinoMenuDivider.horizontal({
+    super.key,
+    this.color = baseColor,
+    this.tint = overlayColor,
+  }) : _axisDirection = Axis.horizontal;
+
+  final Axis? _axisDirection;
 
   /// The color of divider.
   ///
@@ -216,11 +224,6 @@ class CupertinoMenuDivider extends StatelessWidget {
   ///
   /// Defaults to [CupertinoMenuDivider.tintColor].
   final CupertinoDynamicColor tint;
-
-  /// The thickness of the divider.
-  ///
-  /// If null, the default divider thickness is 1 physical pixel.
-  final double? thickness;
 
   /// The default color applied to the [_CupertinoMenuDivider] with
   /// [ui.BlendMode.overlay].
@@ -246,86 +249,108 @@ class CupertinoMenuDivider extends StatelessWidget {
   /// [overlayColor], with [BlendMode.srcOver].
   ///
   /// This color is used to make the divider more opaque.
-  static const CupertinoDynamicColor col = CupertinoDynamicColor.withBrightness(
+  static const CupertinoDynamicColor baseColor = CupertinoDynamicColor.withBrightness(
     color: Color.fromRGBO(0, 0, 0, 0.24),
     darkColor: Color.fromRGBO(255, 255, 255, 0.10),
   );
 
   @override
   Widget build(BuildContext context) {
-    final double pixelRatio = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0;
-    final double displacement = 1 / pixelRatio;
-    final TextDirection textDirection = Directionality.of(context);
-    final Alignment begin = AlignmentDirectional.centerStart.resolve(textDirection);
-    final Alignment end = AlignmentDirectional.centerEnd.resolve(textDirection);
-    assert(
-      begin.y == end.y && begin.y.roundToDouble() == begin.y,
-      'CupertinoMenuDivider must either inhabit the top, bottom, or center of its parent.',
-    );
+    final double physicalPixel = 1 / (MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0);
     return CustomPaint(
+      size: _axisDirection == null ? Size.infinite :_axisDirection == Axis.vertical
+          ? Size(physicalPixel, double.infinity)
+          : Size(double.infinity, physicalPixel),
       painter: _AliasedLinePainter(
-        begin: begin,
-        end: end,
-        overlayColor: CupertinoDynamicColor.resolve(overlayColor, context),
-        offset: Offset(0, -displacement / 2),
-        border: BorderSide(
-          // TODO(davidhicks980): Remove conditional when web supports hairline borders,
-          //                      https://github.com/flutter/flutter/issues/70301
-          width: kIsWeb ? displacement : (thickness ?? 0.0),
-          color: CupertinoDynamicColor.resolve(color, context),
-        ),
+        axisDirection: _axisDirection,
+        baseColor: CupertinoDynamicColor.resolve(Colors.black, context),
+        overlayColor: CupertinoDynamicColor.resolve(Colors.black, context),
         // Only anti-alias on devices with a low pixel density.
-        antiAlias: pixelRatio < 1.0,
+        isAntiAlias: physicalPixel > 1.0,
       ),
-      child: Padding(padding: EdgeInsets.only(bottom: displacement), child: child),
     );
   }
 }
 
 // A custom painter that draws a border without antialiasing.
 class _AliasedLinePainter extends CustomPainter {
-  const _AliasedLinePainter({
-    required this.border,
-    required this.begin,
-    required this.end,
+  const _AliasedLinePainter( {
     required this.overlayColor,
-    this.antiAlias = false,
-    this.offset = Offset.zero,
+    required this.baseColor,
+    required this.axisDirection,
+    required this.isAntiAlias,
   });
 
-  final BorderSide border;
-  final Alignment begin;
-  final Alignment end;
   final Color overlayColor;
-  final bool antiAlias;
-  final Offset offset;
+  final Axis? axisDirection;
+  final Color baseColor;
+  final bool isAntiAlias;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Offset p1 = begin.alongSize(size) + offset;
-    final Offset p2 = end.alongSize(size) + offset;
-
-    // BlendMode.overlay is not supported on the web.
-    if (!kIsWeb) {
-      final Paint overlayPainter =
-          border.toPaint()
-            ..color = overlayColor
-            ..isAntiAlias = antiAlias
-            ..blendMode = BlendMode.overlay;
-      canvas.drawLine(p1, p2, overlayPainter);
+    if (axisDirection == null) {
+        canvas.drawRect(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        Paint()
+          ..blendMode = BlendMode.overlay
+          ..color = overlayColor
+          ..isAntiAlias = isAntiAlias,
+      );
+      canvas.drawRect(
+        Rect.fromLTWH(0, 0, size.width, size.height),
+        Paint()
+          ..color = baseColor
+          ..isAntiAlias = isAntiAlias,
+      );
+      return;
     }
 
-    final Paint colorPainter = border.toPaint()..isAntiAlias = antiAlias;
-    canvas.drawLine(p1, p2, colorPainter);
+    final (Offset start, Offset end, double thickness) = switch(axisDirection!) {
+      Axis.horizontal => (
+          Offset(0, size.height),
+          Offset(size.width, size.height),
+          size.height
+        ),
+      Axis.vertical => (
+          Offset(size.width, 0),
+          Offset(size.width, size.height),
+          size.width
+        ),
+    };
+    // BlendMode.overlay is not supported on the web.
+    if (!kIsWeb) {
+
+         canvas.drawLine(
+        start,
+        end,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..blendMode = BlendMode.overlay
+          ..strokeWidth = thickness
+          ..color = overlayColor
+          ..isAntiAlias = isAntiAlias,
+      );
+      canvas.drawLine(
+        start,
+        end,
+        Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth =  thickness
+          ..color = baseColor
+          ..isAntiAlias = isAntiAlias,
+      );
+
+
+    }
+
+    // canvas.drawLine(p1, p2, colorPainter);
   }
 
   @override
   bool shouldRepaint(_AliasedLinePainter oldDelegate) {
-    return end != oldDelegate.end ||
-        begin != oldDelegate.begin ||
-        border != oldDelegate.border ||
-        offset != oldDelegate.offset ||
-        antiAlias != oldDelegate.antiAlias ||
+    return
+        baseColor != oldDelegate.baseColor ||
+        isAntiAlias != oldDelegate.isAntiAlias ||
         overlayColor != oldDelegate.overlayColor;
   }
 }
@@ -530,12 +555,12 @@ class _CupertinoAlertDialogState extends State<CupertinoAlertDialog> {
             return contentSection ??
                 const LimitedBox(maxWidth: 0, child: SizedBox(width: double.infinity, height: 0),);
           }
-          final Widget scrolledActionsSection = _OverscrollBackground(
-            color: backgroundColor,
-            child: actionsSection,
-          );
+          // final Widget scrolledActionsSection = _OverscrollBackground(
+          //   color: backgroundColor,
+          //   child: actionsSection,
+          // );
           if (contentSection == null) {
-            return scrolledActionsSection;
+            return actionsSection;
           }
           // It is observed on the simulator that the minimal height varies
           // depending on whether the device is in accessibility mode.
@@ -547,11 +572,8 @@ class _CupertinoAlertDialogState extends State<CupertinoAlertDialog> {
             top: contentSection,
             bottom: Column(
               children: <Widget>[
-                const SizedBox(
-                  width: double.infinity,
-                  child: CupertinoMenuDivider()
-                ),
-                Flexible(child: scrolledActionsSection),
+                 const CupertinoMenuDivider.horizontal(),
+                Flexible(child: actionsSection),
               ],
             ),
             bottomMinHeight: actionsMinHeight,
@@ -566,7 +588,7 @@ class _CupertinoAlertDialogState extends State<CupertinoAlertDialog> {
     final CupertinoLocalizations localizations = CupertinoLocalizations.of(context);
     final bool isInAccessibilityMode = _isInAccessibilityMode(context);
     final Color backgroundColor = CupertinoDynamicColor.resolve(_kDialogColor, context);
-timeDilation = 10;
+
     return CupertinoUserInterfaceLevel(
       data: CupertinoUserInterfaceLevelData.elevated,
       child: MediaQuery.withClampedTextScaling(
@@ -577,7 +599,6 @@ timeDilation = 10;
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
-               final Animation<double>? forwardAnimation = ModalRoute.of(context)!.animation;
               return AnimatedPadding(
                     padding:
                         MediaQuery.viewInsetsOf(context) +
@@ -599,30 +620,19 @@ timeDilation = 10;
                                     ? _kAccessibilityCupertinoDialogWidth
                                     : _kCupertinoDialogWidth,
                             child: _ActionSheetGestureDetector(
-                              child: AnimatedBuilder(
-                                animation: forwardAnimation!,
-                                builder: (BuildContext context, Widget? child) {
-                                  return CupertinoPopupSurface(
-                                    vibrance:  forwardAnimation.value,
-                                    isSurfacePainted: false,
-                                    blurSigma: CupertinoPopupSurface.defaultBlurSigma * Curves.easeIn.transform(forwardAnimation.value),
-                                    child: ColoredBox(
-                                      color: backgroundColor.withValues(
-                                        alpha: backgroundColor.a * forwardAnimation.value,
-                                      ),
-                                      child: Semantics(
-                                        role: SemanticsRole.alertDialog,
-                                        namesRoute: true,
-                                        scopesRoute: true,
-                                        explicitChildNodes: true,
-                                        label: localizations.alertDialogLabel,
-                                        child: FadeTransition(
-                                          opacity: forwardAnimation,
-                                          child: _buildBody(context)),
-                                      ),
-                                    ),
-                                  );
-                                }
+                              child: CupertinoPopupSurface(
+                                isSurfacePainted: false,
+                                child: ColoredBox(
+                                  color: backgroundColor,
+                                  child: Semantics(
+                                    role: SemanticsRole.alertDialog,
+                                    namesRoute: true,
+                                    scopesRoute: true,
+                                    explicitChildNodes: true,
+                                    label: localizations.alertDialogLabel,
+                                    child: _buildBody(context),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -688,7 +698,6 @@ class CupertinoPopupSurface extends StatelessWidget {
     super.key,
     this.blurSigma = defaultBlurSigma,
     this.isSurfacePainted = true,
-    this.vibrance = 1,
     required this.child,
   }) : assert(blurSigma >= 0, 'CupertinoPopupSurface requires a non-negative blur sigma.');
 
@@ -716,15 +725,12 @@ class CupertinoPopupSurface extends StatelessWidget {
   // the size of their child, a [child] is required to ensure that this surface
   // has a size.
   final Widget child;
-  final double vibrance;
-
 
   /// The default strength of the blur applied to widgets underlying a
   /// [CupertinoPopupSurface].
   ///
   /// Eyeballed from the iOS 17 simulator.
   static const double defaultBlurSigma = 30.0;
-
 
   /// The default corner radius of a [CupertinoPopupSurface].
   static const BorderRadius _clipper = BorderRadius.all(Radius.circular(14));
@@ -824,13 +830,6 @@ class CupertinoPopupSurface extends StatelessWidget {
     0.00,
   ];
 
-  static const List<double> identity = <double>[
-    1.0, 0.0, 0.0, 0.0, 0.0, //
-    0.0, 1.0, 0.0, 0.0, 0.0, //
-    0.0, 0.0, 1.0, 0.0, 0.0, //
-    0.0, 0.0, 0.0, 1.0, 0.0, //
-  ];
-
   /// Whether or not the area beneath this surface should be saturated with a
   /// [ColorFilter].
   ///
@@ -855,24 +854,9 @@ class CupertinoPopupSurface extends StatelessWidget {
       return ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma);
     }
 
-
     final ColorFilter colorFilter = switch (brightness) {
-      Brightness.dark => ColorFilter.matrix(<double>[
-          for (int i = 0; i < 20; i++)
-            lerpDouble(
-              identity[i],
-              _darkSaturationMatrix[i],
-              vibrance,
-            )!
-        ]),
-      Brightness.light || null => ColorFilter.matrix(<double>[
-          for (int i = 0; i < 20; i++)
-            lerpDouble(
-              identity[i],
-              _lightSaturationMatrix[i],
-              vibrance,
-            )!
-        ]),
+      Brightness.dark => const ColorFilter.matrix(_darkSaturationMatrix),
+      Brightness.light || null => const ColorFilter.matrix(_lightSaturationMatrix),
     };
 
     if (blurSigma == 0) {
@@ -2161,10 +2145,7 @@ class _CupertinoAlertActionSection extends StatelessWidget {
     for (int actionIndex = 0; actionIndex < actions.length; actionIndex += 1) {
       if (actionIndex != 0) {
         column.add(
-          _Divider(
-            dividerColor: dividerColor,
-            hiddenColor: dialogColor,
-            hidden: pressedIndex == actionIndex - 1 || pressedIndex == actionIndex,
+          const CupertinoMenuDivider(
           ),
         );
       }
@@ -2180,12 +2161,12 @@ class _CupertinoAlertActionSection extends StatelessWidget {
         ),
       );
     }
-
+    final double physicalPixel = 1 / (MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0);
     return CupertinoScrollbar(
       controller: scrollController,
       child: SingleChildScrollView(
         controller: scrollController,
-        child: _AlertDialogActionsLayout(dividerThickness: _kDividerThickness, children: column),
+        child: _AlertDialogActionsLayout(dividerThickness: physicalPixel, children: column),
       ),
     );
   }
