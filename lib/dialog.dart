@@ -192,28 +192,40 @@ bool _isInAccessibilityMode(BuildContext context) {
 /// The default width of the divider is 1 physical pixel, Unlike a [Border],
 /// the [thickness] of the divider does occupy layout space.
 class CupertinoMenuDivider extends StatelessWidget {
-  const CupertinoMenuDivider({
-    super.key,
-    this.color = baseColor,
-    this.tint = overlayColor,
-  }) : _axisDirection =null;
   /// Draws a [CupertinoMenuDivider] below a [child].
   /// Creates a [CupertinoMenuDivider].
   ///
   /// By default, the divider is 1 physical pixel thick.
-  const CupertinoMenuDivider.vertical({
+  const CupertinoMenuDivider.wrapTop({
     super.key,
     this.color = baseColor,
     this.tint = overlayColor,
-  }) : _axisDirection = Axis.vertical;
+    required this.child,
+  }) : start = AlignmentDirectional.topStart, end = AlignmentDirectional.topEnd;
 
-  const CupertinoMenuDivider.horizontal({
+  const CupertinoMenuDivider.wrapBottom({
     super.key,
     this.color = baseColor,
     this.tint = overlayColor,
-  }) : _axisDirection = Axis.horizontal;
+    required this.child,
+  }) : start = AlignmentDirectional.bottomStart, end = AlignmentDirectional.bottomEnd;
 
-  final Axis? _axisDirection;
+  const CupertinoMenuDivider.wrapStart({
+    super.key,
+    this.color = baseColor,
+    this.tint = overlayColor,
+    required this.child,
+  }) : start = AlignmentDirectional.topStart, end = AlignmentDirectional.bottomStart;
+
+  const CupertinoMenuDivider.wrapEnd({
+    super.key,
+    this.color = baseColor,
+    this.tint = overlayColor,
+    required this.child,
+  }) : start = AlignmentDirectional.topEnd, end = AlignmentDirectional.bottomEnd;
+
+  final AlignmentDirectional start;
+  final AlignmentDirectional end;
 
   /// The color of divider.
   ///
@@ -224,6 +236,8 @@ class CupertinoMenuDivider extends StatelessWidget {
   ///
   /// Defaults to [CupertinoMenuDivider.tintColor].
   final CupertinoDynamicColor tint;
+
+  final Widget child;
 
   /// The default color applied to the [_CupertinoMenuDivider] with
   /// [ui.BlendMode.overlay].
@@ -256,17 +270,38 @@ class CupertinoMenuDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double physicalPixel = 1 / (MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0);
+    final double pixelRatio =
+        MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0;
+    final double displacement = 1 / pixelRatio;
+    final TextDirection textDirection = Directionality.of(context);
+    final Alignment resolvedStart = start.resolve(textDirection);
+    final Alignment resolvedEnd =   end.resolve(textDirection);
+
     return CustomPaint(
-      size: _axisDirection == null ? Size.infinite :_axisDirection == Axis.vertical
-          ? Size(physicalPixel, double.infinity)
-          : Size(double.infinity, physicalPixel),
       painter: _AliasedLinePainter(
-        axisDirection: _axisDirection,
-        baseColor: CupertinoDynamicColor.resolve(Colors.black, context),
-        overlayColor: CupertinoDynamicColor.resolve(Colors.black, context),
+        begin: resolvedStart,
+        end: resolvedEnd,
+        overlayColor: CupertinoDynamicColor.resolve(overlayColor, context),
+        offset: resolvedStart.x == resolvedEnd.x
+            ? Offset(0, resolvedStart.y * (displacement / 2))
+            : Offset(resolvedStart.x * (displacement / 2), 0),
+        border: BorderSide(
+            // TODO(davidhicks980): Remove conditional when web supports hairline borders,
+            //                      https://github.com/flutter/flutter/issues/70301
+            width: kIsWeb ? displacement : 0.0,
+            color: CupertinoDynamicColor.resolve(color, context),
+            ),
         // Only anti-alias on devices with a low pixel density.
-        isAntiAlias: physicalPixel > 1.0,
+        antiAlias: pixelRatio < 1.0,
+      ),
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: resolvedStart.x == resolvedEnd.x && resolvedStart.x < 0  ? displacement : 0,
+          right: resolvedStart.x == resolvedEnd.x && resolvedStart.x > 0  ? displacement : 0,
+          bottom: resolvedStart.y == resolvedEnd.y  && resolvedEnd.x < 0 ? 0 : displacement,
+          top: resolvedStart.y == resolvedEnd.y && resolvedEnd.x > 0 ? 0 : displacement,
+        ),
+        child: child,
       ),
     );
   }
@@ -274,83 +309,47 @@ class CupertinoMenuDivider extends StatelessWidget {
 
 // A custom painter that draws a border without antialiasing.
 class _AliasedLinePainter extends CustomPainter {
-  const _AliasedLinePainter( {
+  const _AliasedLinePainter({
+    required this.border,
+    required this.begin,
+    required this.end,
     required this.overlayColor,
-    required this.baseColor,
-    required this.axisDirection,
-    required this.isAntiAlias,
+    this.antiAlias = false,
+    this.offset = Offset.zero,
   });
 
+  final BorderSide border;
+  final Alignment begin;
+  final Alignment end;
   final Color overlayColor;
-  final Axis? axisDirection;
-  final Color baseColor;
-  final bool isAntiAlias;
+  final bool antiAlias;
+  final Offset offset;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (axisDirection == null) {
-        canvas.drawRect(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Paint()
-          ..blendMode = BlendMode.overlay
-          ..color = overlayColor
-          ..isAntiAlias = isAntiAlias,
-      );
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-        Paint()
-          ..color = baseColor
-          ..isAntiAlias = isAntiAlias,
-      );
-      return;
-    }
+    final Offset p1 = begin.alongSize(size) + offset;
+    final Offset p2 = end.alongSize(size) + offset;
 
-    final (Offset start, Offset end, double thickness) = switch(axisDirection!) {
-      Axis.horizontal => (
-          Offset(0, size.height),
-          Offset(size.width, size.height),
-          size.height
-        ),
-      Axis.vertical => (
-          Offset(size.width, 0),
-          Offset(size.width, size.height),
-          size.width
-        ),
-    };
     // BlendMode.overlay is not supported on the web.
     if (!kIsWeb) {
-
-         canvas.drawLine(
-        start,
-        end,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..blendMode = BlendMode.overlay
-          ..strokeWidth = thickness
-          ..color = overlayColor
-          ..isAntiAlias = isAntiAlias,
-      );
-      canvas.drawLine(
-        start,
-        end,
-        Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth =  thickness
-          ..color = baseColor
-          ..isAntiAlias = isAntiAlias,
-      );
-
-
+      final Paint overlayPainter = border.toPaint()
+        ..color = overlayColor
+        ..isAntiAlias = antiAlias
+        ..blendMode = BlendMode.overlay;
+      canvas.drawLine(p1, p2, overlayPainter);
     }
 
-    // canvas.drawLine(p1, p2, colorPainter);
+    final Paint colorPainter = border.toPaint()..isAntiAlias = antiAlias;
+    canvas.drawLine(p1, p2, colorPainter);
   }
 
   @override
   bool shouldRepaint(_AliasedLinePainter oldDelegate) {
-    return
-        baseColor != oldDelegate.baseColor ||
-        isAntiAlias != oldDelegate.isAntiAlias ||
+    return end != oldDelegate.end ||
+        begin != oldDelegate.begin ||
+        border != oldDelegate.border ||
+        offset != oldDelegate.offset ||
+        antiAlias != oldDelegate.antiAlias ||
         overlayColor != oldDelegate.overlayColor;
   }
 }
@@ -570,11 +569,8 @@ class _CupertinoAlertDialogState extends State<CupertinoAlertDialog> {
                   : _kDialogActionsSectionMinHeight + _kDividerThickness;
           return _PriorityColumn(
             top: contentSection,
-            bottom: Column(
-              children: <Widget>[
-                 const CupertinoMenuDivider.horizontal(),
-                Flexible(child: actionsSection),
-              ],
+            bottom: CupertinoMenuDivider.wrapTop(
+              child: actionsSection,
             ),
             bottomMinHeight: actionsMinHeight,
           );
@@ -2143,14 +2139,7 @@ class _CupertinoAlertActionSection extends StatelessWidget {
 
     final List<Widget> column = <Widget>[];
     for (int actionIndex = 0; actionIndex < actions.length; actionIndex += 1) {
-      if (actionIndex != 0) {
-        column.add(
-          const CupertinoMenuDivider(
-          ),
-        );
-      }
-      column.add(
-        _AlertDialogButtonBackground(
+      Widget child = _AlertDialogButtonBackground(
           idleColor: dialogColor,
           pressedColor: dialogPressedColor,
           pressed: pressedIndex == actionIndex,
@@ -2158,8 +2147,11 @@ class _CupertinoAlertActionSection extends StatelessWidget {
             onPressedUpdate(actionIndex, state);
           },
           child: actions[actionIndex],
-        ),
-      );
+        );
+      if (actionIndex != 0) {
+        child = CupertinoMenuDivider.wrapEnd(child: child);
+      }
+
     }
     final double physicalPixel = 1 / (MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0);
     return CupertinoScrollbar(
